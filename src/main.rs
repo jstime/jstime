@@ -33,6 +33,7 @@ fn run_file(filepath: &str) {
     },
     Err(_e) => {
       println!("Error: file doesn't exist")
+      process::exit(1);
     }
   }
 }
