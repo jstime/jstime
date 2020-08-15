@@ -4,6 +4,14 @@
 
 ![JSTime logo. Kinda looks like shrek](./logo.png)
 
+## Getting Started
+
+Honestly I'm just learning rust right now 😅
+
+```bash
+$ cargo run path-to-js.js
+```
+
 ## TODO
 
 * [console](https://console.spec.whatwg.org/)
