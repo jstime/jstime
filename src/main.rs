@@ -3,6 +3,9 @@ use std::fs;
 
 use rusty_v8 as v8;
 
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
+
 fn run(js: &str) -> String {
   let platform = v8::new_default_platform().unwrap();
   v8::V8::initialize_platform(platform);
@@ -31,7 +34,28 @@ fn run_file(filepath: &str) {
 }
 
 fn repl() {
-  println!("$ This will be a repl");
+  let mut rl = Editor::<()>::new();
+  loop {
+    let readline = rl.readline(">> ");
+    match readline {
+      Ok(line) => {
+        let result = run(&line);
+        println!("{}", &result);
+      },
+      Err(ReadlineError::Interrupted) => {
+        println!("Thanks for stopping by!");
+        break
+      },
+      Err(ReadlineError::Eof) => {
+        println!("Eof'd");
+        break
+      },
+      Err(err) => {
+        println!("Error: {:?}", err);
+        break
+      }
+    }
+  }
 }
 
 fn main() {
