@@ -1,8 +1,8 @@
-# JSTime
+# jstime
 
 > Another JavaScript Runtime
 
-![JSTime logo. Kinda looks like shrek](./logo.png)
+![jstime logo. Kinda looks like shrek](./logo.png)
 
 ## Getting Started
 
