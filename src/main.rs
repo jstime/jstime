@@ -22,15 +22,25 @@ fn run(js: &str) -> String {
   return result.to_rust_string_lossy(scope);
 }
 
-fn main() {
-  let args: Vec<String> = env::args().collect();
-
-  assert_eq!(args.len(), 2);
-  
-  let filepath = &args[1];
+fn run_file(filepath: &str) {
   let contents = fs::read_to_string(filepath)
       .expect("Something went wrong reading the file");
   
   let result = run(&contents);
   println!("result: {}", &result);
+}
+
+fn repl() {
+  println!("$ This will be a repl");
+}
+
+fn main() {
+  let args: Vec<String> = env::args().collect();
+  let len = args.len();
+  
+  match len {
+    1 => repl(),
+    2 => run_file(&args[1]),
+    _ => println!("Woopsie Doodles")
+  }
 }
