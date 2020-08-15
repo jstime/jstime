@@ -6,8 +6,34 @@ on:
 name: Create Release
 
 jobs:
-  build:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Get the release version from the tag
+        if: env.RG_VERSION == ''
+        run: |
+          # Apparently, this is the right way to get a tag name. Really?
+          #
+          # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
+          echo "::set-env name=RG_VERSION::${GITHUB_REF#refs/tags/}"
+          echo "version is: ${{ env.RG_VERSION }}"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: Careful, thar be dragons.
+          draft: false
+          prerelease: false
+  build-release:
     name: Publish for ${{ matrix.os }}
+    needs: ['create-release']
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -21,15 +47,15 @@ jobs:
           - name: linux
             os: ubuntu-latest
             artifact_name: jstime
-            asset_name: jstime-${{ github.ref }}-linux.tar.gz
+            asset_name: jstime-${{ env.RG_VERSION }}-linux.tar.gz
           - name: windows
             os: windows-latest
             artifact_name: jstime.exe
-            asset_name: jstime-${{ github.ref }}-windows.zip
+            asset_name: jstime-${{ env.RG_VERSION }}-windows.zip
           - name: macos
             os: macos-latest
             artifact_name: jstime
-            asset_name: jstime-${{ github.ref }}-macos.tar.gz
+            asset_name: jstime-${{ env.RG_VERSION }}-macos.tar.gz
     steps:
     - uses: actions/checkout@v1
 
@@ -58,21 +84,3 @@ jobs:
         file: ${{ matrix.asset_name }}
         asset_name: ${{ matrix.asset_name }}
         tag: ${{ github.ref }}
-
-  publish:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          body: Careful, thar be dragons.
-          draft: false
-          prerelease: false
