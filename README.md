@@ -11,6 +11,7 @@ Honestly I'm just learning rust right now 😅
 ```bash
 $ cargo run # run a js repl!
 $ cargo run path-to-js.js # run a js file!
+$ cargo build --release # make a prod build
 ```
 
 ## FYI
