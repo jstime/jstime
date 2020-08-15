@@ -6,26 +6,8 @@ on:
 name: Create Release
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          body: Careful, thar be dragons.
-          draft: false
-          prerelease: false
-  build-release:
+  build:
     name: Publish for ${{ matrix.os }}
-    needs: ['create-release']
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -39,15 +21,15 @@ jobs:
           - name: linux
             os: ubuntu-latest
             artifact_name: jstime
-            asset_name: jstime-${{ ${github.ref/refs\/tags\//} }}-linux.tar.gz
+            asset_name: jstime-linux.tar.gz
           - name: windows
             os: windows-latest
             artifact_name: jstime.exe
-            asset_name: jstime-${{ ${github.ref/refs\/tags\//} }}-windows.zip
+            asset_name: jstime-windows.zip
           - name: macos
             os: macos-latest
             artifact_name: jstime
-            asset_name: jstime-${{ ${github.ref/refs\/tags\//} }}-macos.tar.gz
+            asset_name: jstime-macos.tar.gz
     steps:
     - uses: actions/checkout@v1
 
@@ -76,3 +58,21 @@ jobs:
         file: ${{ matrix.asset_name }}
         asset_name: ${{ matrix.asset_name }}
         tag: ${{ github.ref }}
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: Careful, thar be dragons.
+          draft: false
+          prerelease: false
