@@ -48,9 +48,9 @@ jobs:
       shell: bash
       run: |
         if [ "${{ matrix.os }}" = "windows" ]; then
-          7z a "target/release/${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
+          7z a "${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
         else
-          tar czf "target/release/${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
+          tar czf "${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
         fi
 
     - name: Upload binaries to release
