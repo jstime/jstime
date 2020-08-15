@@ -12,14 +12,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Get the release version from the tag
-        if: env.RG_VERSION == ''
-        run: |
-          # Apparently, this is the right way to get a tag name. Really?
-          #
-          # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
-          echo "::set-env name=RG_VERSION::${GITHUB_REF#refs/tags/}"
-          echo "version is: ${{ env.RG_VERSION }}"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -47,15 +39,15 @@ jobs:
           - name: linux
             os: ubuntu-latest
             artifact_name: jstime
-            asset_name: jstime-${{ env.RG_VERSION }}-linux.tar.gz
+            asset_name: jstime-${GITHUB_REF##*/}-linux.tar.gz
           - name: windows
             os: windows-latest
             artifact_name: jstime.exe
-            asset_name: jstime-${{ env.RG_VERSION }}-windows.zip
+            asset_name: jstime-${GITHUB_REF##*/}-windows.zip
           - name: macos
             os: macos-latest
             artifact_name: jstime
-            asset_name: jstime-${{ env.RG_VERSION }}-macos.tar.gz
+            asset_name: jstime-${GITHUB_REF##*/}-macos.tar.gz
     steps:
     - uses: actions/checkout@v1
 
