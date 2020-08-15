@@ -40,13 +40,21 @@ fn run_file(filepath: &str) {
 
 fn repl() {
   let isolate = &mut v8::Isolate::new(Default::default());
+  let scope = &mut v8::HandleScope::new(isolate);
+  let context = v8::Context::new(scope);
+  let scope = &mut v8::ContextScope::new(scope, context);
+
   let mut rl = Editor::<()>::new();
   loop {
     let readline = rl.readline(">> ");
     match readline {
       Ok(line) => {
-        let result = run(isolate, &line);
-        println!("{}", &result);
+        let code = v8::String::new(scope, &line).unwrap();
+
+        let script = v8::Script::compile(scope, code, None).unwrap();
+        let result = script.run(scope).unwrap();
+        let result = result.to_string(scope).unwrap();
+        println!("{}", &result.to_rust_string_lossy(scope));
       },
       Err(ReadlineError::Interrupted) => {
         println!("Thanks for stopping by!");
