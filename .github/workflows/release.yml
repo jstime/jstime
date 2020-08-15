@@ -21,15 +21,18 @@ jobs:
           - name: linux
             os: ubuntu-latest
             artifact_name: jstime
-            asset_name: jstime-linux
+            archive_name: jstime-linux.tar.gz
+            asset_name: jstime-linux.tar.gz
           - name: windows
             os: windows-latest
             artifact_name: jstime.exe
-            asset_name: jstime-windows
+            archive_name: jstime-windows.zip
+            asset_name: jstime-windows.zip
           - name: macos
             os: macos-latest
             artifact_name: jstime
-            asset_name: jstime-macos
+            archive_name: jstime-macos.tar.gz
+            asset_name: jstime-macos.tar.gz
     steps:
     - uses: actions/checkout@v1
 
@@ -41,11 +44,20 @@ jobs:
     - name: Build
       run: cargo build --release --locked
 
+    - name: archive release
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "windows" ]; then
+          7z a "target/release/${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
+        else
+          tar czf "target/release/${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
+        fi
+
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v1-release
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/release/${{ matrix.artifact_name }}
+        file: ${{ matrix.artifact_name }}
         asset_name: ${{ matrix.asset_name }}
         tag: ${{ github.ref }}
   publish:
