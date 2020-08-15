@@ -51,7 +51,7 @@ jobs:
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           7z a "${{ matrix.archive_name }}" "${{ matrix.artifact_name }}"
         else
-          tar czf "${{ matrix.archive_name }}" "{{ matrix.artifact_name }}"
+          tar czf "${{ matrix.archive_name }}" "${{ matrix.artifact_name }}"
         fi
 
     - name: Upload binaries to release
