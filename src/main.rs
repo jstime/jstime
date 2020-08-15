@@ -19,7 +19,8 @@ fn run(isolate: &mut v8::Isolate, js: &str) -> String {
   return result.to_rust_string_lossy(scope);
 }
 
-fn run_file(isolate: &mut v8::Isolate, filepath: &str) {
+fn run_file(filepath: &str) {
+  let isolate = &mut v8::Isolate::new(Default::default());
   let contents = fs::read_to_string(filepath)
       .expect("Something went wrong reading the file");
   
@@ -27,7 +28,8 @@ fn run_file(isolate: &mut v8::Isolate, filepath: &str) {
   println!("{}", &result);
 }
 
-fn repl(isolate: &mut v8::Isolate) {
+fn repl() {
+  let isolate = &mut v8::Isolate::new(Default::default());
   let mut rl = Editor::<()>::new();
   loop {
     let readline = rl.readline(">> ");
@@ -59,12 +61,10 @@ fn main() {
   let platform = v8::new_default_platform().unwrap();
   v8::V8::initialize_platform(platform);
   v8::V8::initialize();
-
-  let isolate = &mut v8::Isolate::new(Default::default());
   
   match len {
-    1 => repl(isolate),
-    2 => run_file(isolate, &args[1]),
+    1 => repl(),
+    2 => run_file(&args[1]),
     _ => println!("Woopsie Doodles")
   }
 }
