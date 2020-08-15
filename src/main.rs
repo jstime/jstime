@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::process;
 
 use rusty_v8 as v8;
 
@@ -20,12 +21,20 @@ fn run(isolate: &mut v8::Isolate, js: &str) -> String {
 }
 
 fn run_file(filepath: &str) {
-  let isolate = &mut v8::Isolate::new(Default::default());
-  let contents = fs::read_to_string(filepath)
-      .expect("Something went wrong reading the file");
-  
-  let result = run(isolate, &contents);
-  println!("{}", &result);
+  let stat = fs::metadata(filepath);
+  match stat {
+    Ok(_stat)=> {
+      let isolate = &mut v8::Isolate::new(Default::default());
+      let contents = fs::read_to_string(filepath)
+          .expect("Something went wrong reading the file");
+
+      let result = run(isolate, &contents);
+      println!("{}", &result);
+    },
+    Err(_e) => {
+      println!("Error: file doesn't exist")
+    }
+  }
 }
 
 fn repl() {
@@ -57,6 +66,11 @@ fn repl() {
 fn main() {
   let args: Vec<String> = env::args().collect();
   let len = args.len();
+
+  if len > 2 {
+    println!("Error: Too many arguments");
+    process::exit(1);
+  }
   
   let platform = v8::new_default_platform().unwrap();
   v8::V8::initialize_platform(platform);
