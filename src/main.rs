@@ -30,7 +30,7 @@ fn run_file(filepath: &str) {
       .expect("Something went wrong reading the file");
   
   let result = run(&contents);
-  println!("result: {}", &result);
+  println!("{}", &result);
 }
 
 fn repl() {
