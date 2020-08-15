@@ -45,6 +45,8 @@ fn repl() {
   let scope = &mut v8::ContextScope::new(scope, context);
 
   let mut rl = Editor::<()>::new();
+  
+  println!("\nWelcome to jstime!\n");
   loop {
     let readline = rl.readline(">> ");
     match readline {
