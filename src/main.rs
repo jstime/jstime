@@ -6,13 +6,7 @@ use rusty_v8 as v8;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-fn run(js: &str) -> String {
-  let platform = v8::new_default_platform().unwrap();
-  v8::V8::initialize_platform(platform);
-  v8::V8::initialize();
-
-  let isolate = &mut v8::Isolate::new(Default::default());
-
+fn run(isolate: &mut v8::Isolate, js: &str) -> String {
   let scope = &mut v8::HandleScope::new(isolate);
   let context = v8::Context::new(scope);
   let scope = &mut v8::ContextScope::new(scope, context);
@@ -25,21 +19,21 @@ fn run(js: &str) -> String {
   return result.to_rust_string_lossy(scope);
 }
 
-fn run_file(filepath: &str) {
+fn run_file(isolate: &mut v8::Isolate, filepath: &str) {
   let contents = fs::read_to_string(filepath)
       .expect("Something went wrong reading the file");
   
-  let result = run(&contents);
+  let result = run(isolate, &contents);
   println!("{}", &result);
 }
 
-fn repl() {
+fn repl(isolate: &mut v8::Isolate) {
   let mut rl = Editor::<()>::new();
   loop {
     let readline = rl.readline(">> ");
     match readline {
       Ok(line) => {
-        let result = run(&line);
+        let result = run(isolate, &line);
         println!("{}", &result);
       },
       Err(ReadlineError::Interrupted) => {
@@ -62,9 +56,15 @@ fn main() {
   let args: Vec<String> = env::args().collect();
   let len = args.len();
   
+  let platform = v8::new_default_platform().unwrap();
+  v8::V8::initialize_platform(platform);
+  v8::V8::initialize();
+
+  let isolate = &mut v8::Isolate::new(Default::default());
+  
   match len {
-    1 => repl(),
-    2 => run_file(&args[1]),
+    1 => repl(isolate),
+    2 => run_file(isolate, &args[1]),
     _ => println!("Woopsie Doodles")
   }
 }
