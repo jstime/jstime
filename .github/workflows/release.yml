@@ -47,8 +47,9 @@ jobs:
     - name: archive release
       shell: bash
       run: |
+        cp "target/release/${{ matrix.artifact_name }}" "${{ matrix.artifact_name }}"
         if [ "${{ matrix.os }}" = "windows" ]; then
-          7z a "${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
+          7z a "${{ matrix.archive_name }}" "${{ matrix.artifact_name }}"
         else
           tar czf "${{ matrix.archive_name }}" "target/release/${{ matrix.artifact_name }}"
         fi
@@ -74,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: This is an automated release
+          release_name: ${{ github.ref }}
+          body: Careful, thar be dragons.
           draft: false
           prerelease: false
