@@ -5,6 +5,7 @@ use std::process;
 use rusty_v8 as v8;
 
 mod repl;
+mod bootstrap;
 
 fn run(isolate: &mut v8::Isolate, js: &str) -> String {
   let scope = &mut v8::HandleScope::new(isolate);
@@ -46,9 +47,7 @@ fn main() {
     process::exit(1);
   }
   
-  let platform = v8::new_default_platform().unwrap();
-  v8::V8::initialize_platform(platform);
-  v8::V8::initialize();
+  bootstrap::init();
   
   match len {
     1 => repl::start(),
