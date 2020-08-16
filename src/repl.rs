@@ -32,7 +32,7 @@ pub fn start() {
         break
       },
       Err(err) => {
-        println!("Error: {:?}", err);
+        eprintln!("Error: {:?}", err);
         break
       }
     }
