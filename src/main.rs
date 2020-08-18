@@ -4,8 +4,9 @@ use std::process;
 
 use rusty_v8 as v8;
 
-mod repl;
 mod bootstrap;
+mod binding;
+mod repl;
 
 fn run(isolate: &mut v8::Isolate, js: &str) -> String {
   let scope = &mut v8::HandleScope::new(isolate);
