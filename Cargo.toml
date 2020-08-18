@@ -1,6 +1,6 @@
 [package]
 name = "jstime"
-version = "0.2.16"
+version = "0.3.0"
 authors = ["Myles Borins <myles.borins@gmail.com>"]
 edition = "2018"
 license = "Apache-2.0"
