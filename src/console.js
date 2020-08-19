@@ -1,43 +1,42 @@
 // Cosole
 // https://console.spec.whatwg.org/#console-namespace
 
-const kConsole = Symbol('console');
+((global) => {
+  function printer(loglevel, args) {
+    if (Array.isArray(args) && args.length) {
+      args = args.join(' ');
+    }
+    if (loglevel === 'log') {
+      _printer(args);
+    } else if (loglevel === 'error') {
+      _printer(args, true);
+    }
+  };
 
-globalThis[kConsole] = {};
+  function logger(loglevel, args) {
+    if (!args.length) return;
+    let first = args[0];
+    let rest = args.slice(1);
+    if (!rest.length) {
+      printer(loglevel, first);
+      return;
+    }
 
-globalThis[kConsole]._printer = globalThis.printer;
+    // TODO Handle Format Specifiers
 
-globalThis[kConsole].printer = function printer(loglevel, args) {
-  if (Array.isArray(args) && args.length) {
-    args = args.join(' ');
-  }
-  if (loglevel === 'log') {
-    globalThis[kConsole]._printer(args)
-  } else if (loglevel === 'error') {
-    globalThis[kConsole]._printer(args, true)
-  }
-};
+    printer(loglevel, args);
+  };
 
-globalThis[kConsole].logger = function logger(loglevel, args) {
-  if (!args.length) return;
-  let first = args[0];
-  let rest = args.slice(1);
-  if (!rest.length) {
-    globalThis[kConsole].printer(loglevel, first);
-    return;
-  }
+  function log(...args) {
+    logger('log', args);
+  };
 
-  // TODO Handle Format Specifiers
+  function error(...args) {
+    logger('error', args);
+  };
 
-  globalThis[kConsole].printer(loglevel, args);
-};
-
-globalThis.console.log = function log(...args) {
-  globalThis[kConsole].logger('log', args);
-};
-
-globalThis.console.error = function error(...args) {
-  globalThis[kConsole].logger('error', args);
-};
-
-delete globalThis.printer;
+  const _printer = globalThis.printer;
+  global.console.log = log;
+  global.console.error = error;
+  delete global.printer;
+})(globalThis);
