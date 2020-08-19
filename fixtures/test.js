@@ -1,7 +1,8 @@
 async function main() {
-  await Promise.resolve();
-  const first = 'hello';
-  const second = 'world';
+  const [first, second] = await Promise.all([
+    Promise.resolve('hello'),
+    Promise.resolve('world')
+  ]);
 
   console.log(`${first} ${second}`);
 }
