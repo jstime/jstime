@@ -21,6 +21,7 @@ pub fn start() {
     let readline = rl.readline(">> ");
     match readline {
       Ok(line) => {
+        rl.add_history_entry(line.as_str());
         let result = script::run_js_in_scope(scope, &line);
         println!("{}", &result);
       },
