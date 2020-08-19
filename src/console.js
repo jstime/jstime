@@ -1,43 +1,43 @@
 // Cosole
 // https://console.spec.whatwg.org/#console-namespace
 
-const internalSymbol = Symbol('jstime');
+const kConsole = Symbol('console');
 
-globalThis[internalSymbol] = {};
+globalThis[kConsole] = {};
 
-globalThis[internalSymbol]._printer = globalThis.printer;
+globalThis[kConsole]._printer = globalThis.printer;
 
-globalThis[internalSymbol].printer = function printer(loglevel, args) {
+globalThis[kConsole].printer = function printer(loglevel, args) {
   if (args.length) {
     args = args.join(' ');
   }
   if (loglevel === 'log') {
-    globalThis[internalSymbol]._printer(args)
+    globalThis[kConsole]._printer(args)
   } else if (loglevel === 'error') {
-    globalThis[internalSymbol]._printer(args, true)
+    globalThis[kConsole]._printer(args, true)
   }
 };
 
-globalThis[internalSymbol].logger = function logger(loglevel, args) {
+globalThis[kConsole].logger = function logger(loglevel, args) {
   if (!args.length) return;
   let first = args[0];
   let rest = args.slice(1);
   if (!rest.length) {
-    globalThis[internalSymbol].printer(loglevel, first);
+    globalThis[kConsole].printer(loglevel, first);
     return;
   }
 
   // TODO Handle Format Specifiers
 
-  globalThis[internalSymbol].printer(loglevel, args);
+  globalThis[kConsole].printer(loglevel, args);
 };
 
 globalThis.console.log = function log(...args) {
-  globalThis[internalSymbol].logger('log', args);
+  globalThis[kConsole].logger('log', args);
 };
 
 globalThis.console.error = function error(...args) {
-  globalThis[internalSymbol].logger('error', args);
+  globalThis[kConsole].logger('error', args);
 };
 
 delete globalThis.printer;
