@@ -8,7 +8,7 @@ pub fn init () {
   v8::V8::initialize();
 }
 
-pub fn set_globals<'s>(
+pub fn set_globals(
   scope: &mut v8::HandleScope,
 ) {
   let console = include_str!("./console.js");

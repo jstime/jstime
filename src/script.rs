@@ -11,7 +11,7 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
   let script = v8::Script::compile(scope, code, None).unwrap();
   let result = script.run(scope).unwrap();
   let result = result.to_string(scope).unwrap();
-  return result.to_rust_string_lossy(scope);
+  result.to_rust_string_lossy(scope)
 }
 
 pub fn run(js: &str) -> String {
@@ -20,7 +20,7 @@ pub fn run(js: &str) -> String {
   let context = binding::initialize_context(scope);
   let scope = &mut v8::ContextScope::new(scope, context);
   bootstrap::set_globals(scope);
-  return run_js_in_scope(scope, js);
+  run_js_in_scope(scope, js)
 }
 
 pub fn run_file(filepath: &str) {

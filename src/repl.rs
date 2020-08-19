@@ -5,6 +5,7 @@ use rustyline::Editor;
 
 use crate::binding;
 use crate::bootstrap;
+use crate::script;
 
 pub fn start() {
   let isolate = &mut v8::Isolate::new(Default::default());
@@ -20,7 +21,7 @@ pub fn start() {
     let readline = rl.readline(">> ");
     match readline {
       Ok(line) => {
-        let result = crate::script::run_js_in_scope(scope, &line);
+        let result = script::run_js_in_scope(scope, &line);
         println!("{}", &result);
       },
       Err(ReadlineError::Interrupted) => {
