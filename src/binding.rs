@@ -18,7 +18,6 @@ pub fn initialize_context<'s>(
   let print_key = v8::String::new(scope, "printer").unwrap();
   let print_tmpl = v8::FunctionTemplate::new(scope, printer);
   let print_val = print_tmpl.get_function(scope).unwrap();
-  
   global.set(scope, print_key.into(), print_val.into());
 
   scope.escape(context)
@@ -53,4 +52,3 @@ fn printer(
     println!("{}", str_.to_rust_string_lossy(tc_scope));
   }
 }
-

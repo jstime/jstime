@@ -7,11 +7,8 @@ use crate::binding;
 
 pub fn start() {
   let isolate = &mut v8::Isolate::new(Default::default());
-
   let scope = &mut v8::HandleScope::new(isolate);
-    
   let context = binding::initialize_context(scope);
-
   let scope = &mut v8::ContextScope::new(scope, context);
 
   let mut rl = Editor::<()>::new();
@@ -21,12 +18,8 @@ pub fn start() {
     let readline = rl.readline(">> ");
     match readline {
       Ok(line) => {
-        let code = v8::String::new(scope, &line).unwrap();
-
-        let script = v8::Script::compile(scope, code, None).unwrap();
-        let result = script.run(scope).unwrap();
-        let result = result.to_string(scope).unwrap();
-        println!("{}", &result.to_rust_string_lossy(scope));
+        let result = crate::script::run_js_in_scope(scope, &line);
+        println!("{}", &result);
       },
       Err(ReadlineError::Interrupted) => {
         println!("Thanks for stopping by!");
