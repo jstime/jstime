@@ -1,4 +1,5 @@
 const first = 'hello';
 const second = 'world';
 
-`${first} ${second}`;
+printer(`printer: ${first} ${second}`);
+console.log(`console.log: ${first} ${second}`);

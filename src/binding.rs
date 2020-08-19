@@ -1,4 +1,6 @@
 // heavily inspired by deno bindings
+// Copyright 2018-2020 the Deno authors. All rights reserved. MIT license.
+
 // https://github.com/denoland/deno/blob/93e2bfe22e5cc782e7d502616dad1fd70d26ae37/core/bindings.rs#L323-L351
 
 use rusty_v8 as v8;
@@ -13,8 +15,8 @@ pub fn initialize_context<'s>(
   
   let scope = &mut v8::ContextScope::new(scope, context);
   
-  let print_key = v8::String::new(scope, "print").unwrap();
-  let print_tmpl = v8::FunctionTemplate::new(scope, print);
+  let print_key = v8::String::new(scope, "printer").unwrap();
+  let print_tmpl = v8::FunctionTemplate::new(scope, printer);
   let print_val = print_tmpl.get_function(scope).unwrap();
   
   global.set(scope, print_key.into(), print_val.into());
@@ -22,7 +24,7 @@ pub fn initialize_context<'s>(
   scope.escape(context)
 }
 
-fn print(
+fn printer(
   scope: &mut v8::HandleScope,
   args: v8::FunctionCallbackArguments,
   _rv: v8::ReturnValue,

@@ -8,9 +8,10 @@ mod bootstrap;
 mod binding;
 mod repl;
 
-fn run(isolate: &mut v8::Isolate, js: &str) -> String {
+fn run(js: &str) -> String {
+  let isolate = &mut v8::Isolate::new(Default::default());
   let scope = &mut v8::HandleScope::new(isolate);
-  let context = v8::Context::new(scope);
+  let context = binding::initialize_context(scope);
   let scope = &mut v8::ContextScope::new(scope, context);
 
   let code = v8::String::new(scope, js).unwrap();
@@ -25,11 +26,9 @@ fn run_file(filepath: &str) {
   let stat = fs::metadata(filepath);
   match stat {
     Ok(_stat)=> {
-      let isolate = &mut v8::Isolate::new(Default::default());
       let contents = fs::read_to_string(filepath)
           .expect("Something went wrong reading the file");
-
-      let result = run(isolate, &contents);
+      let result = run(&contents);
       println!("{}", &result);
     },
     Err(_e) => {

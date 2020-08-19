@@ -13,8 +13,6 @@ pub fn start() {
   let context = binding::initialize_context(scope);
 
   let scope = &mut v8::ContextScope::new(scope, context);
-  
-  binding::initialize_context(scope);
 
   let mut rl = Editor::<()>::new();
 
