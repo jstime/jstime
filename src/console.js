@@ -6,9 +6,9 @@
     if (Array.isArray(args) && args.length) {
       args = args.join(' ');
     }
-    if (loglevel === 'log') {
+    if (loglevel === 'log' || loglevel === 'info' || loglevel === 'debug') {
       _printer(args);
-    } else if (loglevel === 'error') {
+    } else if (loglevel === 'error' || loglevel === 'warn') {
       _printer(args, true);
     }
   };
@@ -35,8 +35,23 @@
     logger('error', args);
   };
 
+  function info(...args) {
+    logger('info', args)
+  }
+
+  function debug(...args) {
+    logger('debug', args);
+  }
+
+  function warn(...args) {
+    logger('warn', args);
+  }
+
   const _printer = globalThis.printer;
   global.console.log = log;
   global.console.error = error;
+  global.console.info = info;
+  global.console.debug = debug;
+  global.console.warn = warn;
   delete global.printer;
 })(globalThis);
