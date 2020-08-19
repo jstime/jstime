@@ -38,7 +38,5 @@
 // Printer(logLevel, args[, options])
 // https://console.spec.whatwg.org/#printer
 
-globalThis.console.log = globalThis.printer;
+globalThis.console.log = printer;
 globalThis.printer = undefined;
-
-printer('🎶 BOUND 🎶');

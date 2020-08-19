@@ -4,12 +4,14 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 use crate::binding;
+use crate::bootstrap;
 
 pub fn start() {
   let isolate = &mut v8::Isolate::new(Default::default());
   let scope = &mut v8::HandleScope::new(isolate);
   let context = binding::initialize_context(scope);
   let scope = &mut v8::ContextScope::new(scope, context);
+  bootstrap::set_globals(scope);
 
   let mut rl = Editor::<()>::new();
 
