@@ -41,4 +41,4 @@
 globalThis.console.log = globalThis.printer;
 globalThis.printer = undefined;
 
-// printer('🎶 BOUND 🎶');
+printer('🎶 BOUND 🎶');
