@@ -40,4 +40,4 @@ globalThis.console.error = function error(...args) {
   globalThis[internalSymbol].logger('error', args);
 };
 
-globalThis.printer = undefined;
+delete globalThis.printer;
