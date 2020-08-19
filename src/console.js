@@ -8,7 +8,7 @@ globalThis[kConsole] = {};
 globalThis[kConsole]._printer = globalThis.printer;
 
 globalThis[kConsole].printer = function printer(loglevel, args) {
-  if (args.length) {
+  if (Array.isArray(args) && args.length) {
     args = args.join(' ');
   }
   if (loglevel === 'log') {
