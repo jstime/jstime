@@ -8,10 +8,29 @@ use crate::bootstrap;
 
 pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
   let code = v8::String::new(scope, js).unwrap();
-  let script = v8::Script::compile(scope, code, None).unwrap();
-  let result = script.run(scope).unwrap();
-  let result = result.to_string(scope).unwrap();
-  result.to_rust_string_lossy(scope)
+  
+  let tc_scope = &mut v8::TryCatch::new(scope);
+  let script = v8::Script::compile(tc_scope, code, None);
+  
+  if script.is_none() {
+    let exception = tc_scope.exception().unwrap();
+    let msg = v8::Exception::create_message(tc_scope, exception);
+    return msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+  }
+  
+  let script = script.unwrap();
+  
+  let result = script.run(tc_scope);
+
+  if result.is_none() {
+    let exception = tc_scope.exception().unwrap();
+    let msg = v8::Exception::create_message(tc_scope, exception);
+    return msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+  }
+
+  let result = result.unwrap();
+  let result = result.to_string(tc_scope).unwrap();
+  result.to_rust_string_lossy(tc_scope)
 }
 
 pub fn run(js: &str) -> String {
