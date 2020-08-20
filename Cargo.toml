@@ -1,9 +1,11 @@
 [package]
 name = "jstime"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Myles Borins <myles.borins@gmail.com>"]
 edition = "2018"
 license = "Apache-2.0"
+description = "Another JS Runtime"
+repo = "https://github.com/jstime/jstime"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
