@@ -15,7 +15,9 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
   if script.is_none() {
     let exception = tc_scope.exception().unwrap();
     let msg = v8::Exception::create_message(tc_scope, exception);
-    return msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+    let error_message = msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+    eprintln!("{}", &error_message);
+    return "".to_string();
   }
   
   let script = script.unwrap();
@@ -25,7 +27,9 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
   if result.is_none() {
     let exception = tc_scope.exception().unwrap();
     let msg = v8::Exception::create_message(tc_scope, exception);
-    return msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+    let error_message = msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+    eprintln!("{}", &error_message);
+    return "".to_string();
   }
 
   let result = result.unwrap();
