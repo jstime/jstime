@@ -58,9 +58,9 @@ pub fn run(js: &str, filepath: &str) -> String {
         v8::String::new(scope, filepath).unwrap().into(),
         v8::Integer::new(scope, 0),
         v8::Integer::new(scope, 0),
-        v8::Boolean::new(scope, true),
-        v8::Integer::new(scope, 123),
-        v8::String::new(scope, "source_map_url").unwrap().into(),
+        v8::Boolean::new(scope, false),
+        v8::Integer::new(scope, 0),
+        v8::String::new(scope, "").unwrap().into(),
         v8::Boolean::new(scope, true),
         v8::Boolean::new(scope, false),
         v8::Boolean::new(scope, false));
