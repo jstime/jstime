@@ -38,8 +38,8 @@ jobs:
 
     - name: Set env
       run: |
-          echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
-          echo ::set-env name=ASSET_NAME::${{ matrix.asset_name }}-${{ env.RELEASE_VERSION }}${{ matrix.asset_extension }}
+          RELEASE_VERSION=$(echo ${GITHUB_REF:10})
+          echo ::set-env name=ASSET_NAME::${{ matrix.asset_name }}-$RELEASE_VERSION${{ matrix.asset_extension }}
       shell: bash
 
     - uses: actions-rs/toolchain@v1
