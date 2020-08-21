@@ -24,6 +24,16 @@ pub(crate) fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
 
     let result = script.run(tc_scope);
 
+    if let Some(stack_trace) = tc_scope.stack_trace() {
+        let result = stack_trace.to_string(tc_scope).unwrap();
+        let result = result.to_string(tc_scope).unwrap();
+        let result = result.to_rust_string_lossy(tc_scope);
+
+        eprintln!("{}", result);
+
+        return "".to_string();
+    }
+
     if result.is_none() {
         let exception = tc_scope.exception().unwrap();
         let msg = v8::Exception::create_message(tc_scope, exception);
