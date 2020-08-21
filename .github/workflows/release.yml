@@ -40,6 +40,7 @@ jobs:
       run: |
           echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/}
           echo ::set-env name=ASSET_NAME::${{ matrix.asset_name }}-${{ env.RELEASE_VERSION }}${{ matrix.asset_extension }}
+      shell: bash
 
     - uses: actions-rs/toolchain@v1
       with:
