@@ -29,7 +29,7 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
         let result = result.to_string(tc_scope).unwrap();
         let result = result.to_rust_string_lossy(tc_scope);
 
-        println!("{}", result);
+        eprintln!("{}", result);
 
         return result;
     }
