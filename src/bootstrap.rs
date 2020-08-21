@@ -10,5 +10,5 @@ pub(crate) fn init() {
 
 pub(crate) fn set_globals(scope: &mut v8::HandleScope) {
     let console = include_str!("./console.js");
-    script::run_js_in_scope(scope, console, None);
+    script::run_js_in_scope(scope, console, "bootstrap");
 }

@@ -23,7 +23,7 @@ pub(crate) fn start() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let result = script::run_js_in_scope(scope, &line, None);
+                let result = script::run_js_in_scope(scope, &line, "REPL");
                 println!("{}", &result);
             }
             Err(ReadlineError::Interrupted) => {

@@ -6,15 +6,40 @@ use rusty_v8 as v8;
 use crate::binding;
 use crate::bootstrap;
 
-pub fn run_js_in_scope(
-    scope: &mut v8::HandleScope,
-    js: &str,
-    origin: Option<&v8::ScriptOrigin>,
-) -> String {
+fn create_script_origin<'s>(
+    scope: &mut v8::HandleScope<'s, ()>,
+    filepath: &str,
+) -> v8::ScriptOrigin<'s> {
+    let resource_name = v8::String::new(scope, filepath).unwrap().into();
+    let resource_line_offset = v8::Integer::new(scope, 0);
+    let resource_column_offset = v8::Integer::new(scope, 0);
+    let resource_is_shared_cross_origin = v8::Boolean::new(scope, false);
+    let script_id = v8::Integer::new(scope, 0);
+    let source_map_url = v8::String::new(scope, "").unwrap().into();
+    let resource_is_opaque = v8::Boolean::new(scope, true);
+    let is_wasm = v8::Boolean::new(scope, false);
+    let is_module = v8::Boolean::new(scope, false);
+
+    v8::ScriptOrigin::new(
+        resource_name,
+        resource_line_offset,
+        resource_column_offset,
+        resource_is_shared_cross_origin,
+        script_id,
+        source_map_url,
+        resource_is_opaque,
+        is_wasm,
+        is_module,
+    )
+}
+
+pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) -> String {
+    let origin = create_script_origin(scope, filepath);
+
     let code = v8::String::new(scope, js).unwrap();
 
     let tc_scope = &mut v8::TryCatch::new(scope);
-    let script = v8::Script::compile(tc_scope, code, origin);
+    let script = v8::Script::compile(tc_scope, code, Some(&origin));
 
     if script.is_none() {
         let exception = tc_scope.exception().unwrap();
@@ -38,20 +63,12 @@ pub fn run_js_in_scope(
         return "".to_string();
     }
 
-    if result.is_none() {
-        let exception = tc_scope.exception().unwrap();
-        let msg = v8::Exception::create_message(tc_scope, exception);
-        let error_message = msg.get(tc_scope).to_rust_string_lossy(tc_scope);
-        eprintln!("{}", &error_message);
-        return "".to_string();
-    }
-
     let result = result.unwrap();
     let result = result.to_string(tc_scope).unwrap();
     result.to_rust_string_lossy(tc_scope)
 }
 
-pub fn run(js: &str, filepath: &str) -> String {
+fn run_internal(js: &str, filepath: &str) -> String {
     bootstrap::init();
     let isolate = &mut v8::Isolate::new(Default::default());
     let scope = &mut v8::HandleScope::new(isolate);
@@ -59,32 +76,12 @@ pub fn run(js: &str, filepath: &str) -> String {
     let scope = &mut v8::ContextScope::new(scope, context);
     bootstrap::set_globals(scope);
 
-    // ScriptOrigin
-    // pub fn new(
-    //     resource_name: Local<'s, Value>,
-    //     resource_line_offset: Local<'s, Integer>,
-    //     resource_column_offset: Local<'s, Integer>,
-    //     resource_is_shared_cross_origin: Local<'s, Boolean>,
-    //     script_id: Local<'s, Integer>,
-    //     source_map_url: Local<'s, Value>,
-    //     resource_is_opaque: Local<'s, Boolean>,
-    //     is_wasm: Local<'s, Boolean>,
-    //     is_module: Local<'s, Boolean>
-    // ) -> Self
+    run_js_in_scope(scope, js, filepath)
+}
 
-    let script_origin = &v8::ScriptOrigin::new(
-        v8::String::new(scope, filepath).unwrap().into(),
-        v8::Integer::new(scope, 0),
-        v8::Integer::new(scope, 0),
-        v8::Boolean::new(scope, false),
-        v8::Integer::new(scope, 0),
-        v8::String::new(scope, "").unwrap().into(),
-        v8::Boolean::new(scope, true),
-        v8::Boolean::new(scope, false),
-        v8::Boolean::new(scope, false),
-    );
-
-    run_js_in_scope(scope, js, Some(script_origin))
+#[allow(dead_code)]
+pub fn run(js: &str) -> String {
+    run_internal(js, "jstime")
 }
 
 #[allow(dead_code)]
@@ -94,7 +91,7 @@ pub(crate) fn run_file(filepath: &str) {
         Ok(_stat) => {
             let contents =
                 fs::read_to_string(filepath).expect("Something went wrong reading the file");
-            run(&contents, filepath);
+            run_internal(&contents, filepath);
         }
         Err(_e) => {
             eprintln!("Error: file doesn't exist");
