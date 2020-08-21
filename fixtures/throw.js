@@ -1,3 +1,3 @@
-const message = 'omg';
+const message = 'oh no';
 
-throw new Error("oh no");
+throw new Error(message);
