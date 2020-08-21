@@ -110,7 +110,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.8.11-alpha.0"
+version = "0.9.0"
 dependencies = [
  "rusty_v8",
  "rustyline",
