@@ -16,22 +16,30 @@ jobs:
             windows,
             macos
         ]
-        
         include:
           - name: linux
             os: ubuntu-latest
             artifact_name: jstime
-            asset_name: jstime-linux.tar.gz
+            asset_name: jstime-linux
+            asset_extension: .tar.gz
           - name: windows
             os: windows-latest
             artifact_name: jstime.exe
-            asset_name: jstime-windows.zip
+            asset_name: jstime-windows
+            asset_extension: .zip
           - name: macos
             os: macos-latest
             artifact_name: jstime
-            asset_name: jstime-macos.tar.gz
+            asset_name: jstime-macos
+            asset_extension: .tar
+
     steps:
     - uses: actions/checkout@v1
+
+    - name: Set env
+      run: |
+          echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/}
+          echo ::set-env name=ASSET_NAME::${{ matrix.asset_name }}-${{ env.RELEASE_VERSION }}${{ matrix.asset_extension }}
 
     - uses: actions-rs/toolchain@v1
       with:
@@ -46,17 +54,17 @@ jobs:
       run: |
         cp "target/release/${{ matrix.artifact_name }}" "${{ matrix.artifact_name }}"
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          7z a "${{ matrix.asset_name }}" "${{ matrix.artifact_name }}"
+          7z a "${{ env.ASSET_NAME }}" "${{ matrix.artifact_name }}"
         else
-          tar czf "${{ matrix.asset_name }}" "${{ matrix.artifact_name }}"
+          tar czf "${{ env.ASSET_NAME }}" "${{ matrix.artifact_name }}"
         fi
 
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v1-release
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ matrix.asset_name }}
-        asset_name: ${{ matrix.asset_name }}
+        file: ${{ env.ASSET_NAME }}
+        asset_name: ${{ env.ASSET_NAME }}
         tag: ${{ github.ref }}
 
   create-release:
