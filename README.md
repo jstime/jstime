@@ -4,17 +4,15 @@
 
 ![jstime logo. Kinda looks like shrek](./logo.png)
 
-## Getting Started
+## Using the binary
 
-Honestly I'm just learning rust right now 😅
+You can find the latest jstime binary on the [release page](https://github.com/jstime/jstime/releases)
+
+Alternatively you can install with cargo
 
 ```bash
-$ cargo run # run a js repl!
-$ cargo run path-to-js.js # run a js file!
-$ cargo build --release # make a prod build
+$ cargo install jstime
 ```
-
-## Using the jstime binary
 
 ### As a repl
 
