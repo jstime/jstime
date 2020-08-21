@@ -6,11 +6,15 @@ use rusty_v8 as v8;
 use crate::binding;
 use crate::bootstrap;
 
-pub(crate) fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
+pub fn run_js_in_scope(
+    scope: &mut v8::HandleScope,
+    js: &str,
+    origin: Option<&v8::ScriptOrigin>,
+) -> String {
     let code = v8::String::new(scope, js).unwrap();
 
     let tc_scope = &mut v8::TryCatch::new(scope);
-    let script = v8::Script::compile(tc_scope, code, None);
+    let script = v8::Script::compile(tc_scope, code, origin);
 
     if script.is_none() {
         let exception = tc_scope.exception().unwrap();
@@ -47,14 +51,27 @@ pub(crate) fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
     result.to_rust_string_lossy(tc_scope)
 }
 
-pub fn run(js: &str) -> String {
+pub fn run(js: &str, filepath: &str) -> String {
     bootstrap::init();
     let isolate = &mut v8::Isolate::new(Default::default());
     let scope = &mut v8::HandleScope::new(isolate);
     let context = binding::initialize_context(scope);
     let scope = &mut v8::ContextScope::new(scope, context);
     bootstrap::set_globals(scope);
-    run_js_in_scope(scope, js)
+
+    let script_origin = &v8::ScriptOrigin::new(
+        v8::String::new(scope, filepath).unwrap().into(),
+        v8::Integer::new(scope, 0),
+        v8::Integer::new(scope, 0),
+        v8::Boolean::new(scope, false),
+        v8::Integer::new(scope, 0),
+        v8::String::new(scope, "").unwrap().into(),
+        v8::Boolean::new(scope, true),
+        v8::Boolean::new(scope, false),
+        v8::Boolean::new(scope, false),
+    );
+
+    run_js_in_scope(scope, js, Some(script_origin))
 }
 
 #[allow(dead_code)]
@@ -64,7 +81,7 @@ pub(crate) fn run_file(filepath: &str) {
         Ok(_stat) => {
             let contents =
                 fs::read_to_string(filepath).expect("Something went wrong reading the file");
-            run(&contents);
+            run(&contents, filepath);
         }
         Err(_e) => {
             eprintln!("Error: file doesn't exist");
