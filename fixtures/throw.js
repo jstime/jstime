@@ -1,3 +1,9 @@
 const message = 'oh no';
 
-throw new Error(message);
+function willThrowInTheFuture() {
+  meThrow();
+}
+
+function meThrow() {
+  throw new Error(message);
+}
