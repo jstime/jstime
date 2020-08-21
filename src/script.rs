@@ -48,6 +48,7 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, origin: Option<&v8
 }
 
 pub fn run(js: &str, filepath: &str) -> String {
+    bootstrap::init();
     let isolate = &mut v8::Isolate::new(Default::default());
     let scope = &mut v8::HandleScope::new(isolate);
     let context = binding::initialize_context(scope);
