@@ -31,7 +31,7 @@ jobs:
             os: macos-latest
             artifact_name: jstime
             asset_name: jstime-macos
-            asset_extension: .tar
+            asset_extension: .tar.gz
 
     steps:
     - uses: actions/checkout@v1
