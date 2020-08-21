@@ -31,7 +31,7 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
 
         eprintln!("{}", result);
 
-        return result;
+        return "".to_string();
     }
 
     if result.is_none() {
