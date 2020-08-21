@@ -11,3 +11,8 @@ repository = "https://github.com/jstime/jstime"
 [dependencies]
 rusty_v8 = "0.8.1"
 rustyline = "6.2.0"
+
+[package.metadata.release]
+sign-commit	= true
+sign-tag = true
+disable-publish = true
