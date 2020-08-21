@@ -15,8 +15,6 @@ fn main() {
         process::exit(1);
     }
 
-    bootstrap::init();
-
     match len {
         1 => repl::start(),
         2 => script::run_file(&args[1]),

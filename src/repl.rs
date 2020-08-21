@@ -8,6 +8,7 @@ use crate::bootstrap;
 use crate::script;
 
 pub(crate) fn start() {
+    bootstrap::init();
     let isolate = &mut v8::Isolate::new(Default::default());
     let scope = &mut v8::HandleScope::new(isolate);
     let context = binding::initialize_context(scope);
