@@ -14,10 +14,37 @@ $ cargo run path-to-js.js # run a js file!
 $ cargo build --release # make a prod build
 ```
 
-## FYI
+## Using the jstime binary
 
-This is an extremely basic wrapper around V8. Don't expect
-any fancy APIs just yet.
+### As a repl
+
+```bash
+$ jstime
+
+Welcome to jstime!
+
+>>
+```
+
+### Run a script
+
+```bash
+$ cat hello-world.js
+console.log("hello world");
+
+$ jstime hello-world.js
+hello world
+
+```
+## It's a library too!
+
+```rust
+use jstime::script;
+
+fn main() {
+  script::run("console.log('hello world')");
+}
+```
 
 ## TODO
 
