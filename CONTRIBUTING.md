@@ -21,8 +21,7 @@ of the Code of Conduct. Project maintainers will take appropriate
 action, when neccessary, to ensure the jstime community is a space
 where individuals can comfortably collaborate and bring their
 entire selves. Unfortunately, if bringing your entire self is
-infringing on others from doing the same, you may be politely
-asked to leave.
+infringing on others from doing the same, you may be asked to leave.
 
 ## Pull Requests
 
