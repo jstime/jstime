@@ -16,3 +16,5 @@ rustyline = "6.2.0"
 sign-commit	= true
 sign-tag = true
 disable-publish = true
+pre-release-commit-message = "{{version}}"
+post-release-commit-message = "Working on {{next_version}}"
