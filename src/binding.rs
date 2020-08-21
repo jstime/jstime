@@ -5,7 +5,9 @@
 
 use rusty_v8 as v8;
 
-pub fn initialize_context<'s>(scope: &mut v8::HandleScope<'s, ()>) -> v8::Local<'s, v8::Context> {
+pub(crate) fn initialize_context<'s>(
+    scope: &mut v8::HandleScope<'s, ()>,
+) -> v8::Local<'s, v8::Context> {
     let scope = &mut v8::EscapableHandleScope::new(scope);
 
     let context = v8::Context::new(scope);

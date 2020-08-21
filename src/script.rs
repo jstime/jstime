@@ -6,7 +6,7 @@ use rusty_v8 as v8;
 use crate::binding;
 use crate::bootstrap;
 
-pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
+pub(crate) fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str) -> String {
     let code = v8::String::new(scope, js).unwrap();
 
     let tc_scope = &mut v8::TryCatch::new(scope);
