@@ -57,7 +57,8 @@ pub fn run(js: &str) -> String {
     run_js_in_scope(scope, js)
 }
 
-pub fn run_file(filepath: &str) {
+#[allow(dead_code)]
+pub(crate) fn run_file(filepath: &str) {
     let stat = fs::metadata(filepath);
     match stat {
         Ok(_stat) => {
