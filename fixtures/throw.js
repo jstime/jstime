@@ -7,3 +7,5 @@ function willThrowInTheFuture() {
 function meThrow() {
   throw new Error(message);
 }
+
+willThrowInTheFuture();
