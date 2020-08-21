@@ -8,7 +8,21 @@ First off, thank you so much for considering contributing to jstime. This is a s
 
 ## [Code of Conduct](./CODE_OF_CONDUCT.md)
 
-The jstime project has a [Code of Conduct](./CODE_OF_CONDUCT.md) to which all contributors must adhere.
+The jstime project has a [Code of Conduct](./CODE_OF_CONDUCT.md). All
+individuals participating in the jstime repo and organization will be
+expected to abide by the Code of Conduct. Violating the Code of Conduct
+will result in action ranging from a conversation about behavior to
+being permanently banned from the jstime organization.
+
+### The Spirit of the law
+
+Not all interactions that require remediation are clear violations
+of the Code of Conduct. Project maintainers will take appropriate
+action, when neccessary, to ensure the jstime community is a space
+where individuals can comfortably collaborate and bring their
+entire selves. Unfortunately, if bringing your entire self is
+infringing on others from doing the same, you may be politely
+asked to leave.
 
 ## Pull Requests
 
