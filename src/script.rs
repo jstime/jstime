@@ -59,6 +59,19 @@ pub fn run(js: &str, filepath: &str) -> String {
     let scope = &mut v8::ContextScope::new(scope, context);
     bootstrap::set_globals(scope);
 
+    // ScriptOrigin
+    // pub fn new(
+    //     resource_name: Local<'s, Value>,
+    //     resource_line_offset: Local<'s, Integer>,
+    //     resource_column_offset: Local<'s, Integer>,
+    //     resource_is_shared_cross_origin: Local<'s, Boolean>,
+    //     script_id: Local<'s, Integer>,
+    //     source_map_url: Local<'s, Value>,
+    //     resource_is_opaque: Local<'s, Boolean>,
+    //     is_wasm: Local<'s, Boolean>,
+    //     is_module: Local<'s, Boolean>
+    // ) -> Self
+
     let script_origin = &v8::ScriptOrigin::new(
         v8::String::new(scope, filepath).unwrap().into(),
         v8::Integer::new(scope, 0),
