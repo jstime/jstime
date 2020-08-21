@@ -79,6 +79,7 @@ jobs:
 
   publish-crate:
     name: Publish to crates.io
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
