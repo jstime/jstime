@@ -76,3 +76,16 @@ jobs:
           body: Careful, thar be dragons.
           draft: false
           prerelease: false
+
+  publish-crate:
+    name: Publish to crates.io
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - run: cargo login ${CRATES_IO_TOKEN}
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+      - run: cargo publish
