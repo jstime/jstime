@@ -8,9 +8,6 @@ license = "Apache-2.0"
 edition = "2018"
 repository = "https://github.com/jstime/jstime"
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 rusty_v8 = "0.8.1"
 rustyline = "6.2.0"
