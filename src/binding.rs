@@ -4,6 +4,7 @@
 // https://github.com/denoland/deno/blob/93e2bfe22e5cc782e7d502616dad1fd70d26ae37/core/bindings.rs#L323-L351
 
 use rusty_v8 as v8;
+use std::convert::TryFrom;
 
 pub(crate) fn initialize_context<'s>(
     scope: &mut v8::HandleScope<'s, ()>,
@@ -19,6 +20,15 @@ pub(crate) fn initialize_context<'s>(
     let print_tmpl = v8::FunctionTemplate::new(scope, printer);
     let print_val = print_tmpl.get_function(scope).unwrap();
     global.set(scope, print_key.into(), print_val.into());
+
+    let queue_microtask_key = v8::String::new(scope, "queueMicrotask").unwrap();
+    let queue_microtask_tmpl = v8::FunctionTemplate::new(scope, queue_microtask);
+    let queue_microtask_val = queue_microtask_tmpl.get_function(scope).unwrap();
+    global.set(
+        scope,
+        queue_microtask_key.into(),
+        queue_microtask_val.into(),
+    );
 
     scope.escape(context)
 }
@@ -47,4 +57,14 @@ fn printer(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv
     } else {
         println!("{}", str_.to_rust_string_lossy(tc_scope));
     }
+}
+
+fn queue_microtask(
+    scope: &mut v8::HandleScope,
+    args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    let obj = args.get(0);
+    let func = v8::Local::<v8::Function>::try_from(obj).unwrap();
+    scope.enqueue_microtask(func);
 }
