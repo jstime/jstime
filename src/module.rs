@@ -7,16 +7,39 @@ use crate::binding;
 use crate::bootstrap;
 use crate::js_loading;
 
+fn resolve_callback<'a>(
+    context: v8::Local<'a, v8::Context>,
+    specifier: v8::Local<'a, v8::String>,
+    _referrer: v8::Local<'a, v8::Module>,
+) -> Option<v8::Local<'a, v8::Module>> {
+    let mut cbs = unsafe { v8::CallbackScope::new(context) };
+    let scope = &mut cbs;
+
+    // TODO(bengl)
+    // 1. Normalize to absoluate paths.
+    // 2. Cache modules so they don't get re-evaluated.
+    // 3. Oh wow some better error handling woops!
+
+    let origin = js_loading::create_script_origin(scope, specifier, true);
+    let filename = &specifier.to_rust_string_lossy(scope);
+    let js_src = fs::read_to_string(filename).expect("Something went wrong reading the file");
+    let code = v8::String::new(scope, &js_src).unwrap();
+    let source = v8::script_compiler::Source::new(code, &origin);
+
+    v8::script_compiler::compile_module(scope, source)
+}
+
 pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) -> String {
     let filepath = v8::String::new(scope, filepath).unwrap();
-    let origin = js_loading::create_script_origin(scope, filepath, false);
+    let origin = js_loading::create_script_origin(scope, filepath, true);
 
     let code = v8::String::new(scope, js).unwrap();
 
     let tc_scope = &mut v8::TryCatch::new(scope);
-    let script = v8::Script::compile(tc_scope, code, Some(&origin));
+    let source = v8::script_compiler::Source::new(code, &origin);
+    let module = v8::script_compiler::compile_module(tc_scope, source);
 
-    if script.is_none() {
+    if module.is_none() {
         let exception = tc_scope.exception().unwrap();
         let msg = v8::Exception::create_message(tc_scope, exception);
         let error_message = msg.get(tc_scope).to_rust_string_lossy(tc_scope);
@@ -24,9 +47,21 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) ->
         return "".to_string();
     }
 
-    let script = script.unwrap();
+    let script = module.unwrap();
 
-    let result = script.run(tc_scope);
+    let _ = script.instantiate_module(tc_scope, resolve_callback);
+
+    if let Some(stack_trace) = tc_scope.stack_trace() {
+        let result = stack_trace.to_string(tc_scope).unwrap();
+        let result = result.to_string(tc_scope).unwrap();
+        let result = result.to_rust_string_lossy(tc_scope);
+
+        eprintln!("{}", result);
+
+        return "".to_string();
+    }
+
+    let result = script.evaluate(tc_scope);
 
     if let Some(stack_trace) = tc_scope.stack_trace() {
         let result = stack_trace.to_string(tc_scope).unwrap();
