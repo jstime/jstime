@@ -17,7 +17,7 @@ pub(crate) fn start() {
 
     let mut rl = Editor::<()>::new();
 
-    println!("\nWelcome to jstime!\n");
+    println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
     loop {
         let readline = rl.readline(">> ");
         match readline {
