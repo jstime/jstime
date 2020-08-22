@@ -54,4 +54,12 @@
   global.console.debug = debug;
   global.console.warn = warn;
   delete global.printer;
+
+  const queueMicrotask = global.queueMicrotask;
+  global.queueMicrotask = cb => {
+    if (typeof cb !== 'function') {
+      throw new TypeError('queueMicrotask requires a callback function');
+    }
+    return queueMicrotask(cb);
+  };
 })(globalThis);
