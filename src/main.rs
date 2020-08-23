@@ -1,23 +1,63 @@
 use std::env;
 use std::process;
+use structopt::StructOpt;
 
 mod binding;
 mod bootstrap;
 mod repl;
 mod script;
 
+#[derive(StructOpt)]
+#[structopt(name = "jstime", rename_all = "kebab-case")]
+struct Opt {
+    /// File to read from, or "-" to read from stdin. Interactive mode if a tty
+    #[structopt(name = " file | - ", default_value = "-")]
+    filename: String,
+
+    /// Prints version information
+    #[structopt(short, long)]
+    version: bool,
+
+    /// Prints V8 options
+    #[structopt(long)]
+    v8_options: bool,
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let len = args.len();
-
-    if len > 2 {
-        println!("Error: Too many arguments");
-        process::exit(1);
+    let mut non_v8_args: Vec<String> = Vec::with_capacity(args.len());
+    let mut v8_args: Vec<String> = Vec::with_capacity(args.len());
+    // Kind of hacky, but sub out "--help" for "-h" before passing to V8 to avoid
+    // unwanted V8 help output. Similarly, pass "--help" to V8 when "--v8-options" is passed
+    // to jstime.
+    for arg in args {
+        match &arg[..] {
+            "--help" => non_v8_args.push(arg.to_string()),
+            "--v8-options" => {
+                non_v8_args.push(arg.to_string());
+                v8_args.push("--help".to_string());
+            }
+            _ => v8_args.push(arg.to_string()),
+        }
     }
 
-    match len {
-        1 => repl::start(),
-        2 => script::run_file(&args[1]),
-        _ => println!("Woopsie Doodles"),
+    let mut unparsed_v8_args = bootstrap::set_flags(v8_args);
+    unparsed_v8_args.append(&mut non_v8_args);
+    let opt = Opt::from_iter(unparsed_v8_args);
+
+    if opt.v8_options {
+        process::exit(0);
+    }
+
+    if opt.version {
+        println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        process::exit(0);
+    }
+
+    let filename = &opt.filename[..];
+
+    match filename {
+        "-" => repl::start(),
+        _ => script::run_file(filename),
     }
 }

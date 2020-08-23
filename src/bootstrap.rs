@@ -8,6 +8,11 @@ pub(crate) fn init() {
     v8::V8::initialize();
 }
 
+#[allow(dead_code)]
+pub(crate) fn set_flags(args: Vec<String>) -> Vec<String> {
+    v8::V8::set_flags_from_command_line(args)
+}
+
 pub(crate) fn set_globals(scope: &mut v8::HandleScope) {
     let console = include_str!("./console.js");
     script::run_js_in_scope(scope, console, "bootstrap");
