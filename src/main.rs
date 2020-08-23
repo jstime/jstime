@@ -50,8 +50,8 @@ fn main() {
     }
 
     if opt.version {
-      println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-      process::exit(0);
+        println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        process::exit(0);
     }
 
     let filename = &opt.filename[..];
