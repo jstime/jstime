@@ -1,6 +1,6 @@
 [package]
 name = "jstime"
-version = "0.10.0"
+version = "0.10.1-alpha.0"
 description = "Another JS Runtime"
 readme = "README.md"
 authors = ["the jstime authors"]
