@@ -1,4 +1,7 @@
+use core::cell::{Ref, RefMut};
+use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use std::process;
 
 use rusty_v8 as v8;
@@ -7,30 +10,61 @@ use crate::binding;
 use crate::bootstrap;
 use crate::js_loading;
 
+fn normalize_path(referrer_path: &str, requested: &str) -> String {
+    let req_path = Path::new(requested);
+    if req_path.is_absolute() {
+        return requested.to_string();
+    }
+    let ref_dir = Path::new(referrer_path).parent().unwrap();
+    let normalized = ref_dir.join(req_path).canonicalize();
+    normalized.unwrap().to_string_lossy().into()
+}
+
 fn resolve_callback<'a>(
     context: v8::Local<'a, v8::Context>,
     specifier: v8::Local<'a, v8::String>,
-    _referrer: v8::Local<'a, v8::Module>,
+    referrer: v8::Local<'a, v8::Module>,
 ) -> Option<v8::Local<'a, v8::Module>> {
     let mut cbs = unsafe { v8::CallbackScope::new(context) };
     let scope = &mut cbs;
 
-    // TODO(bengl)
-    // 1. Normalize to absoluate paths.
-    // 2. Cache modules so they don't get re-evaluated.
-    // 3. Oh wow some better error handling woops!
+    let hash = referrer.get_identity_hash();
+    let requested_rel_path = specifier.to_rust_string_lossy(scope);
+    let referrer_path = {
+        let path_map: Ref<HashMap<i32, String>> = scope.get_slot().unwrap();
+        path_map.get(&hash).unwrap().clone()
+    };
 
-    let origin = js_loading::create_script_origin(scope, specifier, true);
-    let filename = &specifier.to_rust_string_lossy(scope);
-    let js_src = fs::read_to_string(filename).expect("Something went wrong reading the file");
+    let requested_abs_path = normalize_path(&referrer_path, &requested_rel_path);
+
+    // TODO(bengl)
+    // 1. Cache modules so they don't get re-evaluated.
+    // 2. Oh wow some better error handling woops!
+
+    let requested_string = v8::String::new(scope, &requested_abs_path).unwrap();
+    let origin = js_loading::create_script_origin(scope, requested_string, true);
+    let js_src =
+        fs::read_to_string(&requested_abs_path).expect("Something went wrong reading the file");
     let code = v8::String::new(scope, &js_src).unwrap();
     let source = v8::script_compiler::Source::new(code, &origin);
 
-    v8::script_compiler::compile_module(scope, source)
+    let module = v8::script_compiler::compile_module(scope, source);
+    if let Some(unwrapped_module) = module {
+        let mut path_map: RefMut<HashMap<i32, String>> = scope.get_slot_mut().unwrap();
+        let hash = unwrapped_module.get_identity_hash();
+        path_map.insert(hash, requested_abs_path.clone());
+    }
+    module
 }
 
 pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) -> String {
-    let filepath = v8::String::new(scope, filepath).unwrap();
+    let curr: String = std::env::current_dir()
+        .unwrap()
+        .join("current")
+        .to_string_lossy()
+        .into();
+    let filepath_string = normalize_path(&curr, filepath);
+    let filepath = v8::String::new(scope, &filepath_string).unwrap();
     let origin = js_loading::create_script_origin(scope, filepath, true);
 
     let code = v8::String::new(scope, js).unwrap();
@@ -43,11 +77,19 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) ->
         let exception = tc_scope.exception().unwrap();
         let msg = v8::Exception::create_message(tc_scope, exception);
         let error_message = msg.get(tc_scope).to_rust_string_lossy(tc_scope);
+
         eprintln!("{}", &error_message);
+
         return "".to_string();
     }
 
     let script = module.unwrap();
+
+    {
+        let mut path_map: RefMut<HashMap<i32, String>> = tc_scope.get_slot_mut().unwrap();
+        let hash = script.get_identity_hash();
+        path_map.insert(hash, filepath_string.clone());
+    }
 
     let _ = script.instantiate_module(tc_scope, resolve_callback);
 
@@ -81,6 +123,8 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) ->
 fn run_internal(js: &str, filepath: &str) -> String {
     bootstrap::init();
     let isolate = &mut v8::Isolate::new(Default::default());
+    let hash_to_absolute_path: HashMap<i32, String> = HashMap::new();
+    isolate.set_slot(hash_to_absolute_path);
     let scope = &mut v8::HandleScope::new(isolate);
     let context = binding::initialize_context(scope);
     let scope = &mut v8::ContextScope::new(scope, context);
