@@ -5,36 +5,11 @@ use rusty_v8 as v8;
 
 use crate::binding;
 use crate::bootstrap;
-
-fn create_script_origin<'s>(
-    scope: &mut v8::HandleScope<'s, ()>,
-    filepath: &str,
-) -> v8::ScriptOrigin<'s> {
-    let resource_name = v8::String::new(scope, filepath).unwrap().into();
-    let resource_line_offset = v8::Integer::new(scope, 0);
-    let resource_column_offset = v8::Integer::new(scope, 0);
-    let resource_is_shared_cross_origin = v8::Boolean::new(scope, false);
-    let script_id = v8::Integer::new(scope, 0);
-    let source_map_url = v8::String::new(scope, "").unwrap().into();
-    let resource_is_opaque = v8::Boolean::new(scope, true);
-    let is_wasm = v8::Boolean::new(scope, false);
-    let is_module = v8::Boolean::new(scope, false);
-
-    v8::ScriptOrigin::new(
-        resource_name,
-        resource_line_offset,
-        resource_column_offset,
-        resource_is_shared_cross_origin,
-        script_id,
-        source_map_url,
-        resource_is_opaque,
-        is_wasm,
-        is_module,
-    )
-}
+use crate::js_loading;
 
 pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) -> String {
-    let origin = create_script_origin(scope, filepath);
+    let filepath = v8::String::new(scope, filepath).unwrap();
+    let origin = js_loading::create_script_origin(scope, filepath, false);
 
     let code = v8::String::new(scope, js).unwrap();
 

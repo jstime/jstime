@@ -4,6 +4,8 @@ use structopt::StructOpt;
 
 mod binding;
 mod bootstrap;
+mod js_loading;
+mod module;
 mod repl;
 mod script;
 
@@ -58,6 +60,6 @@ fn main() {
 
     match filename {
         "-" => repl::start(),
-        _ => script::run_file(filename),
+        _ => module::run_file(filename),
     }
 }
