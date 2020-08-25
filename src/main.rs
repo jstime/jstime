@@ -1,13 +1,8 @@
+extern crate jstime;
+
 use std::env;
 use std::process;
 use structopt::StructOpt;
-
-mod binding;
-mod bootstrap;
-mod js_loading;
-mod module;
-mod repl;
-mod script;
 
 #[derive(StructOpt)]
 #[structopt(name = "jstime", rename_all = "kebab-case")]
@@ -43,7 +38,7 @@ fn main() {
         }
     }
 
-    let mut unparsed_v8_args = bootstrap::set_flags(v8_args);
+    let mut unparsed_v8_args = jstime::bootstrap::set_flags(v8_args);
     unparsed_v8_args.append(&mut non_v8_args);
     let opt = Opt::from_iter(unparsed_v8_args);
 
@@ -59,7 +54,7 @@ fn main() {
     let filename = &opt.filename[..];
 
     match filename {
-        "-" => repl::start(),
-        _ => module::run_file(filename),
+        "-" => jstime::repl::start(),
+        _ => jstime::module::run_file(filename),
     }
 }

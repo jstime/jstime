@@ -172,13 +172,11 @@ fn run_internal(js: &str, filepath: &str) -> String {
     run_js_in_scope(scope, js, filepath)
 }
 
-#[allow(dead_code)]
 pub fn run(js: &str) -> String {
     run_internal(js, "jstime")
 }
 
-#[allow(dead_code)]
-pub(crate) fn run_file(filepath: &str) {
+pub fn run_file(filepath: &str) {
     let stat = fs::metadata(filepath);
     match stat {
         Ok(_stat) => {
