@@ -7,26 +7,23 @@ use crate::binding;
 use crate::bootstrap;
 use crate::js_loading;
 
-pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) -> String {
+pub(crate) fn run_js_in_scope_internal<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    js: &str,
+    filepath: &str,
+) -> Option<v8::Local<'s, v8::Value>> {
     let filepath = v8::String::new(scope, filepath).unwrap();
     let origin = js_loading::create_script_origin(scope, filepath, false);
 
     let code = v8::String::new(scope, js).unwrap();
 
+    v8::Script::compile(scope, code, Some(&origin)).and_then(|script| script.run(scope))
+}
+
+pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) -> String {
     let tc_scope = &mut v8::TryCatch::new(scope);
-    let script = v8::Script::compile(tc_scope, code, Some(&origin));
 
-    if script.is_none() {
-        let exception = tc_scope.exception().unwrap();
-        let msg = v8::Exception::create_message(tc_scope, exception);
-        let error_message = msg.get(tc_scope).to_rust_string_lossy(tc_scope);
-        eprintln!("{}", &error_message);
-        return "".to_string();
-    }
-
-    let script = script.unwrap();
-
-    let result = script.run(tc_scope);
+    let result = run_js_in_scope_internal(tc_scope, js, filepath);
 
     if let Some(stack_trace) = tc_scope.stack_trace() {
         let result = stack_trace.to_string(tc_scope).unwrap();
@@ -54,13 +51,11 @@ fn run_internal(js: &str, filepath: &str) -> String {
     run_js_in_scope(scope, js, filepath)
 }
 
-#[allow(dead_code)]
 pub fn run(js: &str) -> String {
     run_internal(js, "jstime")
 }
 
-#[allow(dead_code)]
-pub(crate) fn run_file(filepath: &str) {
+pub fn run_file(filepath: &str) {
     let stat = fs::metadata(filepath);
     match stat {
         Ok(_stat) => {
