@@ -1,14 +1,44 @@
-use core::cell::{Ref, RefMut};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process;
+use std::rc::Rc;
 
 use rusty_v8 as v8;
 
 use crate::binding;
 use crate::bootstrap;
 use crate::js_loading;
+
+struct IsolateState {
+    hash_to_absolute_path: HashMap<i32, String>,
+    absolute_path_to_module: HashMap<String, v8::Global<v8::Module>>,
+}
+
+impl IsolateState {
+    fn new() -> Self {
+        IsolateState {
+            hash_to_absolute_path: HashMap::new(),
+            absolute_path_to_module: HashMap::new(),
+        }
+    }
+
+    fn add_module(&mut self, hash: i32, filepath: String, module: v8::Global<v8::Module>) {
+        self.hash_to_absolute_path.insert(hash, filepath.clone());
+        self.absolute_path_to_module.insert(filepath, module);
+    }
+
+    fn get(scope: &mut v8::Isolate) -> Rc<RefCell<Self>> {
+        let s = scope.get_slot::<Rc<RefCell<IsolateState>>>().unwrap();
+        s.clone()
+    }
+
+    fn get_mut(scope: &mut v8::Isolate) -> Rc<RefCell<Self>> {
+        let s = scope.get_slot_mut::<Rc<RefCell<IsolateState>>>().unwrap();
+        s.clone()
+    }
+}
 
 fn normalize_path(referrer_path: &str, requested: &str) -> String {
     let req_path = Path::new(requested);
@@ -30,16 +60,24 @@ fn resolve_callback<'a>(
 
     let hash = referrer.get_identity_hash();
     let requested_rel_path = specifier.to_rust_string_lossy(scope);
-    let referrer_path = {
-        let path_map: Ref<HashMap<i32, String>> = scope.get_slot().unwrap();
-        path_map.get(&hash).unwrap().clone()
-    };
+
+    let state = IsolateState::get(scope);
+    let referrer_path = state
+        .borrow()
+        .hash_to_absolute_path
+        .get(&hash)
+        .unwrap()
+        .clone();
 
     let requested_abs_path = normalize_path(&referrer_path, &requested_rel_path);
 
-    // TODO(bengl)
-    // 1. Cache modules so they don't get re-evaluated.
-    // 2. Oh wow some better error handling woops!
+    if let Some(module) = state
+        .borrow()
+        .absolute_path_to_module
+        .get(&requested_abs_path)
+    {
+        return Some(v8::Local::new(scope, module));
+    }
 
     let requested_string = v8::String::new(scope, &requested_abs_path).unwrap();
     let origin = js_loading::create_script_origin(scope, requested_string, true);
@@ -49,10 +87,12 @@ fn resolve_callback<'a>(
     let source = v8::script_compiler::Source::new(code, &origin);
 
     let module = v8::script_compiler::compile_module(scope, source);
-    if let Some(unwrapped_module) = module {
-        let mut path_map: RefMut<HashMap<i32, String>> = scope.get_slot_mut().unwrap();
-        let hash = unwrapped_module.get_identity_hash();
-        path_map.insert(hash, requested_abs_path.clone());
+    if let Some(module) = module {
+        let hash = module.get_identity_hash();
+        let state = IsolateState::get_mut(scope);
+        state
+            .borrow_mut()
+            .add_module(hash, requested_abs_path, v8::Global::new(scope, module));
     }
     module
 }
@@ -85,11 +125,11 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) ->
 
     let script = module.unwrap();
 
-    {
-        let mut path_map: RefMut<HashMap<i32, String>> = tc_scope.get_slot_mut().unwrap();
-        let hash = script.get_identity_hash();
-        path_map.insert(hash, filepath_string.clone());
-    }
+    let hash = script.get_identity_hash();
+    let state = IsolateState::get_mut(tc_scope);
+    state
+        .borrow_mut()
+        .add_module(hash, filepath_string, v8::Global::new(tc_scope, script));
 
     let _ = script.instantiate_module(tc_scope, resolve_callback);
 
@@ -123,8 +163,7 @@ pub fn run_js_in_scope(scope: &mut v8::HandleScope, js: &str, filepath: &str) ->
 fn run_internal(js: &str, filepath: &str) -> String {
     bootstrap::init();
     let isolate = &mut v8::Isolate::new(Default::default());
-    let hash_to_absolute_path: HashMap<i32, String> = HashMap::new();
-    isolate.set_slot(hash_to_absolute_path);
+    isolate.set_slot(Rc::new(RefCell::new(IsolateState::new())));
     let scope = &mut v8::HandleScope::new(isolate);
     let context = binding::initialize_context(scope);
     let scope = &mut v8::ContextScope::new(scope, context);
