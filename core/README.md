@@ -6,7 +6,7 @@ which provides the V8-Rust bindings.
 ## API
 
 ```rust
-use jstime\_core::module;
+use jstime_core::module;
 
 fn main() {
   module::run("console.log('hello world')");
