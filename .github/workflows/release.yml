@@ -101,6 +101,10 @@ jobs:
       - name: publish jstime_core
         run: cargo publish
         working-directory: core
+      - name: Sleep for 30 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '30s'
       - name: publish jstime
         run: cargo publish
         working-directory: cli
