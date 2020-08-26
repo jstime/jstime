@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: jstime
+Upstream-Contact: Myles Borins <myles.borins@gmail.com>
+Source: https://github.com/jstime/jstime
+
+Files: *
+Copyright: 2020 The jstime Authors
+License: Apache-2.0
