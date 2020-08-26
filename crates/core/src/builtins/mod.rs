@@ -21,7 +21,10 @@ impl Builtins {
         macro_rules! builtin {
             ($name:expr) => {
                 let source = include_str!($name);
-                let val = crate::script::run_js_in_scope_internal(scope, source, $name).unwrap();
+                let val = match crate::script::run(scope, source, $name) {
+                    Ok(v) => v,
+                    Err(_) => unreachable!(),
+                };
                 let func = v8::Local::<v8::Function>::try_from(val).unwrap();
                 let recv = v8::undefined(scope).into();
                 let args = [bindings.into()];
