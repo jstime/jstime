@@ -12,8 +12,4 @@ repository = "https://github.com/jstime/jstime"
 rusty_v8 = "0.8.1"
 
 [package.metadata.release]
-sign-commit	= true
-sign-tag = true
-disable-publish = true
-pre-release-commit-message = "{{version}}"
-post-release-commit-message = "Working on {{next_version}}"
+disable-tag = true

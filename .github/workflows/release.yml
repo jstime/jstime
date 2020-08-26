@@ -99,3 +99,6 @@ jobs:
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
       - run: cargo publish
+        working-directory: core
+      - run: cargo publish
+        working-directory: cli

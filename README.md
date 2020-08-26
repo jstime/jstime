@@ -34,15 +34,6 @@ $ jstime hello-world.js
 hello world
 
 ```
-## It's a library too!
-
-```rust
-use jstime::script;
-
-fn main() {
-  script::run("console.log('hello world')");
-}
-```
 
 ## TODO
 
