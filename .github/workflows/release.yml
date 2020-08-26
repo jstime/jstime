@@ -98,7 +98,9 @@ jobs:
       - run: cargo login ${CRATES_IO_TOKEN}
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-      - run: cargo publish
+      - name: publish jstime_core
+        run: cargo publish
         working-directory: core
-      - run: cargo publish
+      - name: publish jstime
+        run: cargo publish
         working-directory: cli
