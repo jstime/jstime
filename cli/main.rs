@@ -16,7 +16,7 @@ struct Opt {
 
     /// Options for V8
     #[structopt(long)]
-    v8_options: Option<Vec<String>>,
+    v8_options: Option<String>,
 }
 
 fn main() {
@@ -27,9 +27,17 @@ fn main() {
         process::exit(0);
     }
 
-    jstime::init(opt.v8_options);
+    jstime::init(
+        opt.v8_options
+            .map(|o| o.split(' ').map(|s| s.to_owned()).collect()),
+    );
 
-    let options = jstime::Options::default();
+    let mut options = jstime::Options::default();
+    options.snapshot = Some(include_bytes!(concat!(
+        env!("OUT_DIR"),
+        "/snapshot_data.blob"
+    )));
+
     let mut jstime = jstime::JSTime::new(options);
 
     if let Some(filename) = opt.filename {
