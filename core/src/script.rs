@@ -16,5 +16,5 @@ pub(crate) fn run<'s>(
 
     v8::Script::compile(scope, code, Some(&origin))
         .and_then(|script| script.run(scope))
-        .map_or_else(|| Err(scope.exception().unwrap()), Ok)
+        .map_or_else(|| Err(scope.stack_trace().unwrap()), Ok)
 }

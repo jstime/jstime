@@ -48,9 +48,9 @@ impl Loader {
             Some(m) => {
                 m.instantiate_module(scope, resolve_callback).unwrap();
                 m.evaluate(scope)
-                    .map_or_else(|| Err(scope.exception().unwrap()), Ok)
+                    .map_or_else(|| Err(scope.stack_trace().unwrap()), Ok)
             }
-            None => Err(scope.exception().unwrap()),
+            None => Err(scope.stack_trace().unwrap()),
         }
     }
 }
