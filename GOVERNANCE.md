@@ -1,9 +1,9 @@
 # jstime Project Governance
 
-For the curent list of Collaborators see the project [README](./README.md)
+For the curent list of Collaborators see the project [README](./README.md).
 
-This governance document is heavily by the
-[governance of the node.js project](https://github.com/nodejs/node/blob/master/GOVERNANCE.md)
+This governance document is heavily inspired by the
+[governance of the Node.js project](https://github.com/nodejs/node/blob/master/GOVERNANCE.md).
 
 ## Collaborators
 
@@ -21,7 +21,7 @@ One Collaborator must approve a pull request before the pull request can land.
 Approving a pull request indicates that the Collaborator accepts responsibility for
 the change. Approval must be from Collaborators who are not authors of the change.
 
-*Note*: Approval is not required for changes related to documentation, tooling, or releases
+*Note*: Approval is not required for changes related to documentation, tooling, or releases.
 
 If a Collaborator opposes a proposed change, then the change cannot land unless
 the chair determines there is [rough consensus][] to move forward.
@@ -43,7 +43,7 @@ The chair has a sole additional responsibility beyond other collaborators, to
 determine when rough consensus has been reached. It is imperative that the chair
 remain impartial and fair in this decision making process. Collaborators have the
 ability to nominate a new chair at any time who can be ratified either through
-rough consensus or a super majority vote.
+rough consensus or a two-thirds super majority vote.
 
 ## Collaborator nominations
 
