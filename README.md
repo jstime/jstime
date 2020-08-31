@@ -46,7 +46,7 @@ for information about the governance of the jstime project, see
 
 ### Collaborators
 
-* [bengl](https://github.com/bengl) - **Bryan English**
+* [bengl](https://github.com/bengl) - **Bryan English** (he/him)
 * [bdougie](https://github.com/bdougie) - **Brian Douglas**
 * [codebytere](https://github.com/codebytere) - **Shelley Vohr**
 * [devsnek](https://github.com/devsnek) - **Gus Caplan**
