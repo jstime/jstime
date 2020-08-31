@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "jstime_core"
-version = "0.12.7-alpha.0"
+version = "0.13.0"
 dependencies = [
  "lazy_static",
  "rusty_v8",
