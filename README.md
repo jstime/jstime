@@ -35,6 +35,25 @@ hello world
 
 ```
 
+## Current Project Team Members
+
+for information about the governance of the jstime project, see
+[GOVERNANCE.md](./GOVERNANCE.md).
+
+### Chair
+
+* [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
+
+### Collaborators
+
+* [bengl](https://github.com/bengl) - **Bryan English**
+* [bdougie](https://github.com/bdougie) - **Brian Douglas**
+* [codebytere](https://github.com/codebytere) - **Shelley Vohr**
+* [devsnek](https://github.com/devsnek) - **Gus Caplan**
+* [EstebanBorai](https://github.com/EstebanBorai) - **Esteban Borai**
+* [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
+* [solumos](https://github.com/solumos) - **Tom Hadley**
+
 ## TODO
 
 * Finish implementing [console](https://console.spec.whatwg.org/)
