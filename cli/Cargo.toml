@@ -18,5 +18,8 @@ jstime_core = { path = "../core", version = "^0.12.7-alpha.0"}
 rustyline = "6.2.0"
 structopt = "0.3.17"
 
+[build-dependencies]
+jstime_core = { path = "../core", version = "^0.12.7-alpha.0" }
+
 [package.metadata.release]
 tag-prefix = ""
