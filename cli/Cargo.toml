@@ -14,12 +14,12 @@ name = "jstime"
 path = "main.rs"
 
 [dependencies]
-jstime_core = { path = "../core", version = "^0.13.1-alpha.0"}
+jstime_core = { path = "../core", version = "^0.13.1"}
 rustyline = "6.2.0"
 structopt = "0.3.17"
 
 [build-dependencies]
-jstime_core = { path = "../core", version = "^0.13.1-alpha.0"}
+jstime_core = { path = "../core", version = "^0.13.1"}
 
 [package.metadata.release]
 tag-prefix = ""
