@@ -14,7 +14,7 @@ jstime Collaborators is @jstime/collaborators. Collaborators have:
 * Ability to nominate, and vote for, the position of chair
 
 Both Collaborators and non-Collaborators may propose changes to the jstime source
-code. The mechanism to propose such a change is a GitHub pull reuqest. Collaborators
+code. The mechanism to propose such a change is a GitHub pull request. Collaborators
 review and merge (land) pull requests.
 
 One Collaborator must approve a pull request before the pull request can land.
