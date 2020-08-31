@@ -56,7 +56,8 @@ The nomination passes if no Collaborators oppose it after one week. Otherwise, t
 
 ## Consensus seeking process
 
-The jstime project follows a [rough consensus][] decision-making model.
+The jstime project follows a [rough consensus][] decision-making model. The IETF
+have an excellent [RFC on rough consensus](https://tools.ietf.org/html/rfc7282).
 
 [jstime/jstime]: https://github.com/jstime/jstime
 [rough consensus]: https://en.wikipedia.org/wiki/Rough_consensus
