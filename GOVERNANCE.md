@@ -19,7 +19,10 @@ review and merge (land) pull requests.
 
 One Collaborator must approve a pull request before the pull request can land.
 Approving a pull request indicates that the Collaborator accepts responsibility for
-the change. Approval must be from Collaborators who are not authors of the change.
+the change. Approval must be from Collaborators who are not authors of the change. For
+pull requests with multiple authors, any approvals by Collaborators do not apply
+to commits they are the author of, but do apply to any other commits in the pull
+request.
 
 *Note*: Approval is not required for changes related to documentation, tooling, or releases.
 
