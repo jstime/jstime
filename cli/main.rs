@@ -51,15 +51,15 @@ fn main() {
 }
 
 fn repl(mut jstime: jstime::JSTime) {
-    use rustyline::{error::ReadlineError, Editor};
     use dirs::home_dir;
-    
+    use rustyline::{error::ReadlineError, Editor};
+
     let mut history_path = home_dir().unwrap();
     history_path.push(".jstime_repl_history");
 
     let mut rl = Editor::<()>::new();
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
-    
+
     if rl.load_history(&history_path).is_err() {}
 
     loop {
