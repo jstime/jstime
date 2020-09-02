@@ -86,5 +86,5 @@ fn repl(mut jstime: jstime::JSTime) {
             }
         }
     }
-    rl.save_history(&history_path).unwrap();
+    let _ = rl.save_history(&history_path);
 }
