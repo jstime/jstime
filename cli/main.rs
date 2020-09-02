@@ -60,7 +60,7 @@ fn repl(mut jstime: jstime::JSTime) {
     let mut rl = Editor::<()>::new();
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
 
-    if rl.load_history(&history_path).is_err() {}
+    let _ = rl.load_history(&history_path);
 
     loop {
         let readline = rl.readline(">> ");
