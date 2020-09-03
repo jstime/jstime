@@ -67,9 +67,6 @@ mod tests {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(
-            err.to_string(),
-            "SyntaxError: Unexpected token \'}\'"
-        );
+        assert_eq!(err.to_string(), "SyntaxError: Unexpected token \'}\'");
     }
 }
