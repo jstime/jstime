@@ -41,10 +41,13 @@ fn main() {
     let mut jstime = jstime::JSTime::new(options);
 
     if let Some(filename) = opt.filename {
-        match jstime.import(&filename) {
-            Ok(_) => {}
-            Err(e) => eprintln!("{}", e),
-        }
+        std::process::exit(match jstime.import(&filename) {
+            Ok(_) => 0,
+            Err(e) => {
+                eprintln!("{:?}", e);
+                1
+            }
+        });
     } else {
         repl(jstime);
     }
