@@ -59,5 +59,11 @@ The nomination passes if no Collaborators oppose it after one week. Otherwise, t
 The jstime project follows a [rough consensus][] decision-making model. The IETF
 have an excellent [RFC on rough consensus](https://tools.ietf.org/html/rfc7282).
 
+## Changes to Governance
+
+Any change to governance must be open for at least 7 days to give all collaborators
+a chance to approve. Changes to governance must either have no-objections or pass
+via a two-thirds super majority vote of the collaborators.
+
 [jstime/jstime]: https://github.com/jstime/jstime
 [rough consensus]: https://en.wikipedia.org/wiki/Rough_consensus
