@@ -103,7 +103,13 @@ impl JSTime {
         if options.snapshot.is_none() {
             let context = IsolateState::get(&mut isolate).borrow().context();
             let scope = &mut v8::HandleScope::with_context(&mut isolate, context);
-            builtins::Builtins::create(scope);
+            builtins::Builtins::create_snapshot(scope);
+        }
+
+        if !options.taking_snapshot {
+            let context = IsolateState::get(&mut isolate).borrow().context();
+            let scope = &mut v8::HandleScope::with_context(&mut isolate, context);
+            builtins::Builtins::create_non_snapshot(scope);
         }
 
         JSTime {
