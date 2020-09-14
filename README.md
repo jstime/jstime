@@ -51,6 +51,7 @@ for information about the governance of the jstime project, see
 * [codebytere](https://github.com/codebytere) - **Shelley Vohr**
 * [devsnek](https://github.com/devsnek) - **Gus Caplan**
 * [EstebanBorai](https://github.com/EstebanBorai) - **Esteban Borai**
+* [jalafel](https://github.com/jalafel) - **Jess Tran**
 * [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
 * [solumos](https://github.com/solumos) - **Tom Hadley**
 
