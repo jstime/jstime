@@ -44,7 +44,7 @@ fn main() {
         std::process::exit(match jstime.import(&filename) {
             Ok(_) => 0,
             Err(e) => {
-                eprintln!("{:?}", e);
+                eprintln!("{}", e);
                 1
             }
         });
