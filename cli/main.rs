@@ -19,6 +19,15 @@ struct Opt {
     v8_options: Option<String>,
 }
 
+struct JSTimeCompletions {
+    global_builtins: Vec<String>,
+}
+
+// TODO: implement get_global_builtins
+fn get_global_builtins() -> Vec<String> {
+    vec!["Array".to_owned()]
+}
+
 fn main() {
     let opt = Opt::from_args();
 
@@ -57,8 +66,51 @@ fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
     use rustyline::{error::ReadlineError, Editor};
 
-    let mut rl = Editor::<()>::new();
+    struct ReplReadlineHelper {}
+
+    // rustyline Helper, requires a validator, hinter, highlighter and a completer
+    // all of the implementations to the hinter trait can be empty
+    impl rustyline::Helper for ReplReadlineHelper {}
+    impl rustyline::hint::Hinter for ReplReadlineHelper {}
+    impl rustyline::validate::Validator for ReplReadlineHelper {}
+    impl rustyline::highlight::Highlighter for ReplReadlineHelper {}
+
+    impl rustyline::completion::Completer for ReplReadlineHelper {
+        // Candidate is an assosciated type, that helps the readlineHelper know the type of completion.
+        // Here the candidate refers to the "closest possible match" to a given string from all the completions / candidates available.
+        type Candidate = String;
+
+        fn complete(
+            &self,
+            _line: &str,
+            _pos: usize,
+            _ctx: &rustyline::Context<'_>,
+        ) -> std::result::Result<(usize, Vec<String>), rustyline::error::ReadlineError> {
+            let completions = JSTimeCompletions {
+                global_builtins: get_global_builtins(),
+            };
+
+            Ok((0, completions.global_builtins))
+        }
+
+        fn update(
+            &self,
+            line: &mut rustyline::line_buffer::LineBuffer,
+            start: usize,
+            elected: &str,
+        ) {
+            let end = line.pos();
+            line.replace(start..end, elected)
+        }
+    }
+
+    let mut rl = Editor::<ReplReadlineHelper>::new();
+
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
+
+    // home_dir() returns a PathBuf, which allows for mutating the path in place.
+    // here $HOME/.jstime_repl_history is set as the path for jstime's history file.
+    // PathBuf is similar to (but not the same as ) node's path lib
 
     let history_path = home_dir().map(|mut p| {
         p.push(".jstime_repl_history");
