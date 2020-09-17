@@ -18,6 +18,9 @@ jstime_core = { path = "../core", version = "^0.13.4-alpha.0"}
 rustyline = "6.3.0"
 structopt = "0.3.17"
 dirs = "3.0.1"
+rusty_v8 = "0.10.0"
+regex = "1"
+lazy_static = "1.4.0"
 
 [build-dependencies]
 jstime_core = { path = "../core", version = "^0.13.4-alpha.0"}
