@@ -1,7 +1,7 @@
 use dirs::home_dir;
+use jstime::JSTime;
 use jstime_core as jstime;
 use regex::Regex;
-use rusty_v8 as v8;
 use std::env;
 use std::path::PathBuf;
 use std::process;
@@ -26,59 +26,11 @@ struct Opt {
     v8_options: Option<String>,
 }
 
-// A rust implementation of the complete function from node repl.
-// https://github.com/nodejs/node/blob/c205f672e9cf0c70ea26f87eb97342947a244e18/lib/repl.js#L1136
+#[allow(dead_code)]
+const JS_GET_GLOBAL_BUILTINS: &str = "Object.getOwnPropertyNames(globalThis)";
 
-struct JSTimeCompletions {
-    builtins: Vec<String>,
-    contextual_completions: Vec<String>,
-}
-
-impl JSTimeCompletions {
-    fn complete(line: &str) {
-        // lazy_static! {
-        //     static ref SIMPLE_RE: Regex =
-        //         Regex::new(r"/(?:[a-zA-Z_$](?:\w|\$)*\??\.)*[a-zA-Z_$](?:\w|\$)*\??\.?$/").unwrap();
-        // }
-
-        let SIMPLE_EXPRESSION_RE =
-            Regex::new(r"(?m)(?:[a-zA-Z_$](?:\w|\$)*\??\.)*[a-zA-Z_$](?:\w|\$)*\??\.?$").unwrap();
-
-        // TODO: handle regex capture panic
-        let captures = SIMPLE_EXPRESSION_RE.captures(line).unwrap();
-        let complete_on = &captures[0];
-        let mut expr = String::from("");
-        let mut filter = "";
-        // if line ends_with '.'
-        if line.ends_with(".") {
-            // expr = complete_on.split()
-        } else {
-            let mut bits: Vec<&str> = complete_on.split(".").collect();
-            filter = bits.pop().unwrap();
-            expr = bits.join(".");
-        }
-
-        if (expr.is_empty()) {
-
-        }
-    }
-}
-fn get_global_builtins(mut runtime: jstime::JSTime) -> Vec<String> {
-    // let context = jstime::IsolateState::get(self.isolate()).borrow().context();
-    // let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-
-    // let scope = v8::HandleScope::with_context()
-
-    // TODO: This should also include builtins from the runtime, and not just global ones.
-
-    let builtins = runtime.run_script("Object.getOwnPropertyNames(global)", "jstime-repl");
-
-    vec!["okay".to_owned()]
-}
-
-fn main() {
-    let opt = Opt::from_args();
-
+/// Initializes the JSTime Core
+fn init_runtime(opt: &Opt) -> JSTime {
     if opt.version {
         println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         process::exit(0);
@@ -86,6 +38,7 @@ fn main() {
 
     jstime::init(
         opt.v8_options
+            .as_ref()
             .map(|o| o.split(' ').map(|s| s.to_owned()).collect()),
     );
 
@@ -95,8 +48,12 @@ fn main() {
         "/snapshot_data.blob"
     )));
 
-    let mut jstime = jstime::JSTime::new(options);
+    JSTime::new(options)
+}
 
+fn main() {
+    let opt = Opt::from_args();
+    let mut jstime = init_runtime(&opt);
     if let Some(filename) = opt.filename {
         std::process::exit(match jstime.import(&filename) {
             Ok(_) => 0,
@@ -106,28 +63,73 @@ fn main() {
             }
         });
     } else {
-        // home_dir() returns a PathBuf, which allows for mutating the path in place.
-        // here $HOME/.jstime_repl_history is set as the path for jstime's history file.
-        // PathBuf is similar to (but not the same as ) node's path lib
-
         let history_file = home_dir().map(|mut p| {
             p.push(".jstime_repl_history");
             p
         });
 
-        Repl::new(jstime, history_file.unwrap());
+        Repl::new(jstime, history_file.unwrap()).readline();
     }
 }
 
+// A rust implementation of the complete function from node repl.
+// https://github.com/nodejs/node/blob/c205f672e9cf0c70ea26f87eb97342947a244e18/lib/repl.js#L1136
+
+#[allow(dead_code)]
+fn generate_completions(line: &str, jstime: &mut JSTime) -> Vec<String> {
+    // <tab>: When pressed on a blank line, displays global and local (scope) variables.
+    // When pressed while entering other input, displays relevant autocompletion options.
+
+    // SIMPLE_EXPR_RE - Regex that splits input source into capture groups of Object property access
+    lazy_static! {
+        static ref SIMPLE_EXPR_RE: Regex =
+            Regex::new(r"(?m)(?:[a-zA-Z_$](?:\w|\$)*\??\.)*[a-zA-Z_$](?:\w|\$)*\??\.?$").unwrap();
+    };
+
+    // populate completion_groups based on the what the contextual completions for the line
+    let completion_groups: Vec<String> = vec![];
+
+    // return global builtins if the input line is empty.
+    if line.is_empty() {
+        let result = jstime.run_script(JS_GET_GLOBAL_BUILTINS, "jstime-repl");
+        let builtins = result.unwrap().split(',').map(|x| x.to_string()).collect();
+        builtins
+    } else {
+        match SIMPLE_EXPR_RE.captures(line) {
+            Some(x) => {
+                let complete_on = &x[0];
+                let mut expr = String::from("");
+
+                if line.ends_with(".") {
+                    // expr = complete_on.split()
+                } else {
+                    let bits: Vec<&str> = complete_on.split(".").collect();
+                    // filter = bits.pop().unwrap();
+                    expr = bits.join(".");
+                }
+
+                if expr.is_empty() {
+                } else {
+                    // based on the new node repl, we should probably parse the source into an ESTree
+                    // and then try to get the corresponding propertyNames?
+                }
+                completion_groups
+            }
+            _ => completion_groups,
+        }
+    }
+}
+
+#[allow(dead_code)]
 pub struct Repl {
-    runtime: jstime::JSTime,
+    jstime: JSTime,
     history_file: PathBuf,
 }
 
 impl Repl {
-    pub fn new(runtime: jstime::JSTime, history_file: PathBuf) -> Self {
+    pub fn new(jstime: JSTime, history_file: PathBuf) -> Self {
         let repl = Self {
-            runtime,
+            jstime,
             history_file,
         };
         repl
@@ -137,8 +139,8 @@ impl Repl {
         use rustyline::{error::ReadlineError, Editor};
 
         struct JstimeRustylineHelper {
-            builtins: Vec<String>,
-        }
+            // jstime: JSTime,
+        };
 
         // Rustyline Helper requires a validator, hinter, highlighter and a completer
         // all of the implementations to the hinter trait can be empty
@@ -154,20 +156,14 @@ impl Repl {
 
             fn complete(
                 &self,
-                line: &str,
+                _line: &str,
                 _pos: usize,
                 _ctx: &rustyline::Context<'_>,
             ) -> std::result::Result<(usize, Vec<String>), rustyline::error::ReadlineError>
             {
-                // Similar to the node repl
-                // <tab>: When pressed on a blank line, displays global and local (scope) variables.
-                // When pressed while entering other input, displays relevant autocompletion options.
-
-                if line.is_empty() {
-                    Ok((0, self.builtins))
-                } else {
-                    Ok((0, vec![]))
-                }
+                // let completions = generate_completions(line, self.jstime);
+                let completions = vec![];
+                Ok((0, completions))
             }
 
             fn update(
@@ -181,15 +177,14 @@ impl Repl {
             }
         }
 
-        // let mut builtins =
+        let mut rl = Editor::<JstimeRustylineHelper>::new();
+
+        // ERR: move occurs as `Copy` trait is not implemented.
         let helper = JstimeRustylineHelper {
-            builtins: vec!["".to_owned()],
+            // jstime: self.jstime,
         };
 
-        let mut rl = Editor::<JstimeRustylineHelper>::new();
         rl.set_helper(Some(helper));
-        rl.load_history(&self.history_file);
-
         println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
 
         loop {
@@ -202,7 +197,7 @@ impl Repl {
                             println!("Thanks for stopping by!");
                             break;
                         }
-                        _ => match self.runtime.run_script(&line, ".repl") {
+                        _ => match self.jstime.run_script(&line, ".repl") {
                             Ok(v) => println!("{}", v),
                             Err(e) => eprintln!("Uncaught: {}", e),
                         },
@@ -223,8 +218,96 @@ impl Repl {
             }
         }
 
-        // if let Some(&self.history_file) = self.history_file {
-        //     let _ = rl.save_history(&self.history_file);
-        // }
+        rl.save_history(&self.history_file).unwrap();
     }
+}
+
+#[test]
+
+fn test_generate_completions() {
+    jstime::init(Some(vec![]));
+
+    let mut options = jstime::Options::default();
+    options.snapshot = Some(include_bytes!(concat!(
+        env!("OUT_DIR"),
+        "/snapshot_data.blob"
+    )));
+
+    let mut jstime = JSTime::new(options);
+
+    fn do_vecs_match<T: PartialEq>(a: &Vec<T>, b: &Vec<T>) -> bool {
+        let matching = a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count();
+        matching == a.len() && matching == b.len()
+    }
+
+    let globals = vec![
+        "Object",
+        "Function",
+        "Array",
+        "Number",
+        "parseFloat",
+        "parseInt",
+        "Infinity",
+        "NaN",
+        "undefined",
+        "Boolean",
+        "String",
+        "Symbol",
+        "Date",
+        "Promise",
+        "RegExp",
+        "Error",
+        "EvalError",
+        "RangeError",
+        "ReferenceError",
+        "SyntaxError",
+        "TypeError",
+        "URIError",
+        "globalThis",
+        "JSON",
+        "Math",
+        "console",
+        "ArrayBuffer",
+        "Uint8Array",
+        "Int8Array",
+        "Uint16Array",
+        "Int16Array",
+        "Uint32Array",
+        "Int32Array",
+        "Float32Array",
+        "Float64Array",
+        "Uint8ClampedArray",
+        "BigUint64Array",
+        "BigInt64Array",
+        "DataView",
+        "Map",
+        "BigInt",
+        "Set",
+        "WeakMap",
+        "WeakSet",
+        "Proxy",
+        "Reflect",
+        "decodeURI",
+        "decodeURIComponent",
+        "encodeURI",
+        "encodeURIComponent",
+        "escape",
+        "unescape",
+        "eval",
+        "isFinite",
+        "isNaN",
+        "queueMicrotask",
+        "SharedArrayBuffer",
+        "Atomics",
+        "AggregateError",
+        "FinalizationRegistry",
+        "WeakRef",
+        "WebAssembly",
+    ]
+    .iter()
+    .map(|x| x.to_string())
+    .collect();
+
+    let completions = generate_completions("", &mut jstime);
+    assert_eq!(do_vecs_match(&completions, &globals), true);
 }
