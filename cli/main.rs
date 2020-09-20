@@ -78,14 +78,11 @@ pub struct Repl<'a> {
     history_file: PathBuf,
 }
 
-// Rustyline seems to need an external struct to work properly.
-// It does not seem to like implementing the traits in the Repl struct itself.
+// Rustyline seems to need an external struct to work as intended.
 pub struct RustylineHelper {
     completions: Vec<String>,
 }
 
-// Rustyline Helper requires a validator, hinter, highlighter and a completer
-// all of the implementations to the hinter trait can be empty
 impl rustyline::Helper for RustylineHelper {}
 impl rustyline::hint::Hinter for RustylineHelper {}
 impl rustyline::validate::Validator for RustylineHelper {}
