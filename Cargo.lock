@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "jstime_core"
-version = "0.15.0"
+version = "0.15.1-alpha.0"
 dependencies = [
  "lazy_static",
  "rusty_v8",
