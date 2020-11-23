@@ -32,13 +32,10 @@ fn main() {
             .map(|o| o.split(' ').map(|s| s.to_owned()).collect()),
     );
 
-    let options = jstime::Options {
-        snapshot: Some(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/snapshot_data.blob"
-        ))),
-        ..jstime::Options::default()
-    };
+    let options = jstime::Options::new(Some(include_bytes!(concat!(
+        env!("OUT_DIR"),
+        "/snapshot_data.blob"
+    ))));
 
     let mut jstime = jstime::JSTime::new(options);
 

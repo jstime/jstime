@@ -26,7 +26,16 @@ pub fn init(v8_flags: Option<Vec<String>>) {
 /// Options for `JSTime::new`.
 pub struct Options {
     pub snapshot: Option<&'static [u8]>,
-    pub taking_snapshot: bool,
+    taking_snapshot: bool,
+}
+
+impl Options {
+    pub fn new(snapshot: Option<&'static [u8]>) -> Options {
+        Options {
+            snapshot,
+            ..Options::default()
+        }
+    }
 }
 
 impl Default for Options {
