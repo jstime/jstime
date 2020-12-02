@@ -29,6 +29,15 @@ pub struct Options {
     taking_snapshot: bool,
 }
 
+impl Options {
+    pub fn new(snapshot: Option<&'static [u8]>) -> Options {
+        Options {
+            snapshot,
+            ..Options::default()
+        }
+    }
+}
+
 impl Default for Options {
     fn default() -> Options {
         Options {
