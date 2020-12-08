@@ -178,7 +178,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.19.1"
+version = "0.19.2-alpha.0"
 dependencies = [
  "dirs",
  "jstime_core",
