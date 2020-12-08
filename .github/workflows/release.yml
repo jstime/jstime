@@ -39,15 +39,7 @@ jobs:
     - name: Set env
       run: |
           RELEASE_VERSION=$(echo ${GITHUB_REF:10})
-          
-          # https://github.blog/changelog/2020-10-01-github-actions-deprecating-set-env-and-add-path-commands/
-          # disable command workflow processing
-          echo "::stop-commands::`echo -n ${{ github.token }} | sha256sum | head -c 64`"
-          
           echo ::set-env name=ASSET_NAME::${{ matrix.asset_name }}-$RELEASE_VERSION${{ matrix.asset_extension }}
-
-          # enable workflow command processing
-          echo "::`echo -n ${{ github.token }} | sha256sum | head -c 64`::"          
       shell: bash
 
     - uses: actions-rs/toolchain@v1
