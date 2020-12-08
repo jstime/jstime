@@ -64,8 +64,8 @@ jobs:
       uses: svenstaro/upload-release-action@v1-release
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${asset_name}
-        asset_name: ${asset_name}
+        file: jstime*${{ matrix.asset_extension }}
+        file_glob: true
         tag: ${{ github.ref }}
 
   create-release:
