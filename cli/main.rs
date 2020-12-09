@@ -48,11 +48,11 @@ fn main() {
             }
         });
     } else {
-        repl(jstime);
+        repl(&mut jstime);
     }
 }
 
-fn repl(mut jstime: jstime::JSTime) {
+fn repl(jstime: &mut jstime::JSTime) {
     use dirs::home_dir;
     use rustyline::{error::ReadlineError, Editor};
 
