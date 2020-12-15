@@ -69,4 +69,14 @@ mod tests {
         };
         assert_eq!(err.to_string(), "SyntaxError: Unexpected token \'}\'");
     }
+    #[test]
+    fn import() {
+        let _setup_guard = setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let hello_path = "./tests/fixtures/hello-world.js";
+        let _result = jstime.import(&hello_path);
+        let result = jstime.run_script("globalThis.hello", "jstime");
+        assert_eq!(result.unwrap(), "hello world");
+    }
 }
