@@ -15,7 +15,7 @@ path = "main.rs"
 
 [dependencies]
 jstime_core = { path = "../core", version = "^0.19.2-alpha.0"}
-rustyline = "7.0.0"
+rustyline = "7.1.0"
 structopt = "0.3.21"
 dirs = "3.0.1"
 
