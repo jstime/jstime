@@ -1,44 +1,13 @@
-// Heavily inspired by https://github.com/denoland/rusty_v8/blob/master/tests/test_api.rs
-// https://github.com/denoland/deno/blob/master/LICENSE
-// MIT License
-//
-// Copyright (c) 2018-2020 the Deno authors
-
-#[macro_use]
-extern crate lazy_static;
-
-use std::sync::Mutex;
-
 use jstime_core as jstime;
 
-lazy_static! {
-    static ref INIT_LOCK: Mutex<u32> = Mutex::new(0);
-}
-
-#[must_use]
-struct SetupGuard {}
-
-impl Drop for SetupGuard {
-    fn drop(&mut self) {
-        // TODO shutdown process cleanly.
-    }
-}
-
-fn setup() -> SetupGuard {
-    let mut g = INIT_LOCK.lock().unwrap();
-    *g += 1;
-    if *g == 1 {
-        jstime::init(None);
-    }
-    SetupGuard {}
-}
+mod common;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn run_script() {
-        let _setup_guard = setup();
+        let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("\"Hello, World!\"", "jstime");
@@ -52,7 +21,7 @@ mod tests {
     }
     #[test]
     fn run_script_error() {
-        let _setup_guard = setup();
+        let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
         let err = match jstime.run_script("a", "jstime") {
@@ -71,7 +40,7 @@ mod tests {
     }
     #[test]
     fn import() {
-        let _setup_guard = setup();
+        let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
         let hello_path = "./tests/fixtures/hello-world.js";
