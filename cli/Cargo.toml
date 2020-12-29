@@ -1,6 +1,6 @@
 [package]
 name = "jstime"
-version = "0.20.1"
+version = "0.20.2-alpha.0"
 description = "Another JS Runtime"
 readme = "README.md"
 license = "Apache-2.0"
