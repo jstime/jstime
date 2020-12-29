@@ -17,14 +17,17 @@ Both Collaborators and non-Collaborators may propose changes to the jstime sourc
 code. The mechanism to propose such a change is a GitHub pull request. Collaborators
 review and merge (land) pull requests.
 
-One Collaborator must approve a pull request before the pull request can land.
-Approving a pull request indicates that the Collaborator accepts responsibility for
-the change. Approval must be from Collaborators who are not authors of the change.
+Pull Request authored by non-collaborators require at least one approval from a 
+Collaborator. Approving a pull request indicates that the  Collaborator accepts 
+responsibility for the change.
 
-*Note*: Approval is not required for changes related to documentation, tooling, or releases.
+Pull Requests authored by a collabortor do not require review, but it is 
+encouraged. If no review is given the collaborator should document the reason
+for landing without review.
 
 If a Collaborator opposes a proposed change, then the change cannot land unless
-the chair determines there is [rough consensus][] to move forward.
+consensus to land can be reached or the chair determines there is
+[rough consensus][] to move forward.
 
 See:
 
