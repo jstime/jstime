@@ -18,7 +18,7 @@ code. The mechanism to propose such a change is a GitHub pull request. Collabora
 review and merge (land) pull requests.
 
 Pull Request authored by non-collaborators require at least one approval from a 
-Collaborator. Approving a pull request indicates that the  Collaborator accepts 
+Collaborator. Approving a pull request indicates that the Collaborator accepts 
 responsibility for the change.
 
 Pull Requests authored by a collabortor do not require review, but it is 
