@@ -1,7 +1,7 @@
 use assert_cmd::prelude::*;
 
-use std::process::Command;
 use predicates::prelude::*;
+use std::process::Command;
 
 #[test]
 fn help() {
@@ -42,7 +42,9 @@ fn call_to_function_that_does_not_exist() {
         .unwrap()
         .arg("./tests/fixtures/function-does-not-exist.js")
         .assert()
-        .stderr(predicate::str::contains("ReferenceError: fhqwhgads is not defined"))
+        .stderr(predicate::str::contains(
+            "ReferenceError: fhqwhgads is not defined",
+        ))
         .failure()
         .code(1);
 }
@@ -64,7 +66,9 @@ fn invalid_code() {
         .unwrap()
         .arg("./tests/fixtures/invalid-code.js")
         .assert()
-        .stderr(predicate::str::contains("SyntaxError: Unexpected token '}'"))
+        .stderr(predicate::str::contains(
+            "SyntaxError: Unexpected token '}'",
+        ))
         .failure()
         .code(1);
 }
