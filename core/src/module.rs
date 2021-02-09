@@ -103,7 +103,6 @@ fn normalize_path(referrer_path: &str, requested: &str) -> String {
 fn resolve_callback<'a>(
     context: v8::Local<'a, v8::Context>,
     specifier: v8::Local<'a, v8::String>,
-    _import_assertions: v8::Local<'a, v8::FixedArray>,
     referrer: v8::Local<'a, v8::Module>,
 ) -> Option<v8::Local<'a, v8::Module>> {
     let scope = unsafe { &mut v8::CallbackScope::new(context) };
