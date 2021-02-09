@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.22.1-alpha.0"
+version = "0.22.1"
 dependencies = [
  "dirs",
  "jstime_core",
