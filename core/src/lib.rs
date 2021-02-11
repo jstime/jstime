@@ -48,6 +48,7 @@ impl Default for Options {
 }
 
 /// JSTime Instance.
+#[allow(clippy::all)]
 pub struct JSTime {
     isolate: Option<v8::OwnedIsolate>,
     taking_snapshot: bool,
