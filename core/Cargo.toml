@@ -9,7 +9,7 @@ edition = "2018"
 repository = "https://github.com/jstime/jstime"
 
 [dependencies]
-rusty_v8 = "0.20.0"
+rusty_v8 = "0.21.0"
 lazy_static = "1.4.0"
 
 [package.metadata.release]
