@@ -8,16 +8,16 @@ pub(crate) fn create_script_origin<'s>(
     is_module: bool,
 ) -> v8::ScriptOrigin<'s> {
     let resource_name = filepath.into();
-    let resource_line_offset = v8::Integer::new(scope, 0);
-    let resource_column_offset = v8::Integer::new(scope, 0);
-    let resource_is_shared_cross_origin = v8::Boolean::new(scope, false);
-    let script_id = v8::Integer::new(scope, 0);
-    let source_map_url = v8::String::new(scope, "").unwrap().into();
-    let resource_is_opaque = v8::Boolean::new(scope, true);
-    let is_wasm = v8::Boolean::new(scope, false);
-    let is_module = v8::Boolean::new(scope, is_module);
+    let resource_line_offset = 0;
+    let resource_column_offset = 0;
+    let resource_is_shared_cross_origin = false;
+    let script_id = 0;
+    let source_map_url = v8::String::new(scope, "soure_map_url").unwrap().into();
+    let resource_is_opaque = true;
+    let is_wasm = false;
 
     v8::ScriptOrigin::new(
+        scope,
         resource_name,
         resource_line_offset,
         resource_column_offset,

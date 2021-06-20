@@ -35,6 +35,11 @@ hello world
 
 ```
 
+## Embed it!
+
+Check out the [README.md for jstime-core](./core/README.md) for
+instructions on how to embed jstime in your rust application!
+
 ## Current Project Team Members
 
 for information about the governance of the jstime project, see

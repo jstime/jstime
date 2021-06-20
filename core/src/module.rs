@@ -46,7 +46,8 @@ impl Loader {
         let scope = &mut v8::TryCatch::new(scope);
         match resolve(scope, referrer, specifier) {
             Some(m) => {
-                m.instantiate_module(scope, resolve_callback).unwrap();
+                m.instantiate_module(scope, module_resolve_callback)
+                    .unwrap();
                 m.evaluate(scope)
                     .map_or_else(|| Err(scope.stack_trace().unwrap()), Ok)
             }
@@ -77,7 +78,7 @@ fn resolve<'a>(
     let js_src = std::fs::read_to_string(&requested_abs_path)
         .expect("Something went wrong reading the file");
     let code = v8::String::new(scope, &js_src).unwrap();
-    let source = v8::script_compiler::Source::new(code, &origin);
+    let source = v8::script_compiler::Source::new(code, Some(&origin));
 
     let module = v8::script_compiler::compile_module(scope, source);
     if let Some(module) = module {
@@ -100,9 +101,10 @@ fn normalize_path(referrer_path: &str, requested: &str) -> String {
     normalized.unwrap().to_string_lossy().into()
 }
 
-fn resolve_callback<'a>(
+fn module_resolve_callback<'a>(
     context: v8::Local<'a, v8::Context>,
     specifier: v8::Local<'a, v8::String>,
+    _import_assertions: v8::Local<'a, v8::FixedArray>,
     referrer: v8::Local<'a, v8::Module>,
 ) -> Option<v8::Local<'a, v8::Module>> {
     let scope = unsafe { &mut v8::CallbackScope::new(context) };

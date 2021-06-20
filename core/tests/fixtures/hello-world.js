@@ -3,8 +3,7 @@ async function main() {
     Promise.resolve('hello'),
     Promise.resolve('world')
   ]);
-
-  console.log(`${first} ${second}`);
+  globalThis.hello = `${first} ${second}`;
 }
 
 main().catch(e => console.error(e));

@@ -6,9 +6,14 @@ which provides the V8-Rust bindings.
 ## API
 
 ```rust
-use jstime_core::module;
+use jstime_core as jstime;
 
 fn main() {
-  module::run("console.log('hello world')");
+    jstime::init(None);
+    let mut scope = jstime::JSTime::new(
+        jstime::Options::default()
+    );
+    scope.run_script("console.log('Hello, World!');", "jstime")
+        .expect("ruhroh something went wrong");
 }
 ```
