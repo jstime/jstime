@@ -35,8 +35,7 @@ fn main() {
     let options = jstime::Options::new(Some(include_bytes!(concat!(
         env!("OUT_DIR"),
         "/snapshot_data.blob"
-    ))),
-    None);
+    ))));
 
     let mut jstime = jstime::JSTime::new(options);
 
