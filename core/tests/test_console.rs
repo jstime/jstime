@@ -19,7 +19,7 @@ mod console {
     fn read_from_console(command: &str) -> String {
         jstime::init(None);
         let options = jstime::Options::default();
-        
+
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(command, "filename");
         assert_eq!(result.unwrap(), "undefined");
