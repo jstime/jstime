@@ -1,5 +1,10 @@
 use jstime_core as jstime;
 
+use std::io::Read;
+use gag::BufferRedirect;
+
+mod common;
+
 #[cfg(test)]
 mod console {
     use super::*;
@@ -17,13 +22,16 @@ mod console {
     }
 
     fn read_from_console(command: &str) -> String {
-        jstime::init(None);
-        let options = jstime::Options::default();
+        let mut buf = BufferRedirect::stdout().unwrap();
 
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script(command, "filename");
-        assert_eq!(result.unwrap(), "undefined");
-        let output = String::new();
+        jstime.run_script(command, "jstime").unwrap();
+
+        let mut output = String::new();
+        buf.read_to_string(&mut output).unwrap();
+        drop(buf);
         output
     }
 }

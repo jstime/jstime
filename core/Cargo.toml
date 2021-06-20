@@ -12,5 +12,8 @@ repository = "https://github.com/jstime/jstime"
 rusty_v8 = "0.21.0"
 lazy_static = "1.4.0"
 
+[dev-dependencies]
+gag = "1.0.0"
+
 [package.metadata.release]
 disable-tag = true
