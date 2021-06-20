@@ -9,6 +9,7 @@ mod script;
 
 pub(crate) use isolate_state::IsolateState;
 use rusty_v8 as v8;
+use std::io;
 
 pub fn init(v8_flags: Option<Vec<String>>) {
     if let Some(mut v8_flags) = v8_flags {
@@ -26,22 +27,25 @@ pub fn init(v8_flags: Option<Vec<String>>) {
 /// Options for `JSTime::new`.
 pub struct Options {
     pub snapshot: Option<&'static [u8]>,
+    pub output: Option<&'static mut dyn io::Write>,
     taking_snapshot: bool,
 }
 
 impl Options {
-    pub fn new(snapshot: Option<&'static [u8]>) -> Options {
+    pub fn new(snapshot: Option<&'static [u8]>, output: Option<&'static mut dyn io::Write>) -> Options {
         Options {
             snapshot,
+            output,
             ..Options::default()
         }
     }
 }
 
 impl Default for Options {
-    fn default() -> Options {
+    fn default() -> Self {
         Options {
             snapshot: None,
+            output: None,
             taking_snapshot: false,
         }
     }

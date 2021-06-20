@@ -69,7 +69,7 @@ fn printer(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv
         None => v8::String::new(tc_scope, "").unwrap(),
     };
     if is_err {
-        eprintln!("{}", str_.to_rust_string_lossy(tc_scope));
+        ewriteln!("{}", str_.to_rust_string_lossy(tc_scope));
     } else {
         println!("{}", str_.to_rust_string_lossy(tc_scope));
     }
