@@ -39,7 +39,7 @@ impl Options {
 }
 
 impl Default for Options {
-    fn default() -> Self {
+    fn default() -> Options {
         Options {
             snapshot: None,
             taking_snapshot: false,
