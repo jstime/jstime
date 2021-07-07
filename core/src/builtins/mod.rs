@@ -16,7 +16,7 @@ lazy_static! {
 pub(crate) struct Builtins {}
 
 impl Builtins {
-    pub(crate) fn create(scope: &mut v8::HandleScope) {
+    pub(crate) fn create_snapshot(scope: &mut v8::HandleScope) {
         let bindings = v8::Object::new(scope);
 
         macro_rules! binding {
@@ -46,6 +46,15 @@ impl Builtins {
 
         builtin!("./console.js");
         builtin!("./queue_microtask.js");
+    }
+
+    pub(crate) fn create_non_snapshot(scope: &mut v8::HandleScope) {
+        let source = include_str!("./url-bundle.js");
+        let _val = match crate::script::run(scope, source, "./url-bundle.js") {
+            Ok(v) => v,
+            // if this in unreachable it fails
+            Err(_) => unreachable!(),
+        };
     }
 }
 
