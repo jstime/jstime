@@ -3,7 +3,7 @@ use jstime_core as jstime;
 mod common;
 
 #[cfg(test)]
-mod tests {
+mod api {
     use super::*;
     #[test]
     fn run_script() {
