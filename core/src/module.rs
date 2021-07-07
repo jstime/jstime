@@ -63,7 +63,7 @@ fn resolve<'a>(
 ) -> Option<v8::Local<'a, v8::Module>> {
     let state = IsolateState::get(scope);
 
-    let requested_abs_path = normalize_path(&referrer, &specifier);
+    let requested_abs_path = normalize_path(referrer, specifier);
     if let Some(module) = state
         .borrow()
         .module_map
