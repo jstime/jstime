@@ -48,8 +48,12 @@ impl Loader {
             Some(m) => {
                 m.instantiate_module(scope, module_resolve_callback)
                     .unwrap();
-                m.evaluate(scope)
-                    .map_or_else(|| Err(scope.stack_trace().unwrap()), Ok)
+                let res = m.evaluate(scope).unwrap();
+                let p = unsafe { v8::Local::<v8::Promise>::cast(res) };
+                match p.state() {
+                    v8::PromiseState::Fulfilled => Ok(p.result(scope)),
+                    v8::PromiseState::Rejected | v8::PromiseState::Pending => Err(p.result(scope)),
+                }
             }
             None => Err(scope.stack_trace().unwrap()),
         }
