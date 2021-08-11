@@ -16,6 +16,46 @@
     }
   }
 
+  function formatter(args) {
+    let target = args[0];
+    let current = args[1];
+
+    let i = target.indexOf(' %')
+    if (i === -1) {
+      return args;
+    }
+
+    let converted;
+    const specifier = target[i + 2];
+    if (specifier === 's') {
+      converted = String(current);
+    } else if (specifier === 'd' || specifier === 'i') {
+      if (typeof current === 'symbol') {
+        converted = NaN;
+      } else {
+        converted = parseInt(current, 10);
+      }
+    } else if (specifier === 'f') {
+      if (typeof current === 'symbol') {
+        converted = NaN;
+      } else {
+        converted = parseFloat(current);
+      }
+      // TODO: %o, %O
+    }
+
+    if (converted) {
+      target = target.substring(0, i + 1) + converted + target.substring(i + 3, target.length);
+    }
+
+    const result = [target, ...args.slice(2)];
+    if (i === target.length - 3 || result.length === 1) {
+      return result;
+    }
+
+    return (formatter(result));
+  }
+
   function logger(loglevel, args) {
     if (!args.length) {
       return;
@@ -27,9 +67,7 @@
       return;
     }
 
-    // TODO Handle Format Specifiers
-
-    printer(loglevel, args);
+    printer(loglevel, formatter(args));
   }
 
   let inConsoleCall = false;

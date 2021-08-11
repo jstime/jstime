@@ -72,3 +72,20 @@ fn invalid_code() {
         .failure()
         .code(1);
 }
+
+#[test]
+fn console() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/console-printer.js")
+        .assert()
+        .stdout(
+            r#"first %second third
+first%s second third
+first second third
+first second 3
+first second %s
+"#,
+        )
+        .code(0);
+}
