@@ -1,0 +1,3 @@
+queueMicrotask(() => {
+  console.log('b')
+})

@@ -100,3 +100,14 @@ fn top_level_await() {
         .success()
         .code(0);
 }
+
+#[test]
+fn module_graph_execution_order() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/module-graph-exec-order/root.mjs")
+        .assert()
+        .stdout("b\na\nc\n")
+        .success()
+        .code(0);
+}
