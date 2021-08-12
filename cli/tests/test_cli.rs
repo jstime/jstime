@@ -89,3 +89,14 @@ first second %s
         )
         .code(0);
 }
+
+#[test]
+fn top_level_await() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/top-level-await.js")
+        .assert()
+        .stdout("0\n1\n2\n")
+        .success()
+        .code(0);
+}
