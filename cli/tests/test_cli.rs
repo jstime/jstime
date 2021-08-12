@@ -107,7 +107,26 @@ fn module_graph_execution_order() {
         .unwrap()
         .arg("./tests/fixtures/module-graph-exec-order/root.mjs")
         .assert()
-        .stdout("b\na\nc\n")
+        .stdout(
+            r#"start b
+promise b
+start c
+promise c
+microtask b
+microtask c
+end b
+end c
+start a
+b
+promise a
+microtask a
+end a
+start root
+a
+c
+end root
+"#,
+        )
         .success()
         .code(0);
 }
