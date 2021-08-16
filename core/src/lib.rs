@@ -18,7 +18,7 @@ pub fn init(v8_flags: Option<Vec<String>>) {
         v8::V8::set_flags_from_command_line(v8_flags);
     }
 
-    let platform = v8::new_default_platform().unwrap();
+    let platform = v8::new_default_platform(0, false).make_shared();
     v8::V8::initialize_platform(platform);
     v8::V8::initialize();
 }

@@ -89,3 +89,44 @@ first second %s
         )
         .code(0);
 }
+
+#[test]
+fn top_level_await() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/top-level-await.js")
+        .assert()
+        .stdout("0\n1\n2\n")
+        .success()
+        .code(0);
+}
+
+#[test]
+fn module_graph_execution_order() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/module-graph-exec-order/root.mjs")
+        .assert()
+        .stdout(
+            r#"start b
+promise b
+start c
+promise c
+microtask b
+microtask c
+end b
+end c
+start a
+b
+promise a
+microtask a
+end a
+start root
+a
+c
+end root
+"#,
+        )
+        .success()
+        .code(0);
+}
