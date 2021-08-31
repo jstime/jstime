@@ -84,8 +84,7 @@ jobs:
             const { data: {name, body} } = await github.request(`GET /repos/${{ github.repository }}/release-notes`, {
               tag_name: version
             });
-            await github.request(`POST /repos/${{ github.repository }}/releases`, {
-              tag_name: version,
+            await github.request(`PATCH /repos/${{ github.repository }}/releases/${version}`, {
               name,
               body
             });
