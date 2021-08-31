@@ -6,9 +6,34 @@ on:
 name: Create Release
 
 jobs:
-  build:
+  create-github-release:
+    name: Create Draft GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release Notes and GitHub Release
+        uses: actions/github-script@v4.0.2
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          result-encoding: string
+          script: |
+            const version = "${{ github.ref }}".slice('refs/tags/'.length);
+            const { data: {name, body} } = await github.request(`GET /repos/${{ github.repository }}/release-notes`, {
+              tag_name: version
+            });
+            const {id} = await github.request(`POST /repos/${{ github.repository }}/releases`, {
+              tag_name: version,
+              draft: true,
+              name,
+              body
+            });
+            return id;
+  
+  build-assets:
     name: Build assets for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    needs: create-github-release
     strategy:
       matrix:
         name: [
@@ -68,10 +93,10 @@ jobs:
         file_glob: true
         tag: ${{ github.ref }}
 
-  create-github-release:
-    name: Create GitHub Release
+  promote-github-release:
+    name: Promote GitHub Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: [create-github-release, build-assets]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -80,13 +105,8 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const version = "${{ github.ref }}".slice('refs/tags/'.length);
-            const { data: {name, body} } = await github.request(`GET /repos/${{ github.repository }}/release-notes`, {
-              tag_name: version
-            });
-            await github.request(`PATCH /repos/${{ github.repository }}/releases/${version}`, {
-              name,
-              body
+            await github.request(`PATCH /repos/${{ github.repository }}/releases/${{ need.create-github-release.outputs.result }}`, {
+              draft: false
             });
 
   publish-crate:
