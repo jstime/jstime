@@ -274,7 +274,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.30.3-alpha.0"
+version = "0.31.0"
 dependencies = [
  "assert_cmd",
  "dirs",
