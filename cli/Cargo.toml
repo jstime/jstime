@@ -23,7 +23,7 @@ dirs = "3.0.2"
 jstime_core = { path = "../core", version = "^0.31.4-alpha.0"}
 
 [dev-dependencies]
-assert_cmd = "2.0.0"
+assert_cmd = "2.0.1"
 predicates = "2.0.2"
 
 [package.metadata.release]
