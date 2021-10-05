@@ -70,13 +70,13 @@ impl JSTime {
         {
             let mut jstime = JSTime::create(options, unsafe { s.get_owned_isolate() });
             {
-                let context = IsolateState::get(&mut jstime.isolate()).borrow().context();
+                let context = IsolateState::get(jstime.isolate()).borrow().context();
                 let scope = &mut v8::HandleScope::new(jstime.isolate());
                 let context = v8::Local::new(scope, context);
                 s.set_default_context(context);
             }
             // Context needs to be dropped before create_blob
-            IsolateState::get(&mut jstime.isolate())
+            IsolateState::get(jstime.isolate())
                 .borrow_mut()
                 .drop_context();
         }
@@ -125,7 +125,7 @@ impl JSTime {
 
     /// Import a module by filename.
     pub fn import(&mut self, filename: &str) -> Result<(), String> {
-        let context = IsolateState::get(&mut self.isolate()).borrow().context();
+        let context = IsolateState::get(self.isolate()).borrow().context();
         let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
         let loader = module::Loader::new();
 
