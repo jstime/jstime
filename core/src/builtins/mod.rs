@@ -1,5 +1,5 @@
-use rusty_v8 as v8;
 use std::convert::TryFrom;
+use v8;
 
 lazy_static! {
     pub(crate) static ref EXTERNAL_REFERENCES: v8::ExternalReferences =

@@ -1,4 +1,4 @@
-use rusty_v8 as v8;
+use v8;
 
 // Common code used by both `module.rs` and `script.rs`
 

@@ -289,7 +289,7 @@ name = "jstime_core"
 version = "0.35.1-alpha.0"
 dependencies = [
  "lazy_static",
- "rusty_v8",
+ "v8",
 ]
 
 [[package]]
@@ -516,19 +516,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5eb417147ba9860a96cfe72a0b93bf88fee1744b5636ec99ab20c1aa9376581"
 
 [[package]]
-name = "rusty_v8"
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2b311db3661f6b7631f94ad431133ff0f299c423e6bcc35b748ad0d57d6e604"
-dependencies = [
- "bitflags",
- "fslock",
- "lazy_static",
- "libc",
- "which",
-]
-
-[[package]]
 name = "rustyline"
 version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -664,6 +651,19 @@ name = "utf8parse"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "936e4b492acfd135421d8dca4b1aa80a7bfc26e702ef3af710e0752684df5372"
+
+[[package]]
+name = "v8"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b3adb16fd1af3e28d6fda8348a6d96b5363a128dc5a0216b137b64ecbae6641"
+dependencies = [
+ "bitflags",
+ "fslock",
+ "lazy_static",
+ "libc",
+ "which",
+]
 
 [[package]]
 name = "vec_map"

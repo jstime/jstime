@@ -1,7 +1,7 @@
 use crate::IsolateState;
-use rusty_v8 as v8;
 use std::collections::HashMap;
 use std::path::Path;
+use v8;
 
 pub(crate) struct ModuleMap {
     hash_to_absolute_path: HashMap<i32, String>,
