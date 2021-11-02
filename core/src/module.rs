@@ -1,7 +1,6 @@
 use crate::IsolateState;
 use std::collections::HashMap;
 use std::path::Path;
-use v8;
 
 pub(crate) struct ModuleMap {
     hash_to_absolute_path: HashMap<i32, String>,

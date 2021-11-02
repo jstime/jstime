@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use v8;
 
 pub(crate) struct IsolateState {
     pub(crate) context: Option<v8::Global<v8::Context>>,

@@ -1,5 +1,3 @@
-use v8;
-
 // Common code used by both `module.rs` and `script.rs`
 
 pub(crate) fn create_script_origin<'s>(

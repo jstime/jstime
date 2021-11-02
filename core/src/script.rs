@@ -1,5 +1,3 @@
-use v8;
-
 use crate::js_loading;
 
 pub(crate) fn run<'s>(
