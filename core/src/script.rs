@@ -1,5 +1,3 @@
-use rusty_v8 as v8;
-
 use crate::js_loading;
 
 pub(crate) fn run<'s>(

@@ -8,7 +8,6 @@ mod module;
 mod script;
 
 pub(crate) use isolate_state::IsolateState;
-use rusty_v8 as v8;
 
 pub fn init(v8_flags: Option<Vec<String>>) {
     if let Some(mut v8_flags) = v8_flags {

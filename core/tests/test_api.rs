@@ -28,15 +28,12 @@ mod api {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(
-            err.to_string(),
-            "ReferenceError: a is not defined\n    at jstime:1:1"
-        );
+        assert_eq!(err, "ReferenceError: a is not defined\n    at jstime:1:1");
         let err = match jstime.run_script("}", "jstime") {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(err.to_string(), "SyntaxError: Unexpected token \'}\'");
+        assert_eq!(err, "SyntaxError: Unexpected token \'}\'");
     }
     #[test]
     fn import() {
@@ -44,7 +41,7 @@ mod api {
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
         let hello_path = "./tests/fixtures/hello-world.js";
-        let _result = jstime.import(&hello_path);
+        let _result = jstime.import(hello_path);
         let result = jstime.run_script("globalThis.hello", "jstime");
         assert_eq!(result.unwrap(), "hello world");
     }

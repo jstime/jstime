@@ -1,4 +1,3 @@
-use rusty_v8 as v8;
 use std::convert::TryFrom;
 
 lazy_static! {

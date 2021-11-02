@@ -1,4 +1,3 @@
-use rusty_v8 as v8;
 use std::cell::RefCell;
 use std::rc::Rc;
 
