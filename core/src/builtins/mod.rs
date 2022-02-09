@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use url::Url;
 
 lazy_static! {
     pub(crate) static ref EXTERNAL_REFERENCES: v8::ExternalReferences =
@@ -8,6 +9,9 @@ lazy_static! {
             },
             v8::ExternalReference {
                 function: v8::MapFnTo::map_fn_to(queue_microtask),
+            },
+            v8::ExternalReference {
+                function: v8::MapFnTo::map_fn_to(url),
             },
         ]);
 }
@@ -28,6 +32,7 @@ impl Builtins {
 
         binding!("printer", printer);
         binding!("queueMicrotask", queue_microtask);
+        binding!("url", url);
 
         macro_rules! builtin {
             ($name:expr) => {
@@ -82,4 +87,8 @@ fn queue_microtask(
     let obj = args.get(0);
     let func = v8::Local::<v8::Function>::try_from(obj).unwrap();
     scope.enqueue_microtask(func);
+}
+
+fn url(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
+    
 }

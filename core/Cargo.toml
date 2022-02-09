@@ -11,6 +11,7 @@ repository = "https://github.com/jstime/jstime"
 [dependencies]
 v8 = "0.39.0"
 lazy_static = "1.4.0"
+url = "2.2.2"
 
 [package.metadata.release]
 disable-tag = true
