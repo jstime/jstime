@@ -48,6 +48,7 @@ jobs:
     - name: Set env
       run: |
           RELEASE_VERSION=$(echo ${GITHUB_REF:10})
+          echo "release_version=$RELEASE_VERSION" >> $GITHUB_ENV
           echo "asset_name=${{ matrix.asset_name }}-${RELEASE_VERSION}${{ matrix.asset_extension }}" >> $GITHUB_ENV
       shell: bash
     - uses: actions-rs/toolchain@v1
@@ -66,9 +67,10 @@ jobs:
           tar czf "${asset_name}" "${{ matrix.artifact_name }}"
         fi
     - name: Upload binaries to release
-      run: gh release upload ${{ github.ref }} jstime*${{ matrix.asset_extension }}
+      run: gh release upload ${release_version} ${asset_name}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
 
   publish-crate:
     name: Publish to crates.io
