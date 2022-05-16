@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 pub(crate) struct ModuleMap {
-    hash_to_absolute_path: HashMap<i32, String>,
+    hash_to_absolute_path: HashMap<std::num::NonZeroI32, String>,
     absolute_path_to_module: HashMap<String, v8::Global<v8::Module>>,
 }
 
