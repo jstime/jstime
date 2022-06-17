@@ -14,13 +14,13 @@ name = "jstime"
 path = "main.rs"
 
 [dependencies]
-jstime_core = { path = "../core", version = "^0.42.1-alpha.0"}
+jstime_core = { path = "../core", version = "^0.43.0"}
 rustyline = "9.1.2"
 structopt = "0.3.26"
 dirs = "4.0.0"
 
 [build-dependencies]
-jstime_core = { path = "../core", version = "^0.42.1-alpha.0"}
+jstime_core = { path = "../core", version = "^0.43.0"}
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
