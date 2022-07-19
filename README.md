@@ -62,7 +62,5 @@ for information about the governance of the jstime project, see
 
 ## TODO
 
-* Finish implementing [console](https://console.spec.whatwg.org/)
 * [fetch](https://fetch.spec.whatwg.org/)
-* [ESM](https://www.ecma-international.org/ecma-262/11.0/index.html#sec-modules)
 * Some sort of system interface, maybe [WASI](https://wasi.dev/)
