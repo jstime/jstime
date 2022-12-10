@@ -9,5 +9,5 @@ fn main() {
     let out_dir = std::env::var_os("OUT_DIR").unwrap();
     let dest_path = std::path::Path::new(&out_dir).join("snapshot_data.blob");
 
-    std::fs::write(&dest_path, data).unwrap();
+    std::fs::write(dest_path, data).unwrap();
 }
