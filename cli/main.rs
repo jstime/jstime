@@ -43,7 +43,7 @@ fn main() {
         std::process::exit(match jstime.import(&filename) {
             Ok(_) => 0,
             Err(e) => {
-                eprintln!("{}", e);
+                eprintln!("{e}");
                 1
             }
         });
@@ -71,8 +71,8 @@ fn repl(mut jstime: jstime::JSTime) {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
                 match jstime.run_script(&line, "REPL") {
-                    Ok(v) => println!("{}", v),
-                    Err(e) => eprintln!("Uncaught: {}", e),
+                    Ok(v) => println!("{v}"),
+                    Err(e) => eprintln!("Uncaught: {e}"),
                 }
             }
             Err(ReadlineError::Interrupted) => {
@@ -84,7 +84,7 @@ fn repl(mut jstime: jstime::JSTime) {
                 break;
             }
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                eprintln!("Error: {err:?}");
                 break;
             }
         }
