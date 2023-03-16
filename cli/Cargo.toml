@@ -24,7 +24,7 @@ jstime_core = { path = "../core", version = "^0.46.1-alpha.0"}
 
 [dev-dependencies]
 assert_cmd = "2.0.8"
-predicates = "2.1.5"
+predicates = "3.0.1"
 
 [package.metadata.release]
 tag-prefix = ""
