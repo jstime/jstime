@@ -13,4 +13,4 @@ v8 = "0.81.0"
 lazy_static = "1.4.0"
 
 [package.metadata.release]
-disable-tag = true
+tag = false
