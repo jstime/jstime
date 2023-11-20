@@ -33,7 +33,7 @@ impl Options {
     pub fn new(_snapshot: Option<&'static [u8]>) -> Options {
         Options {
             // snapshot,
-            ..Options::default()
+            // ..Options::default()
         }
     }
 }
