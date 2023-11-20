@@ -55,9 +55,9 @@ fn main() {
 
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
-    use rustyline::{error::ReadlineError, Editor};
+    use rustyline::{error::ReadlineError, DefaultEditor};
 
-    let mut rl = Editor::<()>::new().unwrap();
+    let mut rl = DefaultEditor::new().unwrap();
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
 
     let history_path = home_dir().map(|mut p| {
@@ -70,7 +70,7 @@ fn repl(mut jstime: jstime::JSTime) {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
+                let _ = rl.add_history_entry(line.as_str());
                 match jstime.run_script(&line, "REPL") {
                     Ok(v) => println!("{v}"),
                     Err(e) => eprintln!("Uncaught: {e}"),
