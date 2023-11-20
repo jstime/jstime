@@ -51,7 +51,7 @@ impl JSTime {
         let create_params =
             v8::Isolate::create_params().external_references(&**builtins::EXTERNAL_REFERENCES);
         // if let Some(snapshot) = options.snapshot {
-            // create_params = create_params.snapshot_blob(snapshot);
+        // create_params = create_params.snapshot_blob(snapshot);
         // }
         let isolate = v8::Isolate::new(create_params);
         JSTime::create(options, isolate)
@@ -151,9 +151,9 @@ impl JSTime {
 impl Drop for JSTime {
     fn drop(&mut self) {
         // if self.taking_snapshot {
-            // The isolate is not actually owned by JSTime if we're
-            // snapshotting, it's owned by the SnapshotCreator.
-            // std::mem::forget(self.isolate.take().unwrap())
+        // The isolate is not actually owned by JSTime if we're
+        // snapshotting, it's owned by the SnapshotCreator.
+        // std::mem::forget(self.isolate.take().unwrap())
         // }
     }
 }
