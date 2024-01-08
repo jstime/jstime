@@ -710,7 +710,7 @@ dependencies = [
  "home",
  "once_cell",
  "rustix",
- "windows-sys",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
