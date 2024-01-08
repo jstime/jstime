@@ -251,7 +251,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "assert_cmd",
  "dirs",
@@ -263,7 +263,7 @@ dependencies = [
 
 [[package]]
 name = "jstime_core"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "lazy_static",
  "v8",
