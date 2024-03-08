@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 lazy_static! {
     pub(crate) static ref EXTERNAL_REFERENCES: v8::ExternalReferences =
         v8::ExternalReferences::new(&[
