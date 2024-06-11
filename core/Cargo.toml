@@ -9,7 +9,7 @@ edition = "2021"
 repository = "https://github.com/jstime/jstime"
 
 [dependencies]
-v8 = "0.93.0"
+v8 = "0.93.1"
 lazy_static = "1.4.0"
 
 [package.metadata.release]
