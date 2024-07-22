@@ -1,0 +1,4 @@
+{
+    "name": "Rust Development Environment",
+    "image": "mcr.microsoft.com/devcontainers/rust:latest"
+}
