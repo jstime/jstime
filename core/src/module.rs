@@ -48,7 +48,7 @@ impl Loader {
                 m.instantiate_module(scope, module_resolve_callback)
                     .unwrap();
                 let res = m.evaluate(scope).unwrap();
-                let promise = unsafe { v8::Local::<v8::Promise>::cast(res) };
+                let promise = unsafe { v8::Local::<v8::Promise>::cast_unchecked(res) };
                 match promise.state() {
                     v8::PromiseState::Pending => panic!(),
                     v8::PromiseState::Fulfilled => Ok(promise.result(scope)),
