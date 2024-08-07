@@ -94,7 +94,7 @@ impl JSTime {
     fn create(_options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
         let global_context = {
             let scope = &mut v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(scope);
+            let context = v8::Context::new(scope, Default::default());
             v8::Global::new(scope, context)
         };
 
