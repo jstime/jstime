@@ -82,9 +82,9 @@ fn resolve<'a>(
     let js_src = std::fs::read_to_string(&requested_abs_path)
         .expect("Something went wrong reading the file");
     let code = v8::String::new(scope, &js_src).unwrap();
-    let source = v8::script_compiler::Source::new(code, Some(&origin));
+    let mut source = v8::script_compiler::Source::new(code, Some(&origin));
 
-    let module = v8::script_compiler::compile_module(scope, source);
+    let module = v8::script_compiler::compile_module(scope, &mut source);
     if let Some(module) = module {
         let state = IsolateState::get(scope);
         state
