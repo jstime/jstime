@@ -458,12 +458,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "once_cell"
-version = "1.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
-
-[[package]]
 name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -799,9 +793,9 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "v8"
-version = "135.0.0"
+version = "135.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc24d3e68c7e9b581fce2f0ceb9d1ad61565bf783a36d80d530ccf2be212a295"
+checksum = "5861d62596971e448da865320a9ac547e2526fdf9eaf4fb40bf8a9f465bccecb"
 dependencies = [
  "bindgen",
  "bitflags 2.6.0",
@@ -809,7 +803,6 @@ dependencies = [
  "gzip-header",
  "home",
  "miniz_oxide",
- "once_cell",
  "paste",
  "which",
 ]
