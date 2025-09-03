@@ -1,5 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
 
 mod builtins;
 mod isolate_state;
@@ -49,7 +47,7 @@ impl JSTime {
     /// Create a new JSTime instance from `options`.
     pub fn new(options: Options) -> JSTime {
         let create_params =
-            v8::Isolate::create_params().external_references(&**builtins::EXTERNAL_REFERENCES);
+            v8::Isolate::create_params().external_references(builtins::get_external_references().into());
         // if let Some(snapshot) = options.snapshot {
         // create_params = create_params.snapshot_blob(snapshot);
         // }

@@ -1,13 +1,12 @@
-lazy_static! {
-    pub(crate) static ref EXTERNAL_REFERENCES: v8::ExternalReferences =
-        v8::ExternalReferences::new(&[
-            v8::ExternalReference {
-                function: v8::MapFnTo::map_fn_to(printer),
-            },
-            v8::ExternalReference {
-                function: v8::MapFnTo::map_fn_to(queue_microtask),
-            },
-        ]);
+pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
+    vec![
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(printer),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(queue_microtask),
+        },
+    ]
 }
 
 pub(crate) struct Builtins {}
