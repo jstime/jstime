@@ -1,4 +1,3 @@
-
 mod builtins;
 mod isolate_state;
 mod js_loading;
@@ -46,8 +45,8 @@ pub struct JSTime {
 impl JSTime {
     /// Create a new JSTime instance from `options`.
     pub fn new(options: Options) -> JSTime {
-        let create_params =
-            v8::Isolate::create_params().external_references(builtins::get_external_references().into());
+        let create_params = v8::Isolate::create_params()
+            .external_references(builtins::get_external_references().into());
         // if let Some(snapshot) = options.snapshot {
         // create_params = create_params.snapshot_blob(snapshot);
         // }
