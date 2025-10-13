@@ -130,3 +130,14 @@ end root
         .success()
         .code(0);
 }
+
+#[test]
+fn temporal() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/temporal.js")
+        .assert()
+        .stdout("Date: 2025 10 13\nTime: 15 30 45\nDateTime: 2025 10 13 15 30\n")
+        .success()
+        .code(0);
+}
