@@ -1,4 +1,5 @@
 mod builtins;
+mod event_loop;
 mod isolate_state;
 mod js_loading;
 mod module;
@@ -121,27 +122,49 @@ impl JSTime {
 
     /// Import a module by filename.
     pub fn import(&mut self, filename: &str) -> Result<(), String> {
-        let context = IsolateState::get(self.isolate()).borrow().context();
-        let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-        let loader = module::Loader::new();
+        let result = {
+            let context = IsolateState::get(self.isolate()).borrow().context();
+            let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
+            let loader = module::Loader::new();
 
-        let mut cwd = std::env::current_dir().unwrap();
-        cwd.push("jstime");
-        let cwd = cwd.into_os_string().into_string().unwrap();
-        match loader.import(scope, &cwd, filename) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
-        }
+            let mut cwd = std::env::current_dir().unwrap();
+            cwd.push("jstime");
+            let cwd = cwd.into_os_string().into_string().unwrap();
+            match loader.import(scope, &cwd, filename) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+            }
+        };
+        
+        // Run the event loop to process any pending timers
+        self.run_event_loop();
+        
+        result
     }
 
     /// Run a script and get a string representation of the result.
     pub fn run_script(&mut self, source: &str, filename: &str) -> Result<String, String> {
+        let result = {
+            let context = IsolateState::get(self.isolate()).borrow().context();
+            let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
+            match script::run(scope, source, filename) {
+                Ok(v) => Ok(v.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+                Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+            }
+        };
+        
+        // Run the event loop to process any pending timers
+        self.run_event_loop();
+        
+        result
+    }
+
+    /// Run the event loop until all pending operations are complete
+    fn run_event_loop(&mut self) {
         let context = IsolateState::get(self.isolate()).borrow().context();
         let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-        match script::run(scope, source, filename) {
-            Ok(v) => Ok(v.to_string(scope).unwrap().to_rust_string_lossy(scope)),
-            Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
-        }
+        let event_loop = event_loop::get_event_loop(scope);
+        event_loop.borrow_mut().run(scope);
     }
 }
 
