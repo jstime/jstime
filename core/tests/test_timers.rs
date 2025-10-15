@@ -5,7 +5,7 @@ mod common;
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_settimeout() {
         let _setup_guard = common::setup();
@@ -48,9 +48,16 @@ mod tests {
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
         // Set up the variable
-        jstime.run_script("globalThis.timerResult = 'initial';", "jstime").unwrap();
+        jstime
+            .run_script("globalThis.timerResult = 'initial';", "jstime")
+            .unwrap();
         // Queue the timeout
-        jstime.run_script("setTimeout(() => { globalThis.timerResult = 'timeout executed'; }, 10);", "jstime").unwrap();
+        jstime
+            .run_script(
+                "setTimeout(() => { globalThis.timerResult = 'timeout executed'; }, 10);",
+                "jstime",
+            )
+            .unwrap();
         // Check the result after event loop completes
         let result = jstime.run_script("globalThis.timerResult;", "jstime");
         assert_eq!(result.unwrap(), "timeout executed");

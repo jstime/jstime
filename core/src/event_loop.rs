@@ -51,7 +51,7 @@ impl EventLoop {
     /// Process pending timers that were queued for addition
     fn add_pending_timers(&mut self) {
         let pending: Vec<PendingTimer> = self.timers_to_add.borrow_mut().drain(..).collect();
-        
+
         for pending_timer in pending {
             match pending_timer {
                 PendingTimer::Timeout {
@@ -68,10 +68,7 @@ impl EventLoop {
                             interval: None,
                         },
                     );
-                    self.timer_queue
-                        .entry(fire_at)
-                        .or_insert_with(Vec::new)
-                        .push(id);
+                    self.timer_queue.entry(fire_at).or_default().push(id);
                 }
                 PendingTimer::Interval {
                     id,
@@ -88,10 +85,7 @@ impl EventLoop {
                             interval: Some(interval),
                         },
                     );
-                    self.timer_queue
-                        .entry(fire_at)
-                        .or_insert_with(Vec::new)
-                        .push(id);
+                    self.timer_queue.entry(fire_at).or_default().push(id);
                 }
             }
         }
@@ -100,7 +94,7 @@ impl EventLoop {
     /// Actually clear the marked timers
     fn clear_marked_timers(&mut self) {
         let to_clear: Vec<TimerId> = self.timers_to_clear.borrow_mut().drain(..).collect();
-        
+
         for id in to_clear {
             if let Some(timer) = self.timers.remove(&id) {
                 // Remove from timer queue
@@ -143,11 +137,7 @@ impl EventLoop {
                 for timer_id in timer_ids {
                     if let Some(timer) = self.timers.get(&timer_id) {
                         let is_interval = timer.interval.is_some();
-                        ready_callbacks.push((
-                            timer_id,
-                            timer.callback.clone(),
-                            is_interval,
-                        ));
+                        ready_callbacks.push((timer_id, timer.callback.clone(), is_interval));
                     }
                 }
             }
@@ -162,11 +152,8 @@ impl EventLoop {
             if let Some(interval) = timer.interval {
                 let new_fire_at = Instant::now() + interval;
                 timer.fire_at = new_fire_at;
-                
-                self.timer_queue
-                    .entry(new_fire_at)
-                    .or_insert_with(Vec::new)
-                    .push(id);
+
+                self.timer_queue.entry(new_fire_at).or_default().push(id);
             }
         }
     }
@@ -175,7 +162,7 @@ impl EventLoop {
     pub(crate) fn run(&mut self, scope: &mut v8::HandleScope) {
         // First, add any pending timers
         self.add_pending_timers();
-        
+
         while self.has_pending_timers() {
             // Process all microtasks
             scope.perform_microtask_checkpoint();
@@ -191,7 +178,7 @@ impl EventLoop {
 
             // Collect and execute ready timers
             let ready_timers = self.collect_ready_timers();
-            
+
             for (timer_id, callback, is_interval) in ready_timers {
                 let callback_local = v8::Local::new(scope, &callback);
                 let recv = v8::undefined(scope).into();
@@ -208,7 +195,7 @@ impl EventLoop {
 
             // Clear any timers that were marked for clearing during callbacks
             self.clear_marked_timers();
-            
+
             // Add any timers that were queued during callbacks
             self.add_pending_timers();
         }
@@ -230,5 +217,8 @@ impl Default for EventLoop {
 
 /// Get the event loop from the isolate state
 pub(crate) fn get_event_loop(isolate: &mut v8::Isolate) -> Rc<RefCell<EventLoop>> {
-    crate::IsolateState::get(isolate).borrow().event_loop.clone()
+    crate::IsolateState::get(isolate)
+        .borrow()
+        .event_loop
+        .clone()
 }

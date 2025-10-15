@@ -135,10 +135,10 @@ impl JSTime {
                 Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
             }
         };
-        
+
         // Run the event loop to process any pending timers
         self.run_event_loop();
-        
+
         result
     }
 
@@ -152,10 +152,10 @@ impl JSTime {
                 Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
             }
         };
-        
+
         // Run the event loop to process any pending timers
         self.run_event_loop();
-        
+
         result
     }
 
