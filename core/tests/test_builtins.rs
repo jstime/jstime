@@ -232,4 +232,33 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "\"https://example.com/path\"");
     }
+
+    #[test]
+    fn url_search_params_sync_with_url() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com?foo=bar'); \
+             url.searchParams.append('baz', 'qux'); \
+             url.href;",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "https://example.com/?foo=bar&baz=qux");
+    }
+
+    #[test]
+    fn url_search_params_cached() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com?foo=bar'); \
+             const sp1 = url.searchParams; \
+             const sp2 = url.searchParams; \
+             sp1 === sp2;",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
 }

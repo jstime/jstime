@@ -147,6 +147,7 @@
   // URL class
   class URL {
     #handle;
+    #searchParams;
 
     constructor(url, base) {
       if (base !== undefined) {
@@ -158,6 +159,8 @@
       if (this.#handle === null) {
         throw new TypeError('Invalid URL');
       }
+      
+      this.#searchParams = null;
     }
 
     get href() {
@@ -170,6 +173,7 @@
         throw new TypeError('Invalid URL');
       }
       this.#handle = newHandle;
+      this.#searchParams = null; // Reset cached searchParams
     }
 
     get origin() {
@@ -238,22 +242,35 @@
 
     set search(value) {
       this.#handle = urlSetSearch(this.#handle, String(value));
+      this.#searchParams = null; // Reset cached searchParams
     }
 
     get searchParams() {
-      const search = this.search;
-      const params = new URLSearchParams(search);
+      if (!this.#searchParams) {
+        const search = this.search;
+        this.#searchParams = new URLSearchParams(search);
+        
+        // Create a wrapper that updates the URL when the params change
+        const self = this;
+        const params = this.#searchParams;
+        
+        // Wrap methods that modify the params
+        const wrapMethod = (method) => {
+          const original = params[method].bind(params);
+          return function(...args) {
+            const result = original(...args);
+            self.search = params.toString();
+            return result;
+          };
+        };
+        
+        params.append = wrapMethod('append');
+        params.delete = wrapMethod('delete');
+        params.set = wrapMethod('set');
+        params.sort = wrapMethod('sort');
+      }
       
-      // Override toString to sync back to URL
-      const originalToString = params.toString.bind(params);
-      const self = this;
-      params.toString = function() {
-        const result = originalToString();
-        self.search = result;
-        return result;
-      };
-      
-      return params;
+      return this.#searchParams;
     }
 
     get hash() {
