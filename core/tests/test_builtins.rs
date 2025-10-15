@@ -21,4 +21,215 @@ mod tests {
         let result = jstime.run_script("Object.keys(console);", "jstime");
         assert_eq!(result.unwrap(), "debug,error,info,log,warn,dir,dirxml,table,trace,group,groupCollapsed,groupEnd,clear,count,countReset,assert,profile,profileEnd,time,timeLog,timeEnd,timeStamp,context");
     }
+
+    #[test]
+    fn url_class_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof URL;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn url_parsing() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com:8080/path?query=value#hash'); url.href;",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "https://example.com:8080/path?query=value#hash");
+    }
+
+    #[test]
+    fn url_with_base() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('/path', 'https://example.com'); url.href;",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "https://example.com/path");
+    }
+
+    #[test]
+    fn url_properties() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        
+        let result = jstime.run_script(
+            "const url = new URL('https://user:pass@example.com:8080/path?query=value#hash'); \
+             JSON.stringify({ \
+               protocol: url.protocol, \
+               username: url.username, \
+               password: url.password, \
+               hostname: url.hostname, \
+               port: url.port, \
+               pathname: url.pathname, \
+               search: url.search, \
+               hash: url.hash \
+             });",
+            "jstime"
+        );
+        let json: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
+        assert_eq!(json["protocol"], "https:");
+        assert_eq!(json["username"], "user");
+        assert_eq!(json["password"], "pass");
+        assert_eq!(json["hostname"], "example.com");
+        assert_eq!(json["port"], "8080");
+        assert_eq!(json["pathname"], "/path");
+        assert_eq!(json["search"], "?query=value");
+        assert_eq!(json["hash"], "#hash");
+    }
+
+    #[test]
+    fn url_origin() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com:8080/path'); url.origin;",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "https://example.com:8080");
+    }
+
+    #[test]
+    fn url_setter() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com'); url.pathname = '/new'; url.href;",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "https://example.com/new");
+    }
+
+    #[test]
+    fn url_search_params_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof URLSearchParams;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn url_search_params_basic() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams('foo=bar&baz=qux'); params.get('foo');",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "bar");
+    }
+
+    #[test]
+    fn url_search_params_append() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams(); params.append('foo', 'bar'); params.toString();",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "foo=bar");
+    }
+
+    #[test]
+    fn url_search_params_set() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams('foo=bar&foo=baz'); params.set('foo', 'qux'); params.toString();",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "foo=qux");
+    }
+
+    #[test]
+    fn url_search_params_delete() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams('foo=bar&baz=qux'); params.delete('foo'); params.toString();",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "baz=qux");
+    }
+
+    #[test]
+    fn url_search_params_has() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams('foo=bar'); params.has('foo');",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn url_search_params_get_all() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams('foo=bar&foo=baz'); params.getAll('foo').join(',');",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "bar,baz");
+    }
+
+    #[test]
+    fn url_search_params_from_object() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams({foo: 'bar', baz: 'qux'}); params.toString();",
+            "jstime"
+        );
+        // Note: the order might vary, so let's check if both key-value pairs are present
+        let result_str = result.unwrap();
+        assert!(result_str.contains("foo=bar"));
+        assert!(result_str.contains("baz=qux"));
+    }
+
+    #[test]
+    fn url_search_params_iteration() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const params = new URLSearchParams('foo=bar&baz=qux'); \
+             let result = []; \
+             for (const [key, value] of params) { result.push(key + '=' + value); } \
+             result.join('&');",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "foo=bar&baz=qux");
+    }
+
+    #[test]
+    fn url_to_json() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com/path'); JSON.stringify(url);",
+            "jstime"
+        );
+        assert_eq!(result.unwrap(), "\"https://example.com/path\"");
+    }
 }
