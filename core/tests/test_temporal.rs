@@ -5,7 +5,7 @@ mod common;
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn temporal_namespace_exists() {
         let _setup_guard = common::setup();
@@ -31,7 +31,10 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("typeof Temporal.Now.instant;", "jstime");
         assert_eq!(result.unwrap(), "function");
-        let result = jstime.run_script("const instant = Temporal.Now.instant(); typeof instant;", "jstime");
+        let result = jstime.run_script(
+            "const instant = Temporal.Now.instant(); typeof instant;",
+            "jstime",
+        );
         assert_eq!(result.unwrap(), "object");
     }
 
@@ -42,7 +45,10 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("typeof Temporal.PlainDate;", "jstime");
         assert_eq!(result.unwrap(), "function");
-        let result = jstime.run_script("const date = new Temporal.PlainDate(2025, 10, 13); date.year;", "jstime");
+        let result = jstime.run_script(
+            "const date = new Temporal.PlainDate(2025, 10, 13); date.year;",
+            "jstime",
+        );
         assert_eq!(result.unwrap(), "2025");
         let result = jstime.run_script("date.month;", "jstime");
         assert_eq!(result.unwrap(), "10");
@@ -57,7 +63,10 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("typeof Temporal.PlainTime;", "jstime");
         assert_eq!(result.unwrap(), "function");
-        let result = jstime.run_script("const time = new Temporal.PlainTime(10, 30, 45); time.hour;", "jstime");
+        let result = jstime.run_script(
+            "const time = new Temporal.PlainTime(10, 30, 45); time.hour;",
+            "jstime",
+        );
         assert_eq!(result.unwrap(), "10");
         let result = jstime.run_script("time.minute;", "jstime");
         assert_eq!(result.unwrap(), "30");
@@ -72,7 +81,10 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("typeof Temporal.PlainDateTime;", "jstime");
         assert_eq!(result.unwrap(), "function");
-        let result = jstime.run_script("const dt = new Temporal.PlainDateTime(2025, 10, 13, 15, 30, 45); dt.year;", "jstime");
+        let result = jstime.run_script(
+            "const dt = new Temporal.PlainDateTime(2025, 10, 13, 15, 30, 45); dt.year;",
+            "jstime",
+        );
         assert_eq!(result.unwrap(), "2025");
         let result = jstime.run_script("dt.month;", "jstime");
         assert_eq!(result.unwrap(), "10");
@@ -91,7 +103,10 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("typeof Temporal.Instant.from;", "jstime");
         assert_eq!(result.unwrap(), "function");
-        let result = jstime.run_script("const instant = Temporal.Instant.from('2025-10-13T12:00:00Z'); typeof instant;", "jstime");
+        let result = jstime.run_script(
+            "const instant = Temporal.Instant.from('2025-10-13T12:00:00Z'); typeof instant;",
+            "jstime",
+        );
         assert_eq!(result.unwrap(), "object");
     }
 }

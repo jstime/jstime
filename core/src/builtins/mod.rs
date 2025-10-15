@@ -116,61 +116,102 @@ fn temporal_now(
 
     let now = Temporal::now();
     let result = match method.as_str() {
-        "instant" => {
-            match now.instant() {
-                Ok(instant) => {
-                    let ns = instant.as_i128();
-                    let obj = v8::Object::new(scope);
-                    let key = v8::String::new(scope, "epochNanoseconds").unwrap();
-                    let value = v8::BigInt::new_from_i64(scope, ns as i64);
-                    obj.set(scope, key.into(), value.into());
-                    Some(obj.into())
-                }
-                Err(_) => None,
+        "instant" => match now.instant() {
+            Ok(instant) => {
+                let ns = instant.as_i128();
+                let obj = v8::Object::new(scope);
+                let key = v8::String::new(scope, "epochNanoseconds").unwrap();
+                let value = v8::BigInt::new_from_i64(scope, ns as i64);
+                obj.set(scope, key.into(), value.into());
+                Some(obj.into())
             }
-        }
-        "plainDateISO" => {
-            match now.plain_date_iso(None) {
-                Ok(date) => {
-                    let obj = v8::Object::new(scope);
-                    set_date_fields(scope, &obj, date.year(), date.month() as i32, date.day() as i32);
-                    Some(obj.into())
-                }
-                Err(_) => None,
+            Err(_) => None,
+        },
+        "plainDateISO" => match now.plain_date_iso(None) {
+            Ok(date) => {
+                let obj = v8::Object::new(scope);
+                set_date_fields(
+                    scope,
+                    &obj,
+                    date.year(),
+                    date.month() as i32,
+                    date.day() as i32,
+                );
+                Some(obj.into())
             }
-        }
-        "plainTimeISO" => {
-            match now.plain_time_iso(None) {
-                Ok(time) => {
-                    let obj = v8::Object::new(scope);
-                    set_time_fields(scope, &obj, time.hour() as i32, time.minute() as i32, time.second() as i32, time.millisecond() as i32, time.microsecond() as i32, time.nanosecond() as i32);
-                    Some(obj.into())
-                }
-                Err(_) => None,
+            Err(_) => None,
+        },
+        "plainTimeISO" => match now.plain_time_iso(None) {
+            Ok(time) => {
+                let obj = v8::Object::new(scope);
+                set_time_fields(
+                    scope,
+                    &obj,
+                    TimeFields {
+                        hour: time.hour() as i32,
+                        minute: time.minute() as i32,
+                        second: time.second() as i32,
+                        millisecond: time.millisecond() as i32,
+                        microsecond: time.microsecond() as i32,
+                        nanosecond: time.nanosecond() as i32,
+                    },
+                );
+                Some(obj.into())
             }
-        }
-        "plainDateTimeISO" => {
-            match now.plain_date_time_iso(None) {
-                Ok(datetime) => {
-                    let obj = v8::Object::new(scope);
-                    set_date_fields(scope, &obj, datetime.year(), datetime.month() as i32, datetime.day() as i32);
-                    set_time_fields(scope, &obj, datetime.hour() as i32, datetime.minute() as i32, datetime.second() as i32, datetime.millisecond() as i32, datetime.microsecond() as i32, datetime.nanosecond() as i32);
-                    Some(obj.into())
-                }
-                Err(_) => None,
+            Err(_) => None,
+        },
+        "plainDateTimeISO" => match now.plain_date_time_iso(None) {
+            Ok(datetime) => {
+                let obj = v8::Object::new(scope);
+                set_date_fields(
+                    scope,
+                    &obj,
+                    datetime.year(),
+                    datetime.month() as i32,
+                    datetime.day() as i32,
+                );
+                set_time_fields(
+                    scope,
+                    &obj,
+                    TimeFields {
+                        hour: datetime.hour() as i32,
+                        minute: datetime.minute() as i32,
+                        second: datetime.second() as i32,
+                        millisecond: datetime.millisecond() as i32,
+                        microsecond: datetime.microsecond() as i32,
+                        nanosecond: datetime.nanosecond() as i32,
+                    },
+                );
+                Some(obj.into())
             }
-        }
-        "zonedDateTimeISO" => {
-            match now.zoned_date_time_iso(None) {
-                Ok(zdt) => {
-                    let obj = v8::Object::new(scope);
-                    set_date_fields(scope, &obj, zdt.year(), zdt.month() as i32, zdt.day() as i32);
-                    set_time_fields(scope, &obj, zdt.hour() as i32, zdt.minute() as i32, zdt.second() as i32, zdt.millisecond() as i32, zdt.microsecond() as i32, zdt.nanosecond() as i32);
-                    Some(obj.into())
-                }
-                Err(_) => None,
+            Err(_) => None,
+        },
+        "zonedDateTimeISO" => match now.zoned_date_time_iso(None) {
+            Ok(zdt) => {
+                let obj = v8::Object::new(scope);
+                set_date_fields(
+                    scope,
+                    &obj,
+                    zdt.year(),
+                    zdt.month() as i32,
+                    zdt.day() as i32,
+                );
+                set_time_fields(
+                    scope,
+                    &obj,
+                    TimeFields {
+                        hour: zdt.hour() as i32,
+                        minute: zdt.minute() as i32,
+                        second: zdt.second() as i32,
+                        millisecond: zdt.millisecond() as i32,
+                        microsecond: zdt.microsecond() as i32,
+                        nanosecond: zdt.nanosecond() as i32,
+                    },
+                );
+                Some(obj.into())
             }
-        }
+            Err(_) => None,
+        },
         _ => None,
     };
 
@@ -193,7 +234,13 @@ fn temporal_plain_date(
     match PlainDate::try_new_iso(year, month as u8, day as u8) {
         Ok(date) => {
             let obj = v8::Object::new(scope);
-            set_date_fields(scope, &obj, date.year(), date.month() as i32, date.day() as i32);
+            set_date_fields(
+                scope,
+                &obj,
+                date.year(),
+                date.month() as i32,
+                date.day() as i32,
+            );
             rv.set(obj.into());
         }
         Err(_) => {
@@ -221,7 +268,18 @@ fn temporal_plain_time(
     match PlainTime::try_new(hour, minute, second, millisecond, microsecond, nanosecond) {
         Ok(time) => {
             let obj = v8::Object::new(scope);
-            set_time_fields(scope, &obj, time.hour() as i32, time.minute() as i32, time.second() as i32, time.millisecond() as i32, time.microsecond() as i32, time.nanosecond() as i32);
+            set_time_fields(
+                scope,
+                &obj,
+                TimeFields {
+                    hour: time.hour() as i32,
+                    minute: time.minute() as i32,
+                    second: time.second() as i32,
+                    millisecond: time.millisecond() as i32,
+                    microsecond: time.microsecond() as i32,
+                    nanosecond: time.nanosecond() as i32,
+                },
+            );
             rv.set(obj.into());
         }
         Err(_) => {
@@ -249,11 +307,38 @@ fn temporal_plain_date_time(
     let microsecond = args.get(7).int32_value(scope).unwrap_or(0) as u16;
     let nanosecond = args.get(8).int32_value(scope).unwrap_or(0) as u16;
 
-    match PlainDateTime::try_new_iso(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond) {
+    match PlainDateTime::try_new_iso(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        millisecond,
+        microsecond,
+        nanosecond,
+    ) {
         Ok(datetime) => {
             let obj = v8::Object::new(scope);
-            set_date_fields(scope, &obj, datetime.year(), datetime.month() as i32, datetime.day() as i32);
-            set_time_fields(scope, &obj, datetime.hour() as i32, datetime.minute() as i32, datetime.second() as i32, datetime.millisecond() as i32, datetime.microsecond() as i32, datetime.nanosecond() as i32);
+            set_date_fields(
+                scope,
+                &obj,
+                datetime.year(),
+                datetime.month() as i32,
+                datetime.day() as i32,
+            );
+            set_time_fields(
+                scope,
+                &obj,
+                TimeFields {
+                    hour: datetime.hour() as i32,
+                    minute: datetime.minute() as i32,
+                    second: datetime.second() as i32,
+                    millisecond: datetime.millisecond() as i32,
+                    microsecond: datetime.microsecond() as i32,
+                    nanosecond: datetime.nanosecond() as i32,
+                },
+            );
             rv.set(obj.into());
         }
         Err(_) => {
@@ -292,7 +377,13 @@ fn temporal_instant(
 }
 
 // Helper functions to set object fields
-fn set_date_fields(scope: &mut v8::HandleScope, obj: &v8::Local<v8::Object>, year: i32, month: i32, day: i32) {
+fn set_date_fields(
+    scope: &mut v8::HandleScope,
+    obj: &v8::Local<v8::Object>,
+    year: i32,
+    month: i32,
+    day: i32,
+) {
     let year_key = v8::String::new(scope, "year").unwrap();
     let year_val = v8::Integer::new(scope, year);
     obj.set(scope, year_key.into(), year_val.into());
@@ -306,28 +397,37 @@ fn set_date_fields(scope: &mut v8::HandleScope, obj: &v8::Local<v8::Object>, yea
     obj.set(scope, day_key.into(), day_val.into());
 }
 
-fn set_time_fields(scope: &mut v8::HandleScope, obj: &v8::Local<v8::Object>, hour: i32, minute: i32, second: i32, millisecond: i32, microsecond: i32, nanosecond: i32) {
+struct TimeFields {
+    hour: i32,
+    minute: i32,
+    second: i32,
+    millisecond: i32,
+    microsecond: i32,
+    nanosecond: i32,
+}
+
+fn set_time_fields(scope: &mut v8::HandleScope, obj: &v8::Local<v8::Object>, fields: TimeFields) {
     let hour_key = v8::String::new(scope, "hour").unwrap();
-    let hour_val = v8::Integer::new(scope, hour);
+    let hour_val = v8::Integer::new(scope, fields.hour);
     obj.set(scope, hour_key.into(), hour_val.into());
 
     let minute_key = v8::String::new(scope, "minute").unwrap();
-    let minute_val = v8::Integer::new(scope, minute);
+    let minute_val = v8::Integer::new(scope, fields.minute);
     obj.set(scope, minute_key.into(), minute_val.into());
 
     let second_key = v8::String::new(scope, "second").unwrap();
-    let second_val = v8::Integer::new(scope, second);
+    let second_val = v8::Integer::new(scope, fields.second);
     obj.set(scope, second_key.into(), second_val.into());
 
     let millisecond_key = v8::String::new(scope, "millisecond").unwrap();
-    let millisecond_val = v8::Integer::new(scope, millisecond);
+    let millisecond_val = v8::Integer::new(scope, fields.millisecond);
     obj.set(scope, millisecond_key.into(), millisecond_val.into());
 
     let microsecond_key = v8::String::new(scope, "microsecond").unwrap();
-    let microsecond_val = v8::Integer::new(scope, microsecond);
+    let microsecond_val = v8::Integer::new(scope, fields.microsecond);
     obj.set(scope, microsecond_key.into(), microsecond_val.into());
 
     let nanosecond_key = v8::String::new(scope, "nanosecond").unwrap();
-    let nanosecond_val = v8::Integer::new(scope, nanosecond);
+    let nanosecond_val = v8::Integer::new(scope, fields.nanosecond);
     obj.set(scope, nanosecond_key.into(), nanosecond_val.into());
 }
