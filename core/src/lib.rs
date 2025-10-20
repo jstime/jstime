@@ -143,20 +143,30 @@ impl JSTime {
     }
 
     /// Run a script and get a string representation of the result.
+    /// This version runs the event loop after execution, which is suitable for file execution.
+    /// For REPL usage, use `run_script_no_event_loop` instead.
     pub fn run_script(&mut self, source: &str, filename: &str) -> Result<String, String> {
-        let result = {
-            let context = IsolateState::get(self.isolate()).borrow().context();
-            let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-            match script::run(scope, source, filename) {
-                Ok(v) => Ok(v.to_string(scope).unwrap().to_rust_string_lossy(scope)),
-                Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
-            }
-        };
+        let result = self.run_script_no_event_loop(source, filename);
 
         // Run the event loop to process any pending timers
         self.run_event_loop();
 
         result
+    }
+
+    /// Run a script and get a string representation of the result without running the event loop.
+    /// This is suitable for REPL usage where the event loop should not block between commands.
+    pub fn run_script_no_event_loop(
+        &mut self,
+        source: &str,
+        filename: &str,
+    ) -> Result<String, String> {
+        let context = IsolateState::get(self.isolate()).borrow().context();
+        let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
+        match script::run(scope, source, filename) {
+            Ok(v) => Ok(v.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+            Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+        }
     }
 
     /// Run the event loop until all pending operations are complete

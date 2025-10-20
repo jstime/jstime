@@ -71,7 +71,7 @@ fn repl(mut jstime: jstime::JSTime) {
         match readline {
             Ok(line) => {
                 let _ = rl.add_history_entry(line.as_str());
-                match jstime.run_script(&line, "REPL") {
+                match jstime.run_script_no_event_loop(&line, "REPL") {
                     Ok(v) => println!("{v}"),
                     Err(e) => eprintln!("Uncaught: {e}"),
                 }
