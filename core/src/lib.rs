@@ -101,7 +101,8 @@ impl JSTime {
         // If snapshot data was provided, the builtins already exist within it.
         if true {
             let context = IsolateState::get(&mut isolate).borrow().context();
-            let scope = &mut v8::HandleScope::with_context(&mut isolate, context);
+            v8::scope!(let scope, &mut isolate);
+            let scope = &mut v8::ContextScope::new(scope, context);
             builtins::Builtins::create(scope);
         }
 

@@ -1,7 +1,7 @@
 use crate::js_loading;
 
 pub(crate) fn run<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     js: &str,
     filepath: &str,
 ) -> Result<v8::Local<'s, v8::Value>, v8::Local<'s, v8::Value>> {
@@ -14,5 +14,5 @@ pub(crate) fn run<'s>(
 
     v8::Script::compile(scope, code, Some(&origin))
         .and_then(|script| script.run(scope))
-        .map_or_else(|| Err(scope.stack_trace().unwrap()), Ok)
+        .map_or_else(|| Err(scope.exception().unwrap()), Ok)
 }
