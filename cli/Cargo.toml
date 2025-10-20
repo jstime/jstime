@@ -1,6 +1,6 @@
 [package]
 name = "jstime"
-version = "0.54.0"
+version = "0.55.0"
 description = "Another JS Runtime"
 readme = "README.md"
 license = "Apache-2.0"
@@ -14,13 +14,13 @@ name = "jstime"
 path = "main.rs"
 
 [dependencies]
-jstime_core = { path = "../core", version = "^0.54.0" }
+jstime_core = { path = "../core", version = "^0.55.0" }
 rustyline = "17.0.2"
 structopt = "0.3.26"
 dirs = "6.0.0"
 
 [build-dependencies]
-jstime_core = { path = "../core", version = "^0.54.0" }
+jstime_core = { path = "../core", version = "^0.55.0" }
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
