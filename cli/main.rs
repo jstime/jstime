@@ -56,6 +56,9 @@ fn main() {
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
     use rustyline::{error::ReadlineError, DefaultEditor};
+    use std::sync::mpsc::{channel, RecvTimeoutError};
+    use std::thread;
+    use std::time::Duration;
 
     let mut rl = DefaultEditor::new().unwrap();
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
@@ -67,15 +70,37 @@ fn repl(mut jstime: jstime::JSTime) {
     });
 
     loop {
-        let readline = rl.readline(">> ");
-        match readline {
+        // Channel for this readline
+        let (tx, rx) = channel();
+
+        // Start readline in a separate thread
+        thread::spawn(move || {
+            let mut rl_temp = DefaultEditor::new().unwrap();
+            let result = rl_temp.readline(">> ");
+            let _ = tx.send(result);
+        });
+
+        // Poll for readline completion while ticking event loop
+        let readline_result = loop {
+            match rx.recv_timeout(Duration::from_millis(10)) {
+                Ok(result) => break result,
+                Err(RecvTimeoutError::Timeout) => {
+                    // Tick the event loop while waiting for input
+                    jstime.tick_event_loop();
+                }
+                Err(RecvTimeoutError::Disconnected) => {
+                    return; // Thread died unexpectedly
+                }
+            }
+        };
+
+        match readline_result {
             Ok(line) => {
                 let _ = rl.add_history_entry(line.as_str());
                 match jstime.run_script_no_event_loop(&line, "REPL") {
                     Ok(v) => println!("{v}"),
                     Err(e) => eprintln!("Uncaught: {e}"),
                 }
-                // Tick the event loop to execute any ready timers without blocking
                 jstime.tick_event_loop();
             }
             Err(ReadlineError::Interrupted) => {
