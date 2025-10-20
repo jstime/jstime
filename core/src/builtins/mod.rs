@@ -1023,7 +1023,7 @@ fn set_timeout(
     let callback_global = v8::Global::new(scope, callback);
     let state = crate::IsolateState::get(scope);
     let state_borrow = state.borrow();
-    
+
     // Get the next timer ID
     let timer_id = {
         let mut next_id = state_borrow.next_timer_id.borrow_mut();
@@ -1031,7 +1031,7 @@ fn set_timeout(
         *next_id += 1;
         id
     };
-    
+
     // Queue the timer to be added
     state_borrow
         .timers_to_add
