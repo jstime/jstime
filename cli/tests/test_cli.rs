@@ -141,3 +141,22 @@ fn temporal() {
         .success()
         .code(0);
 }
+
+#[test]
+fn timers() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/timers.js")
+        .assert()
+        .stdout(
+            r#"Start
+End
+Timeout 2
+Interval 1
+Timeout 1
+Interval 2
+"#,
+        )
+        .success()
+        .code(0);
+}
