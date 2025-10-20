@@ -203,6 +203,42 @@ impl EventLoop {
         // Final microtask checkpoint
         scope.perform_microtask_checkpoint();
     }
+
+    /// Process ready timers without blocking (suitable for REPL)
+    /// This method executes timers that are ready to fire and returns immediately
+    pub(crate) fn tick(&mut self, scope: &mut v8::HandleScope) {
+        // Add any pending timers
+        self.add_pending_timers();
+
+        // Process all microtasks
+        scope.perform_microtask_checkpoint();
+
+        // Collect and execute ready timers (without sleeping)
+        let ready_timers = self.collect_ready_timers();
+
+        for (timer_id, callback, is_interval) in ready_timers {
+            let callback_local = v8::Local::new(scope, &callback);
+            let recv = v8::undefined(scope).into();
+            let _ = callback_local.call(scope, recv, &[]);
+
+            if is_interval {
+                // Reschedule interval timers
+                self.reschedule_interval(timer_id);
+            } else {
+                // Remove one-shot timers
+                self.timers.remove(&timer_id);
+            }
+        }
+
+        // Clear any timers that were marked for clearing during callbacks
+        self.clear_marked_timers();
+
+        // Add any timers that were queued during callbacks
+        self.add_pending_timers();
+
+        // Final microtask checkpoint
+        scope.perform_microtask_checkpoint();
+    }
 }
 
 impl Default for EventLoop {

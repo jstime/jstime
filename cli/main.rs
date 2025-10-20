@@ -75,6 +75,8 @@ fn repl(mut jstime: jstime::JSTime) {
                     Ok(v) => println!("{v}"),
                     Err(e) => eprintln!("Uncaught: {e}"),
                 }
+                // Tick the event loop to execute any ready timers without blocking
+                jstime.tick_event_loop();
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Thanks for stopping by!");

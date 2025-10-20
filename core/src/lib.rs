@@ -169,6 +169,15 @@ impl JSTime {
         }
     }
 
+    /// Tick the event loop to execute ready timers without blocking.
+    /// This is suitable for REPL usage to allow timers to execute in the background.
+    pub fn tick_event_loop(&mut self) {
+        let context = IsolateState::get(self.isolate()).borrow().context();
+        let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
+        let event_loop = event_loop::get_event_loop(scope);
+        event_loop.borrow_mut().tick(scope);
+    }
+
     /// Run the event loop until all pending operations are complete
     fn run_event_loop(&mut self) {
         let context = IsolateState::get(self.isolate()).borrow().context();
