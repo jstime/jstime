@@ -55,12 +55,13 @@ fn main() {
 
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
-    use rustyline::{error::ReadlineError, DefaultEditor};
+    use rustyline::{error::ReadlineError, history::DefaultHistory, Editor};
     use std::sync::mpsc::{channel, RecvTimeoutError};
+    use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;
 
-    let mut rl = DefaultEditor::new().unwrap();
+    let mut rl = Editor::<(), DefaultHistory>::new().unwrap();
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
 
     let history_path = home_dir().map(|mut p| {
@@ -69,13 +70,25 @@ fn repl(mut jstime: jstime::JSTime) {
         p
     });
 
+    // Use Arc<Mutex<Vec<String>>> to share history entries across threads
+    let history_entries = Arc::new(Mutex::new(Vec::new()));
+
     loop {
         // Channel for this readline
         let (tx, rx) = channel();
+        let history_clone = Arc::clone(&history_entries);
 
         // Start readline in a separate thread
         thread::spawn(move || {
-            let mut rl_temp = DefaultEditor::new().unwrap();
+            let mut rl_temp = Editor::<(), DefaultHistory>::new().unwrap();
+
+            // Load recent history into the temp editor
+            if let Ok(entries) = history_clone.lock() {
+                for entry in entries.iter() {
+                    let _ = rl_temp.add_history_entry(entry);
+                }
+            }
+
             let result = rl_temp.readline(">> ");
             let _ = tx.send(result);
         });
@@ -96,7 +109,16 @@ fn repl(mut jstime: jstime::JSTime) {
 
         match readline_result {
             Ok(line) => {
+                // Add to both the main editor and shared history
                 let _ = rl.add_history_entry(line.as_str());
+                if let Ok(mut entries) = history_entries.lock() {
+                    entries.push(line.clone());
+                    // Keep only last 1000 entries to avoid unbounded growth
+                    if entries.len() > 1000 {
+                        entries.remove(0);
+                    }
+                }
+
                 match jstime.run_script_no_event_loop(&line, "REPL") {
                     Ok(v) => println!("{v}"),
                     Err(e) => eprintln!("Uncaught: {e}"),
