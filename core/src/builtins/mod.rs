@@ -21,7 +21,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
         v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(temporal_instant),
         },
-                v8::ExternalReference {
+        v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(url_parse),
         },
         v8::ExternalReference {
@@ -537,10 +537,7 @@ use url::Url;
 
 // Helper to convert v8 string to Rust string
 fn to_rust_string(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> String {
-    value
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(scope)
+    value.to_string(scope).unwrap().to_rust_string_lossy(scope)
 }
 
 // Helper to create v8 string from Rust string
@@ -555,7 +552,7 @@ fn url_parse(
     mut rv: v8::ReturnValue,
 ) {
     let url_str = to_rust_string(scope, args.get(0));
-    
+
     let parsed = if args.length() > 1 && !args.get(1).is_undefined() {
         let base_str = to_rust_string(scope, args.get(1));
         match Url::parse(&base_str) {
@@ -568,7 +565,7 @@ fn url_parse(
     } else {
         Url::parse(&url_str)
     };
-    
+
     match parsed {
         Ok(url) => {
             let url_str = url.to_string();
@@ -720,7 +717,10 @@ fn url_get_hash(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     if let Ok(url) = Url::parse(&url_str) {
-        let hash = url.fragment().map(|f| format!("#{}", f)).unwrap_or_default();
+        let hash = url
+            .fragment()
+            .map(|f| format!("#{}", f))
+            .unwrap_or_default();
         let v8_str = to_v8_string(scope, &hash);
         rv.set(v8_str.into());
     }
@@ -750,7 +750,7 @@ fn url_set_protocol(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let protocol = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         let protocol = protocol.trim_end_matches(':');
         let _ = url.set_scheme(protocol);
@@ -766,7 +766,7 @@ fn url_set_username(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let username = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         let _ = url.set_username(&username);
         let v8_str = to_v8_string(scope, url.as_str());
@@ -781,7 +781,7 @@ fn url_set_password(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let password = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         let _ = url.set_password(Some(&password));
         let v8_str = to_v8_string(scope, url.as_str());
@@ -796,7 +796,7 @@ fn url_set_host(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let host = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         // Parse host and port if present
         if host.contains(':') {
@@ -822,7 +822,7 @@ fn url_set_hostname(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let hostname = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         let _ = url.set_host(Some(&hostname));
         let v8_str = to_v8_string(scope, url.as_str());
@@ -837,7 +837,7 @@ fn url_set_port(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let port_str = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         if port_str.is_empty() {
             let _ = url.set_port(None);
@@ -856,7 +856,7 @@ fn url_set_pathname(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let pathname = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         url.set_path(&pathname);
         let v8_str = to_v8_string(scope, url.as_str());
@@ -871,7 +871,7 @@ fn url_set_search(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let search = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         let search = search.trim_start_matches('?');
         if search.is_empty() {
@@ -891,7 +891,7 @@ fn url_set_hash(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
     let hash = to_rust_string(scope, args.get(1));
-    
+
     if let Ok(mut url) = Url::parse(&url_str) {
         let hash = hash.trim_start_matches('#');
         if hash.is_empty() {
@@ -925,7 +925,7 @@ fn url_search_params_new(
 ) {
     let query = to_rust_string(scope, args.get(0));
     let params = parse_query_string(&query);
-    
+
     let array = v8::Array::new(scope, params.len() as i32);
     for (i, (key, value)) in params.iter().enumerate() {
         let entry = v8::Array::new(scope, 2);
@@ -943,7 +943,7 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
     if query.is_empty() {
         return params;
     }
-    
+
     for pair in query.split('&') {
         if pair.is_empty() {
             continue;
@@ -951,11 +951,11 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
         let mut parts = pair.splitn(2, '=');
         let key = parts.next().unwrap_or("");
         let value = parts.next().unwrap_or("");
-        
+
         // URL decode
         let key = urlencoding::decode(key).unwrap_or_default().to_string();
         let value = urlencoding::decode(value).unwrap_or_default().to_string();
-        
+
         params.push((key, value));
     }
     params
@@ -968,25 +968,25 @@ fn url_search_params_to_string(
 ) {
     let params_array = v8::Local::<v8::Array>::try_from(args.get(0)).unwrap();
     let len = params_array.length();
-    
+
     let mut parts = Vec::new();
     for i in 0..len {
         let entry = params_array.get_index(scope, i).unwrap();
         let entry_array = v8::Local::<v8::Array>::try_from(entry).unwrap();
-        
+
         let key = entry_array.get_index(scope, 0).unwrap();
         let value = entry_array.get_index(scope, 1).unwrap();
-        
+
         let key_str = to_rust_string(scope, key);
         let value_str = to_rust_string(scope, value);
-        
+
         parts.push(format!(
             "{}={}",
             urlencoding::encode(&key_str),
             urlencoding::encode(&value_str)
         ));
     }
-    
+
     let result = parts.join("&");
     let v8_str = to_v8_string(scope, &result);
     rv.set(v8_str.into());

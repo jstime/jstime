@@ -38,9 +38,12 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const url = new URL('https://example.com:8080/path?query=value#hash'); url.href;",
-            "jstime"
+            "jstime",
         );
-        assert_eq!(result.unwrap(), "https://example.com:8080/path?query=value#hash");
+        assert_eq!(
+            result.unwrap(),
+            "https://example.com:8080/path?query=value#hash"
+        );
     }
 
     #[test]
@@ -50,7 +53,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const url = new URL('/path', 'https://example.com'); url.href;",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "https://example.com/path");
     }
@@ -60,7 +63,7 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let result = jstime.run_script(
             "const url = new URL('https://user:pass@example.com:8080/path?query=value#hash'); \
              JSON.stringify({ \
@@ -73,7 +76,7 @@ mod tests {
                search: url.search, \
                hash: url.hash \
              });",
-            "jstime"
+            "jstime",
         );
         let json: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
         assert_eq!(json["protocol"], "https:");
@@ -93,7 +96,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const url = new URL('https://example.com:8080/path'); url.origin;",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "https://example.com:8080");
     }
@@ -105,7 +108,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const url = new URL('https://example.com'); url.pathname = '/new'; url.href;",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "https://example.com/new");
     }
@@ -126,7 +129,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const params = new URLSearchParams('foo=bar&baz=qux'); params.get('foo');",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "bar");
     }
@@ -138,7 +141,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const params = new URLSearchParams(); params.append('foo', 'bar'); params.toString();",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "foo=bar");
     }
@@ -174,7 +177,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const params = new URLSearchParams('foo=bar'); params.has('foo');",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "true");
     }
@@ -198,7 +201,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const params = new URLSearchParams({foo: 'bar', baz: 'qux'}); params.toString();",
-            "jstime"
+            "jstime",
         );
         // Note: the order might vary, so let's check if both key-value pairs are present
         let result_str = result.unwrap();
@@ -216,7 +219,7 @@ mod tests {
              let result = []; \
              for (const [key, value] of params) { result.push(key + '=' + value); } \
              result.join('&');",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "foo=bar&baz=qux");
     }
@@ -228,7 +231,7 @@ mod tests {
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script(
             "const url = new URL('https://example.com/path'); JSON.stringify(url);",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "\"https://example.com/path\"");
     }
@@ -242,7 +245,7 @@ mod tests {
             "const url = new URL('https://example.com?foo=bar'); \
              url.searchParams.append('baz', 'qux'); \
              url.href;",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "https://example.com/?foo=bar&baz=qux");
     }
@@ -257,7 +260,7 @@ mod tests {
              const sp1 = url.searchParams; \
              const sp2 = url.searchParams; \
              sp1 === sp2;",
-            "jstime"
+            "jstime",
         );
         assert_eq!(result.unwrap(), "true");
     }
