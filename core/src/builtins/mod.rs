@@ -194,15 +194,16 @@ fn printer(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v
             .expect("Unable to convert to integer");
         is_err = int_val != 0;
     };
-    let tc_scope = &mut v8::TryCatch::new(scope);
-    let str_ = match obj.to_string(tc_scope) {
+    let tc_scope = std::pin::pin!(v8::TryCatch::new(scope));
+    let tc_scope = tc_scope.init();
+    let str_ = match obj.to_string(&tc_scope) {
         Some(s) => s,
-        None => v8::String::new(tc_scope, "").unwrap(),
+        None => v8::String::new(&tc_scope, "").unwrap(),
     };
     if is_err {
-        eprintln!("{}", str_.to_rust_string_lossy(tc_scope));
+        eprintln!("{}", str_.to_rust_string_lossy(&tc_scope));
     } else {
-        println!("{}", str_.to_rust_string_lossy(tc_scope));
+        println!("{}", str_.to_rust_string_lossy(&tc_scope));
     }
 }
 
@@ -492,7 +493,7 @@ fn temporal_instant(
 
 // Helper functions to set object fields
 fn set_date_fields(
-    scope: &mut v8::HandleScope,
+    scope: &v8::PinScope,
     obj: &v8::Local<v8::Object>,
     year: i32,
     month: i32,
@@ -520,7 +521,7 @@ struct TimeFields {
     nanosecond: i32,
 }
 
-fn set_time_fields(scope: &mut v8::HandleScope, obj: &v8::Local<v8::Object>, fields: TimeFields) {
+fn set_time_fields(scope: &v8::PinScope, obj: &v8::Local<v8::Object>, fields: TimeFields) {
     let hour_key = v8::String::new(scope, "hour").unwrap();
     let hour_val = v8::Integer::new(scope, fields.hour);
     obj.set(scope, hour_key.into(), hour_val.into());
@@ -549,12 +550,12 @@ fn set_time_fields(scope: &mut v8::HandleScope, obj: &v8::Local<v8::Object>, fie
 use url::Url;
 
 // Helper to convert v8 string to Rust string
-fn to_rust_string(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> String {
+fn to_rust_string(scope: &v8::PinScope, value: v8::Local<v8::Value>) -> String {
     value.to_string(scope).unwrap().to_rust_string_lossy(scope)
 }
 
 // Helper to create v8 string from Rust string
-fn to_v8_string<'a>(scope: &mut v8::HandleScope<'a>, s: &str) -> v8::Local<'a, v8::String> {
+fn to_v8_string<'a>(scope: &v8::PinScope<'a, '_>, s: &str) -> v8::Local<'a, v8::String> {
     v8::String::new(scope, s).unwrap()
 }
 

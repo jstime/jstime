@@ -5,14 +5,15 @@ pub(crate) fn run<'s>(
     js: &str,
     filepath: &str,
 ) -> Result<v8::Local<'s, v8::Value>, v8::Local<'s, v8::Value>> {
-    let scope = &mut v8::TryCatch::new(scope);
+    let scope = std::pin::pin!(v8::TryCatch::new(scope));
+    let scope = scope.init();
 
-    let filepath = v8::String::new(scope, filepath).unwrap();
-    let origin = js_loading::create_script_origin(scope, filepath, false);
+    let filepath = v8::String::new(&scope, filepath).unwrap();
+    let origin = js_loading::create_script_origin(&scope, filepath, false);
 
-    let code = v8::String::new(scope, js).unwrap();
+    let code = v8::String::new(&scope, js).unwrap();
 
-    v8::Script::compile(scope, code, Some(&origin))
-        .and_then(|script| script.run(scope))
+    v8::Script::compile(&scope, code, Some(&origin))
+        .and_then(|script| script.run(&scope))
         .map_or_else(|| Err(scope.exception().unwrap()), Ok)
 }
