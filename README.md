@@ -42,26 +42,7 @@ instructions on how to embed jstime in your rust application!
 
 ## Features
 
-* **Temporal API**: jstime includes support for the [TC39 Temporal proposal](https://tc39.es/proposal-temporal/), powered by [temporal_rs](https://github.com/boa-dev/temporal). The Temporal API provides modern date and time handling with calendar and timezone awareness.
-
-```javascript
-// Get current instant
-const now = Temporal.Now.instant();
-
-// Create a plain date
-const date = new Temporal.PlainDate(2025, 10, 13);
-console.log(date.year, date.month, date.day); // 2025 10 13
-
-// Create a plain time
-const time = new Temporal.PlainTime(15, 30, 45);
-console.log(time.hour, time.minute, time.second); // 15 30 45
-
-// Create a datetime
-const dt = new Temporal.PlainDateTime(2025, 10, 13, 15, 30, 45);
-
-// Parse instant from string
-const instant = Temporal.Instant.from('2025-10-13T12:00:00Z');
-```
+jstime provides a minimal and performant JavaScript runtime with essential APIs.
 
 ## Current Project Team Members
 
