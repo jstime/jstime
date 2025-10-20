@@ -246,6 +246,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6184e33543162437515c2e2b48714794e37845ec9851711914eec9d308f6ebe8"
 
 [[package]]
+name = "diplomat"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ced081520ee8cf2b8c5b64a1a901eccd7030ece670dac274afe64607d6499b71"
+dependencies = [
+ "diplomat_core",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.107",
+]
+
+[[package]]
+name = "diplomat-runtime"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "098f9520ec5c190943b083bca3ea4cc4e67dc5f85a37062e528ecf1d25f04eb4"
+
+[[package]]
+name = "diplomat_core"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad619d9fdee0e731bb6f8f7d797b6ecfdc2395e363f554d2f6377155955171eb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "smallvec",
+ "strck",
+ "syn 2.0.107",
+]
+
+[[package]]
 name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -643,7 +675,7 @@ version = "0.55.0"
 dependencies = [
  "lazy_static",
  "serde_json",
- "temporal_rs",
+ "temporal_rs 0.1.0",
  "url",
  "urlencoding",
  "v8",
@@ -1005,6 +1037,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ry_temporal_capi"
+version = "0.0.11-ry.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdfddefd45ee4814bd83d94b7196c95ef6af159f4a0035a6c67bd59edcff14ee"
+dependencies = [
+ "diplomat",
+ "diplomat-runtime",
+ "icu_calendar",
+ "icu_locale",
+ "num-traits",
+ "temporal_rs 0.0.11",
+ "writeable",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1072,6 +1119,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
+name = "strck"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42316e70da376f3d113a68d138a60d8a9883c604fe97942721ec2068dab13a9f"
+dependencies = [
+ "unicode-ident",
+]
+
+[[package]]
 name = "strsim"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1136,6 +1192,25 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7807e330b12e288b847a3e2a2b0dcd41ca764d0f90f9e8940f02c6ddd68cd2d7"
+dependencies = [
+ "combine",
+ "core_maths",
+ "icu_calendar",
+ "icu_locale",
+ "ixdtf",
+ "jiff-tzdb",
+ "num-traits",
+ "timezone_provider 0.0.16",
+ "tinystr",
+ "tzif",
+ "writeable",
+]
+
+[[package]]
+name = "temporal_rs"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7305090e19b67670330fde1365b7c2c8a3b5a5ef6c92efc238b3b964a8c395fd"
@@ -1146,7 +1221,7 @@ dependencies = [
  "icu_locale",
  "ixdtf",
  "num-traits",
- "timezone_provider",
+ "timezone_provider 0.1.0",
  "tinystr",
  "web-time",
  "writeable",
@@ -1185,6 +1260,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.107",
+]
+
+[[package]]
+name = "timezone_provider"
+version = "0.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14fab21f70d8ca989ca76d399d26f4487747ac2def3816d93eaa966f8dfa2ea7"
+dependencies = [
+ "tinystr",
+ "zerotrie",
+ "zerovec",
 ]
 
 [[package]]
@@ -1276,9 +1362,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "v8"
-version = "139.0.0"
+version = "140.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a33ccf9cc537275d7bb848e94f160986164e2ea5138e60166551d115c7ea8f1a"
+checksum = "8827809a2884fb68530d678a8ef15b1ed1344bbf844879194d68c140c6f844f9"
 dependencies = [
  "bindgen",
  "bitflags 2.10.0",
@@ -1287,6 +1373,7 @@ dependencies = [
  "home",
  "miniz_oxide",
  "paste",
+ "ry_temporal_capi",
  "which",
 ]
 
