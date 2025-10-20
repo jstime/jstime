@@ -4,3 +4,7 @@ members = [
   "core",
   "cli",
 ]
+
+[patch.crates-io]
+temporal_rs = { git = "https://github.com/boa-dev/temporal.git", tag = "v0.0.11" }
+timezone_provider = { git = "https://github.com/boa-dev/temporal.git", tag = "v0.0.11" }
