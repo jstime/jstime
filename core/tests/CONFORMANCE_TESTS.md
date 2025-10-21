@@ -4,6 +4,26 @@ This directory contains conformance tests for jstime's implementation of standar
 
 ## Test Coverage
 
+### Base64 Encoding
+- **File**: `test_conformance_base64.rs`
+- **Specification**: [WHATWG HTML Standard - Base64 utilities](https://html.spec.whatwg.org/multipage/webappapis.html#atob)
+- **Tests**: 29 tests
+- **Coverage**:
+  - Global object properties (existence of `btoa` and `atob`)
+  - Function type checks
+  - Empty string handling
+  - ASCII text encoding/decoding
+  - Round-trip encoding/decoding
+  - Special characters and null bytes
+  - Latin-1 boundary testing (character code 255)
+  - Error handling for characters outside Latin-1 range (Unicode, emoji, CJK)
+  - Error handling for missing arguments
+  - Error handling for invalid base64 input
+  - Base64 padding handling (single, double, none)
+  - Whitespace handling in base64 strings
+  - Type coercion to string
+  - Full Latin-1 character range (0-255)
+
 ### Console API
 - **File**: `test_conformance_console.rs`
 - **Specification**: [WHATWG Console Standard](https://console.spec.whatwg.org/)
@@ -65,12 +85,15 @@ This directory contains conformance tests for jstime's implementation of standar
 To run all conformance tests:
 
 ```bash
-cargo test --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_timers --test test_conformance_url
+cargo test --test test_conformance_base64 --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_timers --test test_conformance_url
 ```
 
 To run a specific conformance test suite:
 
 ```bash
+# Base64 conformance tests
+cargo test --test test_conformance_base64
+
 # Console conformance tests
 cargo test --test test_conformance_console
 
@@ -119,8 +142,8 @@ When adding new conformance tests:
 
 ## Total Coverage
 
-- **Total Test Files**: 5
-- **Total Tests**: 107
-- **APIs Covered**: Console, Fetch, Performance, Timers, URL
+- **Total Test Files**: 6
+- **Total Tests**: 136
+- **APIs Covered**: Base64 Encoding, Console, Fetch, Performance, Timers, URL
 
 All tests pass ✓
