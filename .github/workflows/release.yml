@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create Release
-        run: gh release create ${{ github.ref }} --generate-notes
+        run: gh release create ${{ github.ref_name }} --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download all artifacts
@@ -76,7 +76,7 @@ jobs:
       - name: Upload all binaries to release
         run: |
           for asset in jstime-*/*; do
-            gh release upload ${{ github.ref }} "$asset"
+            gh release upload ${{ github.ref_name }} "$asset"
           done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
