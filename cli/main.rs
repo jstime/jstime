@@ -55,17 +55,17 @@ fn main() {
 
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
+    use rustyline::Helper;
     use rustyline::highlight::Highlighter;
     use rustyline::hint::Hinter;
     use rustyline::validate::{ValidationContext, ValidationResult, Validator};
-    use rustyline::Helper;
     use rustyline::{
+        Context, Editor,
         completion::{Completer, Pair},
         error::ReadlineError,
         history::DefaultHistory,
-        Context, Editor,
     };
-    use std::sync::mpsc::{channel, RecvTimeoutError};
+    use std::sync::mpsc::{RecvTimeoutError, channel};
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;

@@ -158,13 +158,13 @@ impl EventLoop {
 
     /// Reschedule an interval timer
     fn reschedule_interval(&mut self, id: TimerId) {
-        if let Some(timer) = self.timers.get_mut(&id) {
-            if let Some(interval) = timer.interval {
-                let new_fire_at = Instant::now() + interval;
-                timer.fire_at = new_fire_at;
+        if let Some(timer) = self.timers.get_mut(&id)
+            && let Some(interval) = timer.interval
+        {
+            let new_fire_at = Instant::now() + interval;
+            timer.fire_at = new_fire_at;
 
-                self.timer_queue.entry(new_fire_at).or_default().push(id);
-            }
+            self.timer_queue.entry(new_fire_at).or_default().push(id);
         }
     }
 
