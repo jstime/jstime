@@ -93,6 +93,12 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
         v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(fetch_send),
         },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(performance_now),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(performance_time_origin),
+        },
     ]
 }
 
@@ -141,6 +147,8 @@ impl Builtins {
         binding!("setInterval", set_interval);
         binding!("clearTimer", clear_timer);
         binding!("fetchSend", fetch_send);
+        binding!("performanceNow", performance_now);
+        binding!("performanceTimeOrigin", performance_time_origin);
 
         macro_rules! builtin {
             ($name:expr) => {
@@ -161,6 +169,7 @@ impl Builtins {
         builtin!("./url.js");
         builtin!("./timers.js");
         builtin!("./fetch.js");
+        builtin!("./performance.js");
     }
 }
 
@@ -807,4 +816,56 @@ fn fetch_send(
 
     // Return the promise
     rv.set(promise.into());
+}
+
+use std::time::{SystemTime, UNIX_EPOCH};
+
+// Store the time origin when the isolate is created
+thread_local! {
+    static TIME_ORIGIN: std::cell::OnceCell<f64> = const { std::cell::OnceCell::new() };
+}
+
+fn performance_now(
+    scope: &mut v8::PinScope,
+    _args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
+) {
+    let time_origin = TIME_ORIGIN.with(|cell| {
+        *cell.get_or_init(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64()
+                * 1000.0
+        })
+    });
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64()
+        * 1000.0;
+
+    let elapsed = now - time_origin;
+    let value = v8::Number::new(scope, elapsed);
+    rv.set(value.into());
+}
+
+fn performance_time_origin(
+    scope: &mut v8::PinScope,
+    _args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
+) {
+    let time_origin = TIME_ORIGIN.with(|cell| {
+        *cell.get_or_init(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64()
+                * 1000.0
+        })
+    });
+
+    let value = v8::Number::new(scope, time_origin);
+    rv.set(value.into());
 }
