@@ -149,3 +149,14 @@ Interval 2
         .success()
         .code(0);
 }
+
+#[test]
+fn fetch_api() {
+    Command::cargo_bin("jstime")
+        .unwrap()
+        .arg("./tests/fixtures/fetch-api.js")
+        .assert()
+        .stdout(predicate::str::contains("All fetch API tests passed!"))
+        .success()
+        .code(0);
+}
