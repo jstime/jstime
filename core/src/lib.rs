@@ -11,14 +11,14 @@ pub fn init(v8_flags: Option<Vec<String>>) {
     let mut flags = v8_flags.unwrap_or_default();
     
     // Add performance-oriented V8 flags if not already present
+    // Only add flags that don't conflict with user-provided flags
     let perf_flags = [
-        "--turbofan",           // Enable TurboFan optimizing compiler
-        "--always-turbofan",    // Always optimize functions
-        "--no-lazy",            // Compile all functions immediately
+        "--turbofan",           // Enable TurboFan optimizing compiler (usually on by default)
+        "--opt",                // Enable optimizations
     ];
     
     for flag in &perf_flags {
-        if !flags.iter().any(|f| f.starts_with(flag)) {
+        if !flags.iter().any(|f| f.starts_with(flag) || f.starts_with(&format!("--no-{}", &flag[2..]))) {
             flags.push(flag.to_string());
         }
     }

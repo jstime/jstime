@@ -6,7 +6,8 @@ mod timers_impl;
 mod url_impl;
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
-    let mut refs = Vec::new();
+    // Pre-allocate with approximate capacity to avoid reallocation
+    let mut refs = Vec::with_capacity(32);
     refs.extend(console_impl::get_external_references());
     refs.extend(queue_microtask_impl::get_external_references());
     refs.extend(url_impl::get_external_references());
