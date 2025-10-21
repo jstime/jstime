@@ -822,7 +822,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 // Store the time origin when the isolate is created
 thread_local! {
-    static TIME_ORIGIN: std::cell::OnceCell<f64> = std::cell::OnceCell::new();
+    static TIME_ORIGIN: std::cell::OnceCell<f64> = const { std::cell::OnceCell::new() };
 }
 
 fn performance_now(
