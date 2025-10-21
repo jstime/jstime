@@ -66,5 +66,4 @@ for information about the governance of the jstime project, see
 
 ## TODO
 
-* [fetch](https://fetch.spec.whatwg.org/)
 * Some sort of system interface, maybe [WASI](https://wasi.dev/)
