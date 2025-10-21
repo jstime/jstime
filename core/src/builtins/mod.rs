@@ -2,6 +2,7 @@ mod console_impl;
 mod fetch_impl;
 mod performance_impl;
 mod queue_microtask_impl;
+mod structured_clone_impl;
 mod timers_impl;
 mod url_impl;
 
@@ -14,6 +15,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     refs.extend(timers_impl::get_external_references());
     refs.extend(fetch_impl::get_external_references());
     refs.extend(performance_impl::get_external_references());
+    refs.extend(structured_clone_impl::get_external_references());
     refs
 }
 
@@ -30,6 +32,7 @@ impl Builtins {
         timers_impl::register_bindings(scope, bindings);
         fetch_impl::register_bindings(scope, bindings);
         performance_impl::register_bindings(scope, bindings);
+        structured_clone_impl::register_bindings(scope, bindings);
 
         macro_rules! builtin {
             ($name:expr) => {
@@ -51,5 +54,6 @@ impl Builtins {
         builtin!("./timers.js");
         builtin!("./fetch.js");
         builtin!("./performance.js");
+        builtin!("./structured_clone.js");
     }
 }
