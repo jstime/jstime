@@ -4,3 +4,4 @@ target/
 test-*-output.*
 test-demo-*
 *-new.txt
+test-append.*
