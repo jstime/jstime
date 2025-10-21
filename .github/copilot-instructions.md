@@ -20,7 +20,7 @@ jstime is a minimal and performant JavaScript runtime built on top of the V8 Jav
 ### Rust Conventions
 
 - **Edition**: Rust 2021
-- **Formatting**: Use `cargo fmt` with default rustfmt settings
+- **Formatting**: Code must pass `cargo fmt --all -- --check` (warnings treated as errors). Auto-format with `cargo fmt`.
 - **Linting**: Code must pass `cargo clippy -- -D warnings` (warnings treated as errors)
 - **Testing**: Run `cargo test` before committing
 - **Error Handling**: Use `Result<T, E>` for fallible operations; prefer descriptive error messages
