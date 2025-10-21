@@ -466,4 +466,111 @@ mod tests {
         );
         assert_eq!(result.unwrap(), r#"{"a":1,"b":"test"}"#);
     }
+
+    #[test]
+    fn atob_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof atob;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn btoa_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof btoa;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn btoa_basic() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("btoa('hello');", "jstime");
+        assert_eq!(result.unwrap(), "aGVsbG8=");
+    }
+
+    #[test]
+    fn atob_basic() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("atob('aGVsbG8=');", "jstime");
+        assert_eq!(result.unwrap(), "hello");
+    }
+
+    #[test]
+    fn atob_btoa_round_trip() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("atob(btoa('Hello, World!'));", "jstime");
+        assert_eq!(result.unwrap(), "Hello, World!");
+    }
+
+    #[test]
+    fn btoa_empty_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("btoa('');", "jstime");
+        assert_eq!(result.unwrap(), "");
+    }
+
+    #[test]
+    fn atob_empty_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("atob('');", "jstime");
+        assert_eq!(result.unwrap(), "");
+    }
+
+    #[test]
+    fn btoa_throws_on_unicode() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "try { btoa('Hello 世界'); 'no error'; } catch(e) { 'error'; }",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "error");
+    }
+
+    #[test]
+    fn btoa_accepts_latin1() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        // Test with character code 255 (ÿ)
+        let result = jstime.run_script("btoa('\\u00FF');", "jstime");
+        assert_eq!(result.unwrap(), "/w==");
+    }
+
+    #[test]
+    fn atob_invalid_base64() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "try { atob('invalid!@#'); 'no error'; } catch(e) { 'error'; }",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "error");
+    }
+
+    #[test]
+    fn btoa_with_special_chars() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("btoa('a\\nb\\tc');", "jstime");
+        // 'a\nb\tc' in base64
+        assert_eq!(result.unwrap(), "YQpiCWM=");
+    }
 }

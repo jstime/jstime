@@ -12,6 +12,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 - [Performance API](#performance-api)
 - [Microtask API](#microtask-api)
 - [Structured Clone API](#structured-clone-api)
+- [Base64 Encoding](#base64-encoding)
 - [ES Modules](#es-modules)
 - [REPL](#repl)
 

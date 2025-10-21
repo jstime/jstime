@@ -1,3 +1,4 @@
+mod base64_impl;
 mod console_impl;
 mod fetch_impl;
 mod performance_impl;
@@ -9,6 +10,7 @@ mod url_impl;
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     // Pre-allocate with approximate capacity to avoid reallocation
     let mut refs = Vec::with_capacity(32);
+    refs.extend(base64_impl::get_external_references());
     refs.extend(console_impl::get_external_references());
     refs.extend(queue_microtask_impl::get_external_references());
     refs.extend(url_impl::get_external_references());
@@ -26,6 +28,7 @@ impl Builtins {
         let bindings = v8::Object::new(scope);
 
         // Register all builtin bindings
+        base64_impl::register_bindings(scope, bindings);
         console_impl::register_bindings(scope, bindings);
         queue_microtask_impl::register_bindings(scope, bindings);
         url_impl::register_bindings(scope, bindings);
@@ -48,6 +51,7 @@ impl Builtins {
             };
         }
 
+        builtin!("./base64.js");
         builtin!("./console.js");
         builtin!("./queue_microtask.js");
         builtin!("./url.js");
