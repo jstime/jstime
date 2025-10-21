@@ -55,13 +55,90 @@ fn main() {
 
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
-    use rustyline::{error::ReadlineError, history::DefaultHistory, Editor};
+    use rustyline::{error::ReadlineError, history::DefaultHistory, Editor, completion::{Completer, Pair}, Context};
+    use rustyline::highlight::Highlighter;
+    use rustyline::hint::Hinter;
+    use rustyline::validate::{Validator, ValidationResult, ValidationContext};
+    use rustyline::Helper;
     use std::sync::mpsc::{channel, RecvTimeoutError};
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;
 
-    let mut rl = Editor::<(), DefaultHistory>::new().unwrap();
+    // JavaScript completer for REPL
+    struct JsCompleter;
+
+    impl Completer for JsCompleter {
+        type Candidate = Pair;
+
+        fn complete(
+            &self,
+            line: &str,
+            pos: usize,
+            _ctx: &Context<'_>,
+        ) -> rustyline::Result<(usize, Vec<Pair>)> {
+            // Get the word being completed
+            let start = line[..pos]
+                .rfind(|c: char| !c.is_alphanumeric() && c != '_' && c != '.')
+                .map(|i| i + 1)
+                .unwrap_or(0);
+            
+            let word = &line[start..pos];
+            
+            // Common JavaScript globals and jstime-specific APIs
+            let keywords = vec![
+                // JavaScript built-in objects
+                "Array", "Boolean", "Date", "Error", "Function", "Math", "Number",
+                "Object", "Promise", "RegExp", "String", "Symbol",
+                // Common globals
+                "console", "undefined", "null", "true", "false", "Infinity", "NaN",
+                "isNaN", "isFinite", "parseInt", "parseFloat", "encodeURI", "decodeURI",
+                "encodeURIComponent", "decodeURIComponent",
+                // jstime-specific
+                "setTimeout", "setInterval", "clearTimeout", "clearInterval",
+                "queueMicrotask", "URL", "URLSearchParams",
+                // Common keywords
+                "const", "let", "var", "function", "return", "if", "else", "for", "while",
+                "break", "continue", "switch", "case", "default", "try", "catch", "finally",
+                "throw", "new", "this", "typeof", "instanceof", "in", "of", "delete", "void",
+                "async", "await", "class", "extends", "static", "import", "export", "from",
+            ];
+            
+            let mut completions: Vec<Pair> = keywords
+                .iter()
+                .filter(|k| k.starts_with(word))
+                .map(|k| Pair {
+                    display: k.to_string(),
+                    replacement: k.to_string(),
+                })
+                .collect();
+            
+            completions.sort_by(|a, b| a.display.cmp(&b.display));
+            
+            Ok((start, completions))
+        }
+    }
+
+    impl Hinter for JsCompleter {
+        type Hint = String;
+    }
+
+    impl Highlighter for JsCompleter {}
+
+    impl Validator for JsCompleter {
+        fn validate(&self, _ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
+            Ok(ValidationResult::Valid(None))
+        }
+    }
+
+    impl Helper for JsCompleter {}
+
+    let mut rl = Editor::<JsCompleter, DefaultHistory>::with_config(
+        rustyline::Config::builder()
+            .completion_type(rustyline::CompletionType::List)
+            .build()
+    ).unwrap();
+    rl.set_helper(Some(JsCompleter));
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
 
     let history_path = home_dir().map(|mut p| {
@@ -80,7 +157,12 @@ fn repl(mut jstime: jstime::JSTime) {
 
         // Start readline in a separate thread
         thread::spawn(move || {
-            let mut rl_temp = Editor::<(), DefaultHistory>::new().unwrap();
+            let mut rl_temp = Editor::<JsCompleter, DefaultHistory>::with_config(
+                rustyline::Config::builder()
+                    .completion_type(rustyline::CompletionType::List)
+                    .build()
+            ).unwrap();
+            rl_temp.set_helper(Some(JsCompleter));
 
             // Load recent history into the temp editor
             if let Ok(entries) = history_clone.lock() {
