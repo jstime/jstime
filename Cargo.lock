@@ -620,7 +620,7 @@ checksum = "c1283705eb0a21404d2bfd6eef2a7593d240bc42a0bdb39db0ad6fa2ec026524"
 
 [[package]]
 name = "jstime"
-version = "0.56.0"
+version = "0.57.0"
 dependencies = [
  "assert_cmd",
  "dirs",
@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "jstime_core"
-version = "0.56.0"
+version = "0.57.0"
 dependencies = [
  "lazy_static",
  "rustc-hash",
