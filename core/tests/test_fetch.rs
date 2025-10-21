@@ -113,15 +113,17 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         // Queue the promise
-        jstime.run_script(
-            "globalThis.result = null; \
+        jstime
+            .run_script(
+                "globalThis.result = null; \
              const resp = new Response('hello world'); \
              resp.text().then(t => { globalThis.result = t; });",
-            "jstime",
-        ).unwrap();
-        
+                "jstime",
+            )
+            .unwrap();
+
         // Check the result after event loop completes
         let result = jstime.run_script("globalThis.result;", "jstime");
         assert_eq!(result.unwrap(), "hello world");
@@ -132,15 +134,17 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         // Queue the promise
-        jstime.run_script(
-            r#"globalThis.result = null; 
+        jstime
+            .run_script(
+                r#"globalThis.result = null; 
              const resp = new Response('{"foo":"bar"}'); 
              resp.json().then(j => { globalThis.result = j.foo; });"#,
-            "jstime",
-        ).unwrap();
-        
+                "jstime",
+            )
+            .unwrap();
+
         // Check the result after event loop completes
         let result = jstime.run_script("globalThis.result;", "jstime");
         assert_eq!(result.unwrap(), "bar");
@@ -200,5 +204,4 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "false");
     }
-
 }

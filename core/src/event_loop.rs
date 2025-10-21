@@ -170,7 +170,7 @@ impl EventLoop {
 
     /// Process pending fetch requests
     fn process_fetches(&mut self, scope: &mut v8::PinScope) {
-        let fetches: Vec<crate::isolate_state::FetchRequest> = 
+        let fetches: Vec<crate::isolate_state::FetchRequest> =
             self.pending_fetches.borrow_mut().drain(..).collect();
 
         for fetch_request in fetches {
@@ -184,27 +184,28 @@ impl EventLoop {
 
             // Resolve the promise with the result
             let resolver = v8::Local::new(scope, &fetch_request.resolver);
-            
+
             match result {
                 Ok(response_data) => {
                     // Create response object
                     let obj = v8::Object::new(scope);
-                    
+
                     // Set body
                     let body_key = v8::String::new(scope, "body").unwrap();
                     let body_value = v8::String::new(scope, &response_data.body).unwrap();
                     obj.set(scope, body_key.into(), body_value.into());
-                    
+
                     // Set status
                     let status_key = v8::String::new(scope, "status").unwrap();
                     let status_value = v8::Integer::new(scope, response_data.status as i32);
                     obj.set(scope, status_key.into(), status_value.into());
-                    
+
                     // Set statusText
                     let status_text_key = v8::String::new(scope, "statusText").unwrap();
-                    let status_text_value = v8::String::new(scope, &response_data.status_text).unwrap();
+                    let status_text_value =
+                        v8::String::new(scope, &response_data.status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
-                    
+
                     // Set headers
                     let headers_key = v8::String::new(scope, "headers").unwrap();
                     let headers_array = v8::Array::new(scope, response_data.headers.len() as i32);
@@ -217,7 +218,7 @@ impl EventLoop {
                         headers_array.set_index(scope, i as u32, entry.into());
                     }
                     obj.set(scope, headers_key.into(), headers_array.into());
-                    
+
                     let _ = resolver.resolve(scope, obj.into());
                 }
                 Err(err) => {
@@ -262,7 +263,7 @@ impl EventLoop {
             Ok(resp) => {
                 let status = resp.status();
                 let status_text = resp.status_text().to_string();
-                
+
                 // Get headers before consuming body
                 let mut response_headers = Vec::new();
                 for header_name in resp.headers_names() {
@@ -270,10 +271,10 @@ impl EventLoop {
                         response_headers.push((header_name.clone(), header_value.to_string()));
                     }
                 }
-                
+
                 // Read body
                 let body = resp.into_string().unwrap_or_default();
-                
+
                 Ok(FetchResponse {
                     body,
                     status,
@@ -284,7 +285,7 @@ impl EventLoop {
             Err(ureq::Error::Status(status, resp)) => {
                 // Handle error responses (4xx, 5xx)
                 let status_text = resp.status_text().to_string();
-                
+
                 // Get headers before consuming body
                 let mut response_headers = Vec::new();
                 for header_name in resp.headers_names() {
@@ -292,9 +293,9 @@ impl EventLoop {
                         response_headers.push((header_name.clone(), header_value.to_string()));
                     }
                 }
-                
+
                 let body = resp.into_string().unwrap_or_default();
-                
+
                 Ok(FetchResponse {
                     body,
                     status,
@@ -305,7 +306,6 @@ impl EventLoop {
             Err(err) => Err(format!("Network error: {}", err)),
         }
     }
-
 
     /// Run the event loop until there are no more pending operations
     pub(crate) fn run(&mut self, scope: &mut v8::PinScope) {
