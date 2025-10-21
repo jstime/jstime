@@ -57,6 +57,23 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 - **ES Modules**: Full support for `import`/`export` with top-level await
 - **Modern JavaScript**: All ES2015+ features via V8 engine
 
+## Testing
+
+jstime includes comprehensive test coverage including conformance tests for standard APIs:
+
+- **Console API** - WHATWG Console Standard compliance
+- **Fetch API** - WHATWG Fetch Standard compliance  
+- **Performance API** - W3C High Resolution Time compliance
+- **URL API** - WHATWG URL Standard compliance
+- **Timers API** - WHATWG HTML Standard timers compliance
+
+Run all tests with:
+```bash
+cargo test
+```
+
+For more details on conformance testing, see [core/tests/CONFORMANCE_TESTS.md](./core/tests/CONFORMANCE_TESTS.md).
+
 ## Current Project Team Members
 
 For information about the governance of the jstime project, see
