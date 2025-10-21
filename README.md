@@ -44,6 +44,19 @@ instructions on how to embed jstime in your rust application!
 
 jstime provides a minimal and performant JavaScript runtime with essential APIs.
 
+For detailed documentation on all supported features, see [FEATURES.md](./docs/FEATURES.md).
+
+### Quick Overview
+
+- **Console API**: `console.log()`, `console.error()`, etc.
+- **Timers**: `setTimeout()`, `setInterval()`, and clearing functions
+- **Fetch API**: Modern HTTP client with `fetch()`, `Headers`, `Request`, `Response`
+- **URL API**: `URL` and `URLSearchParams` for URL manipulation
+- **Performance API**: High-resolution timing with `performance.now()`
+- **Microtask API**: `queueMicrotask()` for fine-grained async control
+- **ES Modules**: Full support for `import`/`export` with top-level await
+- **Modern JavaScript**: All ES2015+ features via V8 engine
+
 ## Testing
 
 jstime includes comprehensive test coverage including conformance tests for standard APIs:
@@ -63,7 +76,7 @@ For more details on conformance testing, see [core/tests/CONFORMANCE_TESTS.md](.
 
 ## Current Project Team Members
 
-for information about the governance of the jstime project, see
+For information about the governance of the jstime project, see
 [GOVERNANCE.md](./GOVERNANCE.md).
 
 ### Chair
@@ -81,6 +94,3 @@ for information about the governance of the jstime project, see
 * [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
 * [solumos](https://github.com/solumos) - **Tom Hadley**
 
-## TODO
-
-* Some sort of system interface, maybe [WASI](https://wasi.dev/)
