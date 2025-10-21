@@ -1,0 +1,9 @@
+{
+  "name": "jstime",
+  "version": "1.0.0",
+  "features": ["modules", "timers", "fetch"],
+  "nested": {
+    "key": "value",
+    "number": 42
+  }
+}
