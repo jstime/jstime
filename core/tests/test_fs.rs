@@ -104,4 +104,95 @@ mod tests {
         let result = jstime.run_script("globalThis.testNamedImports", "test");
         assert_eq!(result.unwrap(), "true");
     }
+
+    #[test]
+    fn test_writefile() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-writefile.js");
+        let result = jstime.run_script("globalThis.testWriteFile", "test");
+        assert_eq!(result.unwrap(), "true");
+
+        // Cleanup
+        std::fs::remove_file("./tests/fixtures/fs/test-writefile-output.txt").ok();
+    }
+
+    #[test]
+    fn test_mkdir() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-mkdir.js");
+        let result = jstime.run_script("globalThis.testMkdir", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_unlink() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-unlink.js");
+        let result = jstime.run_script("globalThis.testUnlink", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_rename() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-rename.js");
+        let result = jstime.run_script("globalThis.testRename", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_copyfile() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-copyfile.js");
+        let result = jstime.run_script("globalThis.testCopyFile", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_stat() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-stat.js");
+        let result = jstime.run_script("globalThis.testStat", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_access() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-access.js");
+        let result = jstime.run_script("globalThis.testAccess", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_constants() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-constants.js");
+        let result = jstime.run_script("globalThis.testConstants", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
 }

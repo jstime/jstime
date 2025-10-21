@@ -713,17 +713,26 @@ console.log(clonedCircular.self === clonedCircular); // true
 
 ## File System API
 
-jstime provides a minimal Node.js-compatible file system API through the `node:fs/promises` module. This provides promise-based access to essential file operations.
+jstime provides a comprehensive Node.js-compatible file system API through the `node:fs/promises` module. This provides promise-based access to essential file operations.
 
 ### Supported APIs
 
 - `readFile(path, options?)` - Read the entire contents of a file
+- `writeFile(path, data, options?)` - Write data to a file
 - `readdir(path, options?)` - Read the contents of a directory
+- `mkdir(path, options?)` - Create a directory
+- `rmdir(path, options?)` - Remove a directory
+- `unlink(path)` - Delete a file
+- `rename(oldPath, newPath)` - Rename a file or directory
+- `copyFile(src, dest, mode?)` - Copy a file
+- `stat(path, options?)` - Get file statistics
+- `access(path, mode?)` - Test file accessibility
+- `constants` - File system constants (F_OK, R_OK, W_OK, X_OK)
 
 ### Usage
 
 ```javascript
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 // or
 import * as fs from 'node:fs/promises';
 ```
@@ -755,7 +764,34 @@ console.log(buffer instanceof Uint8Array); // true
 console.log(buffer.length); // file size in bytes
 ```
 
-### Listing Directories
+### Writing Files
+
+```javascript
+import { writeFile } from 'node:fs/promises';
+
+// Write text
+await writeFile('./output.txt', 'Hello, World!', 'utf-8');
+
+// Write buffer
+const buffer = new Uint8Array([72, 101, 108, 108, 111]);
+await writeFile('./output.bin', buffer);
+```
+
+### Directory Operations
+
+#### Creating directories
+
+```javascript
+import { mkdir } from 'node:fs/promises';
+
+// Create single directory
+await mkdir('./new-dir');
+
+// Create nested directories (recursive)
+await mkdir('./path/to/nested/dir', { recursive: true });
+```
+
+#### Listing directories
 
 ```javascript
 import { readdir } from 'node:fs/promises';
@@ -770,12 +806,85 @@ for (const file of files) {
 }
 ```
 
+#### Removing directories
+
+```javascript
+import { rmdir } from 'node:fs/promises';
+
+// Remove empty directory
+await rmdir('./empty-dir');
+
+// Remove directory and all contents (recursive)
+await rmdir('./dir-with-files', { recursive: true });
+```
+
+### File Operations
+
+#### Deleting files
+
+```javascript
+import { unlink } from 'node:fs/promises';
+
+await unlink('./unwanted-file.txt');
+```
+
+#### Renaming files
+
+```javascript
+import { rename } from 'node:fs/promises';
+
+await rename('./old-name.txt', './new-name.txt');
+```
+
+#### Copying files
+
+```javascript
+import { copyFile } from 'node:fs/promises';
+
+await copyFile('./source.txt', './destination.txt');
+```
+
+### File Information
+
+#### Getting file statistics
+
+```javascript
+import { stat } from 'node:fs/promises';
+
+const stats = await stat('./file.txt');
+console.log('Size:', stats.size);
+console.log('Is file:', stats.isFile);
+console.log('Is directory:', stats.isDirectory);
+console.log('Is symlink:', stats.isSymbolicLink);
+console.log('Modified time (ms):', stats.mtimeMs);
+```
+
+#### Testing file accessibility
+
+```javascript
+import { access, constants } from 'node:fs/promises';
+
+// Check if file exists
+try {
+  await access('./file.txt', constants.F_OK);
+  console.log('File exists');
+} catch (e) {
+  console.log('File does not exist');
+}
+
+// Constants available
+console.log(constants.F_OK); // 0 - File exists
+console.log(constants.R_OK); // 4 - File is readable
+console.log(constants.W_OK); // 2 - File is writable
+console.log(constants.X_OK); // 1 - File is executable
+```
+
 ### Error Handling
 
 All file system operations can throw errors if the file or directory doesn't exist, or if there are permission issues:
 
 ```javascript
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 
 try {
   const data = await readFile('./nonexistent.txt', 'utf-8');
@@ -784,9 +893,9 @@ try {
 }
 
 try {
-  const files = await readdir('./nonexistent-dir');
+  await writeFile('/root/protected.txt', 'data');
 } catch (error) {
-  console.error('Failed to read directory:', error.message);
+  console.error('Permission denied:', error.message);
 }
 ```
 
@@ -806,6 +915,19 @@ Reads the entire contents of a file.
 
 **Supported encodings:** 'utf-8', 'utf8'
 
+#### `writeFile(path, data, options?)`
+
+Writes data to a file, replacing the file if it already exists.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `data` (string | Uint8Array): Data to write
+- `options` (object | string, optional):
+  - `encoding` (string): Character encoding. Defaults to 'utf8' for strings
+  - `flag` (string): File system flag. Defaults to 'w'
+
+**Returns:** Promise<void>
+
 #### `readdir(path, options?)`
 
 Reads the contents of a directory.
@@ -817,6 +939,140 @@ Reads the contents of a directory.
   - `withFileTypes` (boolean): Not yet supported. Defaults to false
 
 **Returns:** Promise<string[]>
+
+Returns an array of filenames in the directory (excluding '.' and '..').
+
+#### `mkdir(path, options?)`
+
+Creates a directory.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to create
+- `options` (object, optional):
+  - `recursive` (boolean): Create parent directories if needed. Defaults to false
+
+**Returns:** Promise<void>
+
+#### `rmdir(path, options?)`
+
+Removes a directory.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to remove
+- `options` (object, optional):
+  - `recursive` (boolean): Remove directory and all contents. Defaults to false
+
+**Returns:** Promise<void>
+
+#### `unlink(path)`
+
+Deletes a file.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+
+**Returns:** Promise<void>
+
+#### `rename(oldPath, newPath)`
+
+Renames a file or directory.
+
+**Parameters:**
+- `oldPath` (string | Buffer | URL): The old path
+- `newPath` (string | Buffer | URL): The new path
+
+**Returns:** Promise<void>
+
+#### `copyFile(src, dest, mode?)`
+
+Copies a file.
+
+**Parameters:**
+- `src` (string | Buffer | URL): Source path
+- `dest` (string | Buffer | URL): Destination path
+- `mode` (number, optional): Copy mode flags
+
+**Returns:** Promise<void>
+
+#### `stat(path, options?)`
+
+Gets file statistics.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to stat
+- `options` (object, optional): Options
+
+**Returns:** Promise<Stats>
+
+Returns a Stats object with properties:
+- `isFile` (boolean): True if the path is a file
+- `isDirectory` (boolean): True if the path is a directory
+- `isSymbolicLink` (boolean): True if the path is a symbolic link
+- `size` (number): File size in bytes
+- `mtimeMs` (number): Last modified time in milliseconds since Unix epoch
+
+#### `access(path, mode?)`
+
+Tests file accessibility.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to test
+- `mode` (number, optional): Accessibility mode to check
+
+**Returns:** Promise<void>
+
+Throws an error if the file is not accessible.
+
+#### `constants`
+
+File system constants for use with `access()`:
+
+- `F_OK` (0): File exists
+- `R_OK` (4): File is readable  
+- `W_OK` (2): File is writable
+- `X_OK` (1): File is executable
+
+### Example: Complete File Processing
+
+```javascript
+import { 
+  readFile, 
+  writeFile, 
+  readdir, 
+  mkdir, 
+  stat, 
+  copyFile 
+} from 'node:fs/promises';
+
+// Create output directory
+await mkdir('./output', { recursive: true });
+
+// Read all JavaScript files in a directory
+const files = await readdir('./src');
+const jsFiles = files.filter(f => f.endsWith('.js'));
+
+console.log(`Found ${jsFiles.length} JavaScript files`);
+
+// Process each file
+for (const file of jsFiles) {
+  const inputPath = `./src/${file}`;
+  const outputPath = `./output/${file}`;
+  
+  // Get file stats
+  const stats = await stat(inputPath);
+  console.log(`${file}: ${stats.size} bytes`);
+  
+  // Read and transform content
+  const content = await readFile(inputPath, 'utf-8');
+  const transformed = content.toUpperCase();
+  
+  // Write to output
+  await writeFile(outputPath, transformed, 'utf-8');
+  console.log(`Processed ${file}`);
+}
+
+console.log('Processing complete!');
+```
 
 Returns an array of filenames in the directory (excluding '.' and '..').
 
