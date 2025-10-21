@@ -15,15 +15,10 @@ impl ModuleMap {
         }
     }
 
-    fn insert(
-        &mut self,
-        scope: &mut v8::HandleScope,
-        filepath: &str,
-        module: v8::Local<v8::Module>,
-    ) {
+    fn insert(&mut self, isolate: &v8::Isolate, filepath: &str, module: v8::Local<v8::Module>) {
         self.hash_to_absolute_path
             .insert(module.get_identity_hash(), filepath.to_owned());
-        let module = v8::Global::new(scope, module);
+        let module = v8::Global::new(isolate, module);
         self.absolute_path_to_module
             .insert(filepath.to_owned(), module);
     }
@@ -38,34 +33,40 @@ impl Loader {
 
     pub(crate) fn import<'a>(
         &self,
-        scope: &mut v8::HandleScope<'a>,
+        scope: &mut v8::PinScope<'a, '_>,
         referrer: &str,
         specifier: &str,
     ) -> Result<v8::Local<'a, v8::Value>, v8::Local<'a, v8::Value>> {
-        let scope = &mut v8::TryCatch::new(scope);
-        match resolve(scope, referrer, specifier) {
+        v8::tc_scope!(let tc, scope);
+        match resolve(tc, referrer, specifier) {
             Some(m) => {
-                m.instantiate_module(scope, module_resolve_callback)
-                    .unwrap();
-                let res = m.evaluate(scope).unwrap();
+                m.instantiate_module(tc, module_resolve_callback).unwrap();
+                let res = m.evaluate(tc).unwrap();
                 let promise = unsafe { v8::Local::<v8::Promise>::cast_unchecked(res) };
                 match promise.state() {
                     v8::PromiseState::Pending => panic!(),
-                    v8::PromiseState::Fulfilled => Ok(promise.result(scope)),
-                    v8::PromiseState::Rejected => Err(promise.result(scope)),
+                    v8::PromiseState::Fulfilled => Ok(promise.result(tc)),
+                    v8::PromiseState::Rejected => Err(promise.result(tc)),
                 }
             }
-            None => Err(scope.stack_trace().unwrap()),
+            None => {
+                if tc.has_caught() {
+                    Err(tc.exception().unwrap())
+                } else {
+                    panic!("Module import failed without exception")
+                }
+            }
         }
     }
 }
 
 fn resolve<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     referrer: &str,
     specifier: &str,
 ) -> Option<v8::Local<'a, v8::Module>> {
-    let state = IsolateState::get(scope);
+    let isolate: &mut v8::Isolate = scope;
+    let state = IsolateState::get(isolate);
 
     let requested_abs_path = normalize_path(referrer, specifier);
     if let Some(module) = state
@@ -86,11 +87,12 @@ fn resolve<'a>(
 
     let module = v8::script_compiler::compile_module(scope, &mut source);
     if let Some(module) = module {
-        let state = IsolateState::get(scope);
+        let isolate: &mut v8::Isolate = scope;
+        let state = IsolateState::get(isolate);
         state
             .borrow_mut()
             .module_map
-            .insert(scope, &requested_abs_path, module);
+            .insert(isolate, &requested_abs_path, module);
     }
     module
 }
@@ -111,11 +113,12 @@ fn module_resolve_callback<'a>(
     _import_assertions: v8::Local<'a, v8::FixedArray>,
     referrer: v8::Local<'a, v8::Module>,
 ) -> Option<v8::Local<'a, v8::Module>> {
-    let scope = unsafe { &mut v8::CallbackScope::new(context) };
+    v8::callback_scope!(unsafe let scope, context);
 
     let hash = referrer.get_identity_hash();
 
-    let state = IsolateState::get(scope);
+    let isolate: &mut v8::Isolate = scope;
+    let state = IsolateState::get(isolate);
     let referrer_path = state
         .borrow()
         .module_map
@@ -124,6 +127,7 @@ fn module_resolve_callback<'a>(
         .unwrap()
         .to_owned();
 
-    let requested_rel_path = specifier.to_rust_string_lossy(scope);
+    let isolate: &v8::Isolate = scope;
+    let requested_rel_path = specifier.to_rust_string_lossy(isolate);
     resolve(scope, &referrer_path, &requested_rel_path)
 }

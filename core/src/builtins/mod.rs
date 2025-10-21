@@ -96,7 +96,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
 pub(crate) struct Builtins {}
 
 impl Builtins {
-    pub(crate) fn create(scope: &mut v8::HandleScope) {
+    pub(crate) fn create(scope: &mut v8::PinScope) {
         let bindings = v8::Object::new(scope);
 
         macro_rules! binding {
@@ -159,7 +159,7 @@ impl Builtins {
     }
 }
 
-fn printer(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
+fn printer(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
     let arg_len = args.length();
     assert!((0..=2).contains(&arg_len));
 
@@ -173,20 +173,20 @@ fn printer(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv
             .expect("Unable to convert to integer");
         is_err = int_val != 0;
     };
-    let tc_scope = &mut v8::TryCatch::new(scope);
-    let str_ = match obj.to_string(tc_scope) {
+    v8::tc_scope!(let tc, scope);
+    let str_ = match obj.to_string(tc) {
         Some(s) => s,
-        None => v8::String::new(tc_scope, "").unwrap(),
+        None => v8::String::new(tc, "").unwrap(),
     };
     if is_err {
-        eprintln!("{}", str_.to_rust_string_lossy(tc_scope));
+        eprintln!("{}", str_.to_rust_string_lossy(tc));
     } else {
-        println!("{}", str_.to_rust_string_lossy(tc_scope));
+        println!("{}", str_.to_rust_string_lossy(tc));
     }
 }
 
 fn queue_microtask(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -198,18 +198,18 @@ fn queue_microtask(
 use url::Url;
 
 // Helper to convert v8 string to Rust string
-fn to_rust_string(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> String {
+fn to_rust_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     value.to_string(scope).unwrap().to_rust_string_lossy(scope)
 }
 
 // Helper to create v8 string from Rust string
-fn to_v8_string<'a>(scope: &mut v8::HandleScope<'a>, s: &str) -> v8::Local<'a, v8::String> {
+fn to_v8_string<'a>(scope: &mut v8::PinScope<'a, '_>, s: &str) -> v8::Local<'a, v8::String> {
     v8::String::new(scope, s).unwrap()
 }
 
 // URL parsing function
 fn url_parse(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -241,7 +241,7 @@ fn url_parse(
 }
 
 fn url_get_href(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -253,7 +253,7 @@ fn url_get_href(
 }
 
 fn url_get_origin(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -266,7 +266,7 @@ fn url_get_origin(
 }
 
 fn url_get_protocol(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -279,7 +279,7 @@ fn url_get_protocol(
 }
 
 fn url_get_username(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -291,7 +291,7 @@ fn url_get_username(
 }
 
 fn url_get_password(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -304,7 +304,7 @@ fn url_get_password(
 }
 
 fn url_get_host(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -322,7 +322,7 @@ fn url_get_host(
 }
 
 fn url_get_hostname(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -335,7 +335,7 @@ fn url_get_hostname(
 }
 
 fn url_get_port(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -348,7 +348,7 @@ fn url_get_port(
 }
 
 fn url_get_pathname(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -360,7 +360,7 @@ fn url_get_pathname(
 }
 
 fn url_get_search(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -373,7 +373,7 @@ fn url_get_search(
 }
 
 fn url_get_hash(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -389,7 +389,7 @@ fn url_get_hash(
 }
 
 fn url_set_href(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -406,7 +406,7 @@ fn url_set_href(
 }
 
 fn url_set_protocol(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -422,7 +422,7 @@ fn url_set_protocol(
 }
 
 fn url_set_username(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -437,7 +437,7 @@ fn url_set_username(
 }
 
 fn url_set_password(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -452,7 +452,7 @@ fn url_set_password(
 }
 
 fn url_set_host(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -478,7 +478,7 @@ fn url_set_host(
 }
 
 fn url_set_hostname(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -493,7 +493,7 @@ fn url_set_hostname(
 }
 
 fn url_set_port(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -512,7 +512,7 @@ fn url_set_port(
 }
 
 fn url_set_pathname(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -527,7 +527,7 @@ fn url_set_pathname(
 }
 
 fn url_set_search(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -547,7 +547,7 @@ fn url_set_search(
 }
 
 fn url_set_hash(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -567,7 +567,7 @@ fn url_set_hash(
 }
 
 fn url_to_json(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -581,7 +581,7 @@ fn url_to_json(
 // URLSearchParams implementation
 
 fn url_search_params_new(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -624,7 +624,7 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
 }
 
 fn url_search_params_to_string(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -655,7 +655,7 @@ fn url_search_params_to_string(
 }
 
 fn set_timeout(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -696,7 +696,7 @@ fn set_timeout(
 }
 
 fn set_interval(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -738,7 +738,7 @@ fn set_interval(
 }
 
 fn clear_timer(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
