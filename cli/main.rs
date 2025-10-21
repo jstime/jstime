@@ -77,7 +77,95 @@ fn repl(mut jstime: jstime::JSTime) {
             pos: usize,
             _ctx: &Context<'_>,
         ) -> rustyline::Result<(usize, Vec<Pair>)> {
-            // Get the word being completed
+            // Check if we're completing a property (after a dot)
+            if let Some(dot_pos) = line[..pos].rfind('.') {
+                // Get the object name before the dot
+                let before_dot = &line[..dot_pos];
+                let obj_start = before_dot
+                    .rfind(|c: char| !c.is_alphanumeric() && c != '_')
+                    .map(|i| i + 1)
+                    .unwrap_or(0);
+                let obj_name = &before_dot[obj_start..];
+                
+                // Get the property prefix after the dot
+                let property_start = dot_pos + 1;
+                let property_prefix = &line[property_start..pos];
+                
+                // Property completions for known objects
+                let properties = match obj_name {
+                    "console" => vec![
+                        "log", "error", "warn", "info", "debug", "trace",
+                        "assert", "clear", "count", "countReset", "dir", "dirxml",
+                        "group", "groupCollapsed", "groupEnd", "table", "time",
+                        "timeEnd", "timeLog", "timeStamp",
+                    ],
+                    "Math" => vec![
+                        "abs", "acos", "acosh", "asin", "asinh", "atan", "atan2", "atanh",
+                        "cbrt", "ceil", "clz32", "cos", "cosh", "exp", "expm1", "floor",
+                        "fround", "hypot", "imul", "log", "log10", "log1p", "log2", "max",
+                        "min", "pow", "random", "round", "sign", "sin", "sinh", "sqrt",
+                        "tan", "tanh", "trunc", "E", "LN10", "LN2", "LOG10E", "LOG2E",
+                        "PI", "SQRT1_2", "SQRT2",
+                    ],
+                    "Array" => vec![
+                        "from", "isArray", "of", "prototype",
+                    ],
+                    "Object" => vec![
+                        "assign", "create", "defineProperty", "defineProperties",
+                        "entries", "freeze", "fromEntries", "getOwnPropertyDescriptor",
+                        "getOwnPropertyDescriptors", "getOwnPropertyNames",
+                        "getOwnPropertySymbols", "getPrototypeOf", "is", "isExtensible",
+                        "isFrozen", "isSealed", "keys", "preventExtensions", "prototype",
+                        "seal", "setPrototypeOf", "values",
+                    ],
+                    "String" => vec![
+                        "fromCharCode", "fromCodePoint", "raw", "prototype",
+                    ],
+                    "Number" => vec![
+                        "isFinite", "isInteger", "isNaN", "isSafeInteger", "parseFloat",
+                        "parseInt", "EPSILON", "MAX_SAFE_INTEGER", "MAX_VALUE",
+                        "MIN_SAFE_INTEGER", "MIN_VALUE", "NEGATIVE_INFINITY",
+                        "POSITIVE_INFINITY", "NaN", "prototype",
+                    ],
+                    "Promise" => vec![
+                        "all", "allSettled", "any", "race", "reject", "resolve", "prototype",
+                    ],
+                    "JSON" => vec![
+                        "parse", "stringify",
+                    ],
+                    "Date" => vec![
+                        "now", "parse", "UTC", "prototype",
+                    ],
+                    "RegExp" => vec![
+                        "prototype",
+                    ],
+                    "Error" => vec![
+                        "prototype",
+                    ],
+                    "URL" => vec![
+                        "createObjectURL", "revokeObjectURL", "prototype",
+                    ],
+                    "URLSearchParams" => vec![
+                        "prototype",
+                    ],
+                    _ => vec![],
+                };
+                
+                let mut completions: Vec<Pair> = properties
+                    .iter()
+                    .filter(|p| p.starts_with(property_prefix))
+                    .map(|p| Pair {
+                        display: p.to_string(),
+                        replacement: p.to_string(),
+                    })
+                    .collect();
+                
+                completions.sort_by(|a, b| a.display.cmp(&b.display));
+                
+                return Ok((property_start, completions));
+            }
+            
+            // Regular keyword completion (no dot)
             let start = line[..pos]
                 .rfind(|c: char| !c.is_alphanumeric() && c != '_' && c != '.')
                 .map(|i| i + 1)
@@ -89,7 +177,7 @@ fn repl(mut jstime: jstime::JSTime) {
             let keywords = vec![
                 // JavaScript built-in objects
                 "Array", "Boolean", "Date", "Error", "Function", "Math", "Number",
-                "Object", "Promise", "RegExp", "String", "Symbol",
+                "Object", "Promise", "RegExp", "String", "Symbol", "JSON",
                 // Common globals
                 "console", "undefined", "null", "true", "false", "Infinity", "NaN",
                 "isNaN", "isFinite", "parseInt", "parseFloat", "encodeURI", "decodeURI",
