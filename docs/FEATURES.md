@@ -6,6 +6,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 
 - [JavaScript Language Support](#javascript-language-support)
 - [Console API](#console-api)
+- [Event and EventTarget](#event-and-eventtarget)
 - [Timers](#timers)
 - [Fetch API](#fetch-api)
 - [URL API](#url-api)
@@ -94,6 +95,210 @@ console.log('Name:', 'Alice', 'Age:', 30);
 console.log('Hello %s', 'World');
 console.log('Integer: %d', 42);
 console.log('Float: %f', 3.14159);
+```
+
+## Event and EventTarget
+
+jstime implements the [DOM Standard Event and EventTarget interfaces](https://dom.spec.whatwg.org/#events), providing a standard way to handle events in JavaScript.
+
+### Supported APIs
+
+- `Event` - Represents an event that occurs
+- `EventTarget` - Base class for objects that can receive events and have listeners for them
+
+### Event Class
+
+The `Event` class represents an event that takes place in the DOM or any other event-driven context.
+
+#### Constructor
+
+```javascript
+new Event(type, eventInitDict)
+```
+
+- `type` (string) - The type of event (e.g., 'click', 'load', 'custom')
+- `eventInitDict` (optional object) - Configuration object with:
+  - `bubbles` (boolean, default: false) - Whether the event bubbles
+  - `cancelable` (boolean, default: false) - Whether the event can be cancelled
+  - `composed` (boolean, default: false) - Whether the event will trigger listeners outside of a shadow root
+
+#### Properties
+
+- `type` (read-only) - The type of the event
+- `target` (read-only) - The object to which the event was originally dispatched
+- `currentTarget` (read-only) - The object whose event listener is currently being processed
+- `eventPhase` (read-only) - The current phase of event flow (0: NONE, 1: CAPTURING_PHASE, 2: AT_TARGET, 3: BUBBLING_PHASE)
+- `bubbles` (read-only) - Whether the event bubbles
+- `cancelable` (read-only) - Whether the event can be cancelled
+- `defaultPrevented` (read-only) - Whether preventDefault() was called
+- `composed` (read-only) - Whether the event will trigger listeners outside of a shadow root
+- `isTrusted` (read-only) - Whether the event was initiated by the browser (always false for user-created events)
+- `timeStamp` (read-only) - The time when the event was created (in milliseconds)
+
+#### Methods
+
+- `preventDefault()` - Cancels the event if it is cancelable, preventing the default action
+- `stopPropagation()` - Prevents further propagation of the event
+- `stopImmediatePropagation()` - Prevents other listeners of the same event from being called
+
+#### Constants
+
+- `Event.NONE` (0)
+- `Event.CAPTURING_PHASE` (1)
+- `Event.AT_TARGET` (2)
+- `Event.BUBBLING_PHASE` (3)
+
+### EventTarget Class
+
+The `EventTarget` class is an interface implemented by objects that can receive events and have listeners for them.
+
+#### Constructor
+
+```javascript
+new EventTarget()
+```
+
+#### Methods
+
+- `addEventListener(type, listener, options)` - Registers an event listener
+  - `type` (string) - The event type to listen for
+  - `listener` (function or object) - The callback function or object with a `handleEvent` method
+  - `options` (optional) - Options object (currently ignored but accepted for compatibility)
+
+- `removeEventListener(type, listener, options)` - Removes an event listener
+  - `type` (string) - The event type
+  - `listener` (function or object) - The listener to remove
+  - `options` (optional) - Options object (currently ignored but accepted for compatibility)
+
+- `dispatchEvent(event)` - Dispatches an event to this EventTarget
+  - `event` (Event) - The event to dispatch
+  - Returns `true` if the event was not cancelled, `false` otherwise
+
+### Examples
+
+#### Basic Event Usage
+
+```javascript
+// Create an event target
+const button = new EventTarget();
+
+// Create an event
+const clickEvent = new Event('click');
+
+// Add an event listener
+button.addEventListener('click', (e) => {
+  console.log('Button was clicked!');
+  console.log('Event type:', e.type);
+});
+
+// Dispatch the event
+button.dispatchEvent(clickEvent);
+```
+
+#### Event with Options
+
+```javascript
+const target = new EventTarget();
+
+// Create a cancelable event
+const event = new Event('submit', {
+  bubbles: true,
+  cancelable: true
+});
+
+target.addEventListener('submit', (e) => {
+  console.log('Preventing default action');
+  e.preventDefault();
+});
+
+const notCancelled = target.dispatchEvent(event);
+console.log('Event was cancelled:', !notCancelled);
+```
+
+#### Multiple Listeners
+
+```javascript
+const target = new EventTarget();
+
+target.addEventListener('custom', () => {
+  console.log('Handler 1');
+});
+
+target.addEventListener('custom', () => {
+  console.log('Handler 2');
+});
+
+target.addEventListener('custom', () => {
+  console.log('Handler 3');
+});
+
+// All three handlers will be called in order
+target.dispatchEvent(new Event('custom'));
+```
+
+#### Stopping Propagation
+
+```javascript
+const target = new EventTarget();
+
+target.addEventListener('test', (e) => {
+  console.log('Handler 1');
+  e.stopImmediatePropagation();
+});
+
+target.addEventListener('test', () => {
+  console.log('Handler 2'); // This won't be called
+});
+
+target.dispatchEvent(new Event('test'));
+```
+
+#### Removing Event Listeners
+
+```javascript
+const target = new EventTarget();
+
+const handler = () => {
+  console.log('Event fired');
+};
+
+target.addEventListener('custom', handler);
+target.dispatchEvent(new Event('custom')); // Logs: "Event fired"
+
+target.removeEventListener('custom', handler);
+target.dispatchEvent(new Event('custom')); // No output
+```
+
+#### Event Target and Current Target
+
+```javascript
+const target = new EventTarget();
+
+target.addEventListener('test', (e) => {
+  console.log('target === currentTarget:', e.target === e.currentTarget); // true
+  console.log('Event dispatched on:', e.target);
+});
+
+target.dispatchEvent(new Event('test'));
+```
+
+#### Custom Event Types
+
+```javascript
+const emitter = new EventTarget();
+
+// Listen for custom events
+emitter.addEventListener('data-received', (e) => {
+  console.log('Data received event');
+});
+
+emitter.addEventListener('connection-error', (e) => {
+  console.log('Connection error event');
+});
+
+// Dispatch custom events
+emitter.dispatchEvent(new Event('data-received'));
+emitter.dispatchEvent(new Event('connection-error'));
 ```
 
 ## Timers
