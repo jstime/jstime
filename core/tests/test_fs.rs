@@ -206,4 +206,48 @@ mod tests {
         let result = jstime.run_script("globalThis.testConstants", "test");
         assert_eq!(result.unwrap(), "true");
     }
+
+    #[test]
+    fn test_rm() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-rm.js");
+        let result = jstime.run_script("globalThis.testRm", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_truncate() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-truncate.js");
+        let result = jstime.run_script("globalThis.testTruncate", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_realpath() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-realpath.js");
+        let result = jstime.run_script("globalThis.testRealpath", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_chmod() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-chmod.js");
+        let result = jstime.run_script("globalThis.testChmod", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
 }

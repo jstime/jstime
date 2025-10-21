@@ -35,6 +35,18 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
         v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(access),
         },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(rm),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(truncate),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(realpath),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(chmod),
+        },
     ]
 }
 
@@ -81,6 +93,22 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 
     let name = v8::String::new(scope, "access").unwrap();
     let value = v8::Function::new(scope, access).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "rm").unwrap();
+    let value = v8::Function::new(scope, rm).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "truncate").unwrap();
+    let value = v8::Function::new(scope, truncate).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "realpath").unwrap();
+    let value = v8::Function::new(scope, realpath).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "chmod").unwrap();
+    let value = v8::Function::new(scope, chmod).unwrap();
     bindings.set(scope, name.into(), value.into());
 }
 
@@ -606,5 +634,222 @@ fn access(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval
             let exception = v8::Exception::error(scope, msg);
             scope.throw_exception(exception);
         }
+    }
+}
+
+fn rm(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
+    let arg_len = args.length();
+    if arg_len < 1 {
+        let msg = v8::String::new(scope, "path is required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    let recursive = if arg_len >= 2 {
+        let options_arg = args.get(1);
+        if options_arg.is_object() {
+            let options = options_arg.to_object(scope).unwrap();
+            let recursive_key = v8::String::new(scope, "recursive").unwrap();
+            if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
+                recursive_val.is_true()
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    // Check if path is a file or directory
+    match fs::metadata(&path_str) {
+        Ok(metadata) => {
+            if metadata.is_file() {
+                match fs::remove_file(&path_str) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let msg = v8::String::new(scope, &format!("Failed to remove file: {}", e))
+                            .unwrap();
+                        let exception = v8::Exception::error(scope, msg);
+                        scope.throw_exception(exception);
+                    }
+                }
+            } else if metadata.is_dir() {
+                let result = if recursive {
+                    fs::remove_dir_all(&path_str)
+                } else {
+                    fs::remove_dir(&path_str)
+                };
+                match result {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let msg =
+                            v8::String::new(scope, &format!("Failed to remove directory: {}", e))
+                                .unwrap();
+                        let exception = v8::Exception::error(scope, msg);
+                        scope.throw_exception(exception);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to remove: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn truncate(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 1 {
+        let msg = v8::String::new(scope, "path is required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    let len = if arg_len >= 2 {
+        let len_arg = args.get(1);
+        if len_arg.is_number() {
+            len_arg.number_value(scope).unwrap() as u64
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
+    use std::fs::OpenOptions;
+    match OpenOptions::new().write(true).open(&path_str) {
+        Ok(file) => match file.set_len(len) {
+            Ok(_) => {}
+            Err(e) => {
+                let msg =
+                    v8::String::new(scope, &format!("Failed to truncate file: {}", e)).unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+            }
+        },
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to open file: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn realpath(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 1 {
+        let msg = v8::String::new(scope, "path is required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    match fs::canonicalize(&path_str) {
+        Ok(absolute_path) => {
+            let path_string = absolute_path.to_string_lossy();
+            let result = v8::String::new(scope, &path_string).unwrap();
+            retval.set(result.into());
+        }
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to resolve path: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn chmod(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
+    let arg_len = args.length();
+    if arg_len < 2 {
+        let msg = v8::String::new(scope, "path and mode are required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    let mode_arg = args.get(1);
+    let mode = if mode_arg.is_number() {
+        mode_arg.number_value(scope).unwrap() as u32
+    } else {
+        let msg = v8::String::new(scope, "mode must be a number").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    };
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        match fs::metadata(&path_str) {
+            Ok(metadata) => {
+                let mut permissions = metadata.permissions();
+                permissions.set_mode(mode);
+                match fs::set_permissions(&path_str, permissions) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let msg =
+                            v8::String::new(scope, &format!("Failed to change permissions: {}", e))
+                                .unwrap();
+                        let exception = v8::Exception::error(scope, msg);
+                        scope.throw_exception(exception);
+                    }
+                }
+            }
+            Err(e) => {
+                let msg =
+                    v8::String::new(scope, &format!("Failed to get metadata: {}", e)).unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+            }
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        let msg = v8::String::new(scope, "chmod is not supported on this platform").unwrap();
+        let exception = v8::Exception::error(scope, msg);
+        scope.throw_exception(exception);
     }
 }

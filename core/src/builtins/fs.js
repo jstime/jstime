@@ -4,7 +4,7 @@
 'use strict';
 
 // eslint-disable-next-line no-unused-expressions
-(({ readFile: _readFile, readDir: _readDir, writeFile: _writeFile, appendFile: _appendFile, mkdir: _mkdir, rmdir: _rmdir, unlink: _unlink, rename: _rename, copyFile: _copyFile, stat: _stat, access: _access }) => {
+(({ readFile: _readFile, readDir: _readDir, writeFile: _writeFile, appendFile: _appendFile, mkdir: _mkdir, rmdir: _rmdir, unlink: _unlink, rename: _rename, copyFile: _copyFile, stat: _stat, access: _access, rm: _rm, truncate: _truncate, realpath: _realpath, chmod: _chmod }) => {
   // Helper to convert synchronous operations to promises
   function promisify(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -158,6 +158,46 @@
     return promisify(_access, path, mode);
   }
 
+  /**
+   * Removes files and directories (modern alternative to unlink/rmdir).
+   * @param {string | Buffer | URL} path - path to remove
+   * @param {Object} options - options object
+   * @returns {Promise<void>}
+   */
+  function rm(path, options) {
+    return promisify(_rm, path, options);
+  }
+
+  /**
+   * Truncates a file to a specified length.
+   * @param {string | Buffer | URL} path - file path
+   * @param {number} len - target length (defaults to 0)
+   * @returns {Promise<void>}
+   */
+  function truncate(path, len) {
+    return promisify(_truncate, path, len);
+  }
+
+  /**
+   * Resolves path to an absolute path.
+   * @param {string | Buffer | URL} path - path to resolve
+   * @param {Object} options - options object
+   * @returns {Promise<string>}
+   */
+  function realpath(path, options) {
+    return promisify(_realpath, path, options);
+  }
+
+  /**
+   * Changes file permissions (Unix-like systems only).
+   * @param {string | Buffer | URL} path - file path
+   * @param {number} mode - file mode (permissions)
+   * @returns {Promise<void>}
+   */
+  function chmod(path, mode) {
+    return promisify(_chmod, path, mode);
+  }
+
   // Constants
   const constants = {
     F_OK: 0,  // File exists
@@ -179,6 +219,10 @@
     copyFile,
     stat,
     access,
+    rm,
+    truncate,
+    realpath,
+    chmod,
     constants,
   };
 

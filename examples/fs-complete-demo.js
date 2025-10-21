@@ -13,6 +13,10 @@ import {
   copyFile, 
   stat, 
   access,
+  rm,
+  truncate,
+  realpath,
+  chmod,
   constants 
 } from 'node:fs/promises';
 
@@ -86,8 +90,38 @@ console.log('\n12. Removing directories:');
 await rmdir('./test-demo-dir', { recursive: true });
 console.log('   ✓ Removed test-demo-dir/ and all contents');
 
-// 13. Constants
-console.log('\n13. File system constants:');
+// 13. Using rm() (modern alternative)
+console.log('\n13. Using rm() for removal:');
+await writeFile('./test-demo-rm.txt', 'test');
+await rm('./test-demo-rm.txt');
+console.log('   ✓ Removed file with rm()');
+
+// 14. Truncating files
+console.log('\n14. Truncating files:');
+await writeFile('./test-demo-truncate.txt', 'This will be truncated');
+await truncate('./test-demo-truncate.txt', 10);
+const truncated = await readFile('./test-demo-truncate.txt', 'utf-8');
+console.log('   ✓ Truncated content:', truncated);
+await rm('./test-demo-truncate.txt');
+
+// 15. Resolving absolute paths
+console.log('\n15. Resolving absolute paths:');
+const absPath = await realpath('./README.md');
+console.log('   ✓ Absolute path:', absPath);
+
+// 16. Changing permissions
+console.log('\n16. Changing file permissions:');
+await writeFile('./test-demo-chmod.txt', 'test');
+try {
+  await chmod('./test-demo-chmod.txt', 0o644);
+  console.log('   ✓ Permissions changed to 0o644');
+} catch (e) {
+  console.log('   ✓ chmod:', e.message);
+}
+await rm('./test-demo-chmod.txt');
+
+// 17. Constants
+console.log('\n17. File system constants:');
 console.log('   ✓ F_OK (exists):', constants.F_OK);
 console.log('   ✓ R_OK (readable):', constants.R_OK);
 console.log('   ✓ W_OK (writable):', constants.W_OK);

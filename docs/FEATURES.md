@@ -717,6 +717,7 @@ jstime provides a comprehensive Node.js-compatible file system API through the `
 
 ### Supported APIs
 
+**Primary (Essential):**
 - `readFile(path, options?)` - Read the entire contents of a file
 - `writeFile(path, data, options?)` - Write data to a file
 - `appendFile(path, data, options?)` - Append data to a file
@@ -730,10 +731,16 @@ jstime provides a comprehensive Node.js-compatible file system API through the `
 - `access(path, mode?)` - Test file accessibility
 - `constants` - File system constants (F_OK, R_OK, W_OK, X_OK)
 
+**Secondary (Additional):**
+- `rm(path, options?)` - Remove files and directories (modern alternative)
+- `truncate(path, len?)` - Truncate a file to a specified length
+- `realpath(path, options?)` - Resolve path to an absolute path
+- `chmod(path, mode)` - Change file permissions (Unix-like systems)
+
 ### Usage
 
 ```javascript
-import { readFile, writeFile, appendFile, mkdir, stat } from 'node:fs/promises';
+import { readFile, writeFile, appendFile, mkdir, rm, stat } from 'node:fs/promises';
 // or
 import * as fs from 'node:fs/promises';
 ```
@@ -840,9 +847,16 @@ await rmdir('./dir-with-files', { recursive: true });
 #### Deleting files
 
 ```javascript
-import { unlink } from 'node:fs/promises';
+import { unlink, rm } from 'node:fs/promises';
 
+// Delete a file with unlink
 await unlink('./unwanted-file.txt');
+
+// Or use modern rm() - works for files and directories
+await rm('./unwanted-file.txt');
+
+// Remove directory and all contents
+await rm('./directory', { recursive: true });
 ```
 
 #### Renaming files
@@ -861,6 +875,18 @@ import { copyFile } from 'node:fs/promises';
 await copyFile('./source.txt', './destination.txt');
 ```
 
+#### Truncating files
+
+```javascript
+import { truncate } from 'node:fs/promises';
+
+// Truncate file to 100 bytes
+await truncate('./file.txt', 100);
+
+// Truncate file to 0 bytes (empty the file)
+await truncate('./file.txt');
+```
+
 ### File Information
 
 #### Getting file statistics
@@ -875,6 +901,30 @@ console.log('Is directory:', stats.isDirectory);
 console.log('Is symlink:', stats.isSymbolicLink);
 console.log('Modified time (ms):', stats.mtimeMs);
 ```
+
+#### Resolving absolute paths
+
+```javascript
+import { realpath } from 'node:fs/promises';
+
+// Resolve relative path to absolute path
+const absolutePath = await realpath('./some/relative/path.txt');
+console.log('Absolute path:', absolutePath);
+```
+
+#### Changing file permissions
+
+```javascript
+import { chmod } from 'node:fs/promises';
+
+// Set file to read/write for owner, read-only for others
+await chmod('./file.txt', 0o644);
+
+// Set file to executable for owner
+await chmod('./script.sh', 0o755);
+```
+
+**Note:** `chmod()` is only available on Unix-like systems (Linux, macOS).
 
 #### Testing file accessibility
 
@@ -1052,6 +1102,51 @@ Tests file accessibility.
 **Returns:** Promise<void>
 
 Throws an error if the file is not accessible.
+
+#### `rm(path, options?)`
+
+Removes files and directories (modern alternative to `unlink`/`rmdir`).
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to remove
+- `options` (object, optional):
+  - `recursive` (boolean): Remove directory and all contents. Defaults to false
+
+**Returns:** Promise<void>
+
+#### `truncate(path, len?)`
+
+Truncates a file to a specified length.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `len` (number, optional): Target length in bytes. Defaults to 0
+
+**Returns:** Promise<void>
+
+#### `realpath(path, options?)`
+
+Resolves a path to an absolute path, resolving symbolic links.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to resolve
+- `options` (object, optional): Options
+
+**Returns:** Promise<string>
+
+Returns the resolved absolute path.
+
+#### `chmod(path, mode)`
+
+Changes file permissions (Unix-like systems only).
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `mode` (number): File mode (permissions) as octal number (e.g., 0o644)
+
+**Returns:** Promise<void>
+
+**Note:** Not supported on Windows. Will throw an error on non-Unix platforms.
 
 #### `constants`
 
