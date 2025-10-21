@@ -1,17 +1,17 @@
 use crate::IsolateState;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::path::Path;
 
 pub(crate) struct ModuleMap {
-    hash_to_absolute_path: HashMap<std::num::NonZeroI32, String>,
-    absolute_path_to_module: HashMap<String, v8::Global<v8::Module>>,
+    hash_to_absolute_path: FxHashMap<std::num::NonZeroI32, String>,
+    absolute_path_to_module: FxHashMap<String, v8::Global<v8::Module>>,
 }
 
 impl ModuleMap {
     pub(crate) fn new() -> Self {
         Self {
-            hash_to_absolute_path: HashMap::new(),
-            absolute_path_to_module: HashMap::new(),
+            hash_to_absolute_path: FxHashMap::default(),
+            absolute_path_to_module: FxHashMap::default(),
         }
     }
 
@@ -104,7 +104,7 @@ fn normalize_path(referrer_path: &str, requested: &str) -> String {
     }
     let ref_dir = Path::new(referrer_path).parent().unwrap();
     let normalized = ref_dir.join(req_path).canonicalize();
-    normalized.unwrap().to_string_lossy().into()
+    normalized.unwrap().to_str().unwrap().to_string()
 }
 
 fn module_resolve_callback<'a>(

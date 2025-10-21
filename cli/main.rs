@@ -370,19 +370,21 @@ fn repl(mut jstime: jstime::JSTime) {
     // Use Arc<Mutex<Vec<String>>> to share history entries across threads
     let history_entries = Arc::new(Mutex::new(Vec::new()));
 
+    // Pre-build the config once
+    let rl_config = rustyline::Config::builder()
+        .completion_type(rustyline::CompletionType::List)
+        .build();
+
     loop {
         // Channel for this readline
         let (tx, rx) = channel();
         let history_clone = Arc::clone(&history_entries);
+        let rl_config_clone = rl_config.clone();
 
         // Start readline in a separate thread
         thread::spawn(move || {
-            let mut rl_temp = Editor::<JsCompleter, DefaultHistory>::with_config(
-                rustyline::Config::builder()
-                    .completion_type(rustyline::CompletionType::List)
-                    .build(),
-            )
-            .unwrap();
+            let mut rl_temp =
+                Editor::<JsCompleter, DefaultHistory>::with_config(rl_config_clone).unwrap();
             rl_temp.set_helper(Some(JsCompleter));
 
             // Load recent history into the temp editor

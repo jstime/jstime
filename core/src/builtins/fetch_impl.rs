@@ -27,7 +27,7 @@ fn fetch_send(
     // Extract headers array
     let headers_array = v8::Local::<v8::Array>::try_from(args.get(2)).unwrap();
     let headers_len = headers_array.length();
-    let mut headers = Vec::new();
+    let mut headers = Vec::with_capacity(headers_len as usize);
 
     for i in 0..headers_len {
         let entry = headers_array.get_index(scope, i).unwrap();
