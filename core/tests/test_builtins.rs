@@ -573,4 +573,231 @@ mod tests {
         // 'a\nb\tc' in base64
         assert_eq!(result.unwrap(), "YQpiCWM=");
     }
+
+    #[test]
+    fn event_class_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof Event;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn event_target_class_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof EventTarget;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn event_constructor() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("const event = new Event('test'); event.type;", "jstime");
+        assert_eq!(result.unwrap(), "test");
+    }
+
+    #[test]
+    fn event_with_init_dict() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const event = new Event('test', { bubbles: true, cancelable: true }); \
+             JSON.stringify({ bubbles: event.bubbles, cancelable: event.cancelable });",
+            "jstime",
+        );
+        let json: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
+        assert_eq!(json["bubbles"], true);
+        assert_eq!(json["cancelable"], true);
+    }
+
+    #[test]
+    fn event_target_add_event_listener() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             let called = false; \
+             target.addEventListener('test', () => { called = true; }); \
+             target.dispatchEvent(new Event('test')); \
+             called;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn event_target_remove_event_listener() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             let called = false; \
+             const listener = () => { called = true; }; \
+             target.addEventListener('test', listener); \
+             target.removeEventListener('test', listener); \
+             target.dispatchEvent(new Event('test')); \
+             called;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "false");
+    }
+
+    #[test]
+    fn event_target_dispatch_event_returns_boolean() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             const event = new Event('test', { cancelable: true }); \
+             const result = target.dispatchEvent(event); \
+             typeof result === 'boolean';",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn event_prevent_default() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             const event = new Event('test', { cancelable: true }); \
+             target.addEventListener('test', (e) => { e.preventDefault(); }); \
+             const notCancelled = target.dispatchEvent(event); \
+             notCancelled;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "false");
+    }
+
+    #[test]
+    fn event_stop_propagation() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             let count = 0; \
+             target.addEventListener('test', (e) => { count++; }); \
+             target.addEventListener('test', (e) => { count++; }); \
+             const event = new Event('test'); \
+             event.stopPropagation(); \
+             target.dispatchEvent(event); \
+             count;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "2");
+    }
+
+    #[test]
+    fn event_stop_immediate_propagation() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             let count = 0; \
+             target.addEventListener('test', (e) => { count++; e.stopImmediatePropagation(); }); \
+             target.addEventListener('test', (e) => { count++; }); \
+             target.dispatchEvent(new Event('test')); \
+             count;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "1");
+    }
+
+    #[test]
+    fn event_target_and_current_target() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             let eventTarget, eventCurrentTarget; \
+             target.addEventListener('test', (e) => { \
+               eventTarget = e.target; \
+               eventCurrentTarget = e.currentTarget; \
+             }); \
+             target.dispatchEvent(new Event('test')); \
+             eventTarget === target && eventCurrentTarget === target;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn event_constants() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "JSON.stringify({ \
+               NONE: Event.NONE, \
+               CAPTURING_PHASE: Event.CAPTURING_PHASE, \
+               AT_TARGET: Event.AT_TARGET, \
+               BUBBLING_PHASE: Event.BUBBLING_PHASE \
+             });",
+            "jstime",
+        );
+        let json: serde_json::Value = serde_json::from_str(&result.unwrap()).unwrap();
+        assert_eq!(json["NONE"], 0);
+        assert_eq!(json["CAPTURING_PHASE"], 1);
+        assert_eq!(json["AT_TARGET"], 2);
+        assert_eq!(json["BUBBLING_PHASE"], 3);
+    }
+
+    #[test]
+    fn event_timestamp_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const event = new Event('test'); \
+             typeof event.timeStamp === 'number';",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn event_is_trusted_default_false() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const event = new Event('test'); \
+             event.isTrusted;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "false");
+    }
+
+    #[test]
+    fn event_multiple_listeners_same_type() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const target = new EventTarget(); \
+             let count = 0; \
+             target.addEventListener('test', () => { count++; }); \
+             target.addEventListener('test', () => { count++; }); \
+             target.addEventListener('test', () => { count++; }); \
+             target.dispatchEvent(new Event('test')); \
+             count;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "3");
+    }
 }
