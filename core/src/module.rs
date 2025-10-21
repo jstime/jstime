@@ -80,8 +80,20 @@ fn resolve<'a>(
 
     let requested_string = v8::String::new(scope, &requested_abs_path).unwrap();
     let origin = crate::js_loading::create_script_origin(scope, requested_string, true);
-    let js_src = std::fs::read_to_string(&requested_abs_path)
-        .expect("Something went wrong reading the file");
+
+    // Check if this is a JSON file
+    let is_json = requested_abs_path.ends_with(".json");
+
+    let js_src = if is_json {
+        // For JSON files, read the content and wrap it in a module that exports it as default
+        let json_content = std::fs::read_to_string(&requested_abs_path)
+            .expect("Something went wrong reading the JSON file");
+        // Create a synthetic module that exports the JSON as the default export
+        format!("export default {};", json_content)
+    } else {
+        std::fs::read_to_string(&requested_abs_path).expect("Something went wrong reading the file")
+    };
+
     let code = v8::String::new(scope, &js_src).unwrap();
     let mut source = v8::script_compiler::Source::new(code, Some(&origin));
 
