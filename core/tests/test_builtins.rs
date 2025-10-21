@@ -445,4 +445,25 @@ mod tests {
 
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn structuredclone_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof structuredClone;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn structuredclone_basic() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const obj = {a: 1, b: 'test'}; const cloned = structuredClone(obj); JSON.stringify(cloned);",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), r#"{"a":1,"b":"test"}"#);
+    }
 }

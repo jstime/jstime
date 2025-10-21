@@ -11,6 +11,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 - [URL API](#url-api)
 - [Performance API](#performance-api)
 - [Microtask API](#microtask-api)
+- [Structured Clone API](#structured-clone-api)
 - [ES Modules](#es-modules)
 - [REPL](#repl)
 
@@ -343,6 +344,163 @@ queueMicrotask(() => {
 // First microtask
 // Second microtask
 // Nested microtask
+```
+
+## Structured Clone API
+
+jstime implements the [HTML Standard Structured Clone Algorithm](https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning), allowing deep cloning of JavaScript values including complex types that JSON cannot handle.
+
+### Supported Function
+
+- `structuredClone(value)` - Creates a deep clone of a value
+
+### Supported Types
+
+The structured clone algorithm can clone:
+
+- **Primitive types**: strings, numbers, booleans, null, undefined, BigInt
+- **Objects**: Plain objects with deep cloning of nested structures
+- **Arrays**: Including nested arrays and objects
+- **Date objects**: Preserves the date and time
+- **RegExp**: Regular expressions with flags
+- **Map**: Map objects with all entries
+- **Set**: Set objects with all values
+- **ArrayBuffer**: Binary data buffers
+- **Typed Arrays**: Uint8Array, Int32Array, Float64Array, etc.
+- **Boolean, Number, String objects**: Wrapper objects
+- **Circular references**: Objects that reference themselves
+
+### Unsupported Types
+
+The following types cannot be cloned and will throw an error:
+
+- **Functions**: Regular functions and arrow functions
+- **Symbols**: Symbol values
+- **Error objects**: Error, TypeError, etc.
+- **DOM nodes**: Not applicable in jstime
+- **Host objects**: Objects provided by the host environment
+
+### Examples
+
+```javascript
+// Clone a simple object
+const obj = { a: 1, b: 'hello', c: true };
+const cloned = structuredClone(obj);
+console.log(cloned); // { a: 1, b: 'hello', c: true }
+console.log(obj !== cloned); // true (different objects)
+
+// Clone nested objects
+const nested = {
+  user: {
+    name: 'Alice',
+    preferences: {
+      theme: 'dark',
+      language: 'en'
+    }
+  }
+};
+const clonedNested = structuredClone(nested);
+console.log(clonedNested.user.preferences.theme); // 'dark'
+console.log(nested.user !== clonedNested.user); // true
+
+// Clone arrays
+const arr = [1, 2, { x: 3 }];
+const clonedArr = structuredClone(arr);
+console.log(clonedArr); // [1, 2, { x: 3 }]
+
+// Clone Date objects
+const date = new Date('2024-01-01');
+const clonedDate = structuredClone(date);
+console.log(clonedDate.toISOString()); // '2024-01-01T00:00:00.000Z'
+
+// Clone Map
+const map = new Map([['key1', 'value1'], ['key2', 'value2']]);
+const clonedMap = structuredClone(map);
+console.log(clonedMap.get('key1')); // 'value1'
+
+// Clone Set
+const set = new Set([1, 2, 3]);
+const clonedSet = structuredClone(set);
+console.log(clonedSet.has(2)); // true
+
+// Handle circular references
+const circular = { name: 'circular' };
+circular.self = circular;
+const clonedCircular = structuredClone(circular);
+console.log(clonedCircular.self === clonedCircular); // true
+
+// Clone complex nested structures
+const complex = {
+  num: 42,
+  str: "hello",
+  date: new Date(),
+  arr: [1, 2, { nested: true }],
+  map: new Map([["key", "value"]]),
+  set: new Set([1, 2, 3]),
+  regexp: /test/gi
+};
+const clonedComplex = structuredClone(complex);
+console.log(clonedComplex.map.get("key")); // 'value'
+
+// Error: Cannot clone functions
+try {
+  structuredClone(() => {});
+} catch (e) {
+  console.error('Cannot clone function');
+}
+
+// Error: Cannot clone symbols
+try {
+  structuredClone(Symbol('test'));
+} catch (e) {
+  console.error('Cannot clone symbol');
+}
+```
+
+### Use Cases
+
+Structured clone is useful for:
+
+- **Deep copying objects**: Create independent copies of complex data structures
+- **Message passing**: Clone data when sending messages between workers (when available)
+- **State management**: Create snapshots of application state
+- **Data persistence**: Clone objects before serialization
+- **Testing**: Create test fixtures from original data without mutation
+
+### Comparison with JSON
+
+Unlike `JSON.parse(JSON.stringify(obj))`, structured clone:
+
+- ✅ Preserves Date objects (not converted to strings)
+- ✅ Handles Map and Set
+- ✅ Handles ArrayBuffer and typed arrays
+- ✅ Handles RegExp with flags
+- ✅ Handles circular references
+- ✅ Handles undefined values
+- ✅ More efficient for complex structures
+
+```javascript
+// JSON method loses Date objects
+const obj1 = { date: new Date() };
+const jsonClone = JSON.parse(JSON.stringify(obj1));
+console.log(typeof jsonClone.date); // 'string' ❌
+
+// Structured clone preserves Date objects
+const structuredClone1 = structuredClone(obj1);
+console.log(structuredClone1.date instanceof Date); // true ✅
+
+// JSON method fails with circular references
+const circular = { name: 'test' };
+circular.self = circular;
+try {
+  JSON.parse(JSON.stringify(circular)); // Throws error ❌
+} catch (e) {
+  console.error('JSON cannot handle circular references');
+}
+
+// Structured clone handles circular references
+const clonedCircular = structuredClone(circular); // Works ✅
+console.log(clonedCircular.self === clonedCircular); // true
 ```
 
 ## ES Modules

@@ -54,6 +54,7 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 - **URL API**: `URL` and `URLSearchParams` for URL manipulation
 - **Performance API**: High-resolution timing with `performance.now()`
 - **Microtask API**: `queueMicrotask()` for fine-grained async control
+- **Structured Clone API**: `structuredClone()` for deep cloning of complex objects
 - **ES Modules**: Full support for `import`/`export` with top-level await
 - **Modern JavaScript**: All ES2015+ features via V8 engine
 
@@ -66,6 +67,7 @@ jstime includes comprehensive test coverage including conformance tests for stan
 - **Performance API** - W3C High Resolution Time compliance
 - **URL API** - WHATWG URL Standard compliance
 - **Timers API** - WHATWG HTML Standard timers compliance
+- **Structured Clone API** - HTML Standard structured cloning compliance
 
 Run all tests with:
 ```bash
