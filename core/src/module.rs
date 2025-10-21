@@ -131,3 +131,30 @@ fn module_resolve_callback<'a>(
     let requested_rel_path = specifier.to_rust_string_lossy(isolate);
     resolve(scope, &referrer_path, &requested_rel_path)
 }
+
+pub(crate) unsafe extern "C" fn host_initialize_import_meta_object_callback(
+    context: v8::Local<v8::Context>,
+    module: v8::Local<v8::Module>,
+    meta: v8::Local<v8::Object>,
+) {
+    v8::callback_scope!(unsafe let scope, context);
+
+    let hash = module.get_identity_hash();
+    let isolate: &mut v8::Isolate = scope;
+    let state = IsolateState::get(isolate);
+
+    let module_path = state
+        .borrow()
+        .module_map
+        .hash_to_absolute_path
+        .get(&hash)
+        .cloned();
+
+    if let Some(module_path) = module_path {
+        // Convert file path to file:// URL
+        let url = format!("file://{}", module_path);
+        let url_key = v8::String::new(scope, "url").unwrap();
+        let url_value = v8::String::new(scope, &url).unwrap();
+        meta.set(scope, url_key.into(), url_value.into());
+    }
+}

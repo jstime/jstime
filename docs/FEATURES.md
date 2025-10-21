@@ -354,6 +354,7 @@ jstime supports ES modules, allowing you to organize your code using `import` an
 - Standard `import` and `export` syntax
 - Top-level `await` support
 - Module resolution from the file system
+- `import.meta.url` support for getting the current module's URL
 
 ### Examples
 
@@ -390,6 +391,22 @@ console.log(data);
 // You can use await at the top level
 await new Promise(resolve => setTimeout(resolve, 1000));
 console.log('1 second has passed');
+```
+
+**module-info.js (using import.meta.url)**
+```javascript
+// Get the current module's URL
+console.log('Current module URL:', import.meta.url);
+// Outputs: file:///path/to/module-info.js
+
+// You can use it with the URL constructor
+const moduleUrl = new URL(import.meta.url);
+console.log('Protocol:', moduleUrl.protocol);  // 'file:'
+console.log('Pathname:', moduleUrl.pathname);  // '/path/to/module-info.js'
+
+// Resolve relative paths from the current module
+const dataPath = new URL('./data.json', import.meta.url);
+console.log('Data file URL:', dataPath.href);
 ```
 
 ### Running Modules

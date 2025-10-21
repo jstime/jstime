@@ -90,6 +90,11 @@ impl JSTime {
     // }
 
     fn create(_options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
+        // Set up import.meta callback before creating context
+        isolate.set_host_initialize_import_meta_object_callback(
+            module::host_initialize_import_meta_object_callback,
+        );
+
         let global_context = {
             v8::scope!(let scope, &mut isolate);
             let context = v8::Context::new(scope, Default::default());
