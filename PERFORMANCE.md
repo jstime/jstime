@@ -91,6 +91,11 @@ You can pass custom V8 flags to fine-tune performance:
 jstime --v8-options="--max-old-space-size=4096" script.js
 ```
 
+### HTTP/Fetch Optimizations
+1. **Connection Pooling**: Upgraded to ureq 3.1 and implemented Agent-based connection pooling for reusing HTTP connections across multiple fetch requests
+2. **Status Code Handling**: Configured the HTTP agent to not treat HTTP status codes as errors, aligning with the Fetch API specification
+3. **Improved Response Handling**: Updated to ureq 3.x API for better performance and reduced memory overhead
+
 ## Future Optimization Opportunities
 
 1. **Snapshot Support**: Enable V8 snapshot support to reduce startup time
