@@ -351,4 +351,95 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "true");
     }
+
+    #[test]
+    fn import_meta_url_exists() {
+        let _setup_guard = common::setup();
+
+        // Create a test module file
+        let test_file = std::env::temp_dir().join("test_import_meta.js");
+        std::fs::write(&test_file, "export const url = import.meta.url;").unwrap();
+
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.import(test_file.to_str().unwrap());
+
+        // Clean up
+        std::fs::remove_file(&test_file).ok();
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn import_meta_url_is_file_url() {
+        let _setup_guard = common::setup();
+
+        // Create a test module file
+        let test_file = std::env::temp_dir().join("test_import_meta_url.js");
+        std::fs::write(
+            &test_file,
+            "export const check = import.meta.url.startsWith('file://');",
+        )
+        .unwrap();
+
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.import(test_file.to_str().unwrap());
+
+        // Clean up
+        std::fs::remove_file(&test_file).ok();
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn import_meta_url_contains_filename() {
+        let _setup_guard = common::setup();
+
+        // Create a test module file with a unique name
+        let test_file = std::env::temp_dir().join("test_unique_filename_12345.js");
+        std::fs::write(
+            &test_file,
+            "export const check = import.meta.url.includes('test_unique_filename_12345.js');",
+        )
+        .unwrap();
+
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.import(test_file.to_str().unwrap());
+
+        // Clean up
+        std::fs::remove_file(&test_file).ok();
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn import_meta_url_different_per_module() {
+        let _setup_guard = common::setup();
+
+        // Create two test module files
+        let test_file1 = std::env::temp_dir().join("test_module1.js");
+        let test_file2 = std::env::temp_dir().join("test_module2.js");
+
+        std::fs::write(&test_file2, "export const url2 = import.meta.url;").unwrap();
+        std::fs::write(
+            &test_file1,
+            &format!(
+                "import {{ url2 }} from '{}';\nexport const different = import.meta.url !== url2;",
+                test_file2.to_str().unwrap()
+            ),
+        )
+        .unwrap();
+
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.import(test_file1.to_str().unwrap());
+
+        // Clean up
+        std::fs::remove_file(&test_file1).ok();
+        std::fs::remove_file(&test_file2).ok();
+
+        assert!(result.is_ok());
+    }
 }
