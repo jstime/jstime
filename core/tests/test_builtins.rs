@@ -264,4 +264,91 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "true");
     }
+
+    #[test]
+    fn performance_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof performance;", "jstime");
+        assert_eq!(result.unwrap(), "object");
+    }
+
+    #[test]
+    fn performance_now_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof performance.now;", "jstime");
+        assert_eq!(result.unwrap(), "function");
+    }
+
+    #[test]
+    fn performance_now_returns_number() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof performance.now();", "jstime");
+        assert_eq!(result.unwrap(), "number");
+    }
+
+    #[test]
+    fn performance_now_monotonic() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const t1 = performance.now(); \
+             const t2 = performance.now(); \
+             t2 >= t1;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn performance_time_origin_exists() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof performance.timeOrigin;", "jstime");
+        assert_eq!(result.unwrap(), "number");
+    }
+
+    #[test]
+    fn performance_time_origin_is_positive() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("performance.timeOrigin > 0;", "jstime");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn performance_time_origin_is_readonly() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const orig = performance.timeOrigin; \
+             performance.timeOrigin = 12345; \
+             performance.timeOrigin === orig;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn performance_to_json() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const json = JSON.stringify(performance); \
+             const obj = JSON.parse(json); \
+             typeof obj.timeOrigin === 'number';",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
 }
