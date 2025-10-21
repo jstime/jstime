@@ -384,6 +384,9 @@ fn repl(mut jstime: jstime::JSTime) {
         let history_clone = Arc::clone(&history_entries);
         let rl_config_clone = rl_config.clone();
 
+        // Track when this readline started for detecting quick double Ctrl+C
+        let readline_start = std::time::Instant::now();
+
         // Start readline in a separate thread
         thread::spawn(move || {
             let mut rl_temp =
@@ -437,14 +440,22 @@ fn repl(mut jstime: jstime::JSTime) {
                 jstime.tick_event_loop();
             }
             Err(ReadlineError::Interrupted) => {
-                // Check if this is a consecutive Ctrl+C
-                if last_was_interrupted {
+                // Calculate how long the readline was active
+                let readline_duration = readline_start.elapsed();
+
+                // If readline was active for more than 300ms before being interrupted,
+                // treat it as a fresh start (user was likely typing or thinking).
+                // This resets the double-Ctrl+C state.
+                let was_quick_interrupt = readline_duration.as_millis() < 300;
+
+                // Check if this is a consecutive quick Ctrl+C
+                if last_was_interrupted && was_quick_interrupt {
                     println!("Thanks for stopping by!");
                     break;
                 } else {
-                    // First Ctrl+C just clears the line and continues
+                    // Either first Ctrl+C or user was interacting with the prompt
                     println!("(To exit, press Ctrl+C again)");
-                    last_was_interrupted = true;
+                    last_was_interrupted = was_quick_interrupt;
                 }
             }
             Err(ReadlineError::Eof) => {
