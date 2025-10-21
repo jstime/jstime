@@ -44,6 +44,23 @@ instructions on how to embed jstime in your rust application!
 
 jstime provides a minimal and performant JavaScript runtime with essential APIs.
 
+## Testing
+
+jstime includes comprehensive test coverage including conformance tests for standard APIs:
+
+- **Console API** - WHATWG Console Standard compliance
+- **Fetch API** - WHATWG Fetch Standard compliance  
+- **Performance API** - W3C High Resolution Time compliance
+- **URL API** - WHATWG URL Standard compliance
+- **Timers API** - WHATWG HTML Standard timers compliance
+
+Run all tests with:
+```bash
+cargo test
+```
+
+For more details on conformance testing, see [core/tests/CONFORMANCE_TESTS.md](./core/tests/CONFORMANCE_TESTS.md).
+
 ## Current Project Team Members
 
 for information about the governance of the jstime project, see
