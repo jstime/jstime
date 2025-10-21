@@ -1,0 +1,4 @@
+# Configuration for Windows builds
+# Fix for LNK1318 PDB error when building with large dependencies like V8
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/DEBUG:NONE"]
