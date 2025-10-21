@@ -1,4 +1,4 @@
-mod console;
+mod console_impl;
 mod fetch_impl;
 mod performance_impl;
 mod queue_microtask_impl;
@@ -7,7 +7,7 @@ mod url_impl;
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     let mut refs = Vec::new();
-    refs.extend(console::get_external_references());
+    refs.extend(console_impl::get_external_references());
     refs.extend(queue_microtask_impl::get_external_references());
     refs.extend(url_impl::get_external_references());
     refs.extend(timers_impl::get_external_references());
@@ -23,7 +23,7 @@ impl Builtins {
         let bindings = v8::Object::new(scope);
 
         // Register all builtin bindings
-        console::register_bindings(scope, bindings);
+        console_impl::register_bindings(scope, bindings);
         queue_microtask_impl::register_bindings(scope, bindings);
         url_impl::register_bindings(scope, bindings);
         timers_impl::register_bindings(scope, bindings);
