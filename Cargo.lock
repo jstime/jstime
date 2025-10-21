@@ -635,6 +635,7 @@ name = "jstime_core"
 version = "0.56.0"
 dependencies = [
  "lazy_static",
+ "rustc-hash",
  "serde_json",
  "ureq",
  "url",
