@@ -209,7 +209,10 @@ mod conformance_fetch {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("const req = new Request('https://example.com'); req.method;", "test");
+        let result = jstime.run_script(
+            "const req = new Request('https://example.com'); req.method;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "GET");
     }
 
@@ -265,7 +268,10 @@ mod conformance_fetch {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("const resp = new Response('', {status: 404}); resp.status;", "test");
+        let result = jstime.run_script(
+            "const resp = new Response('', {status: 404}); resp.status;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "404");
     }
 
@@ -274,7 +280,10 @@ mod conformance_fetch {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("const resp = new Response('', {status: 200}); resp.ok;", "test");
+        let result = jstime.run_script(
+            "const resp = new Response('', {status: 200}); resp.ok;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "true");
     }
 
@@ -283,7 +292,10 @@ mod conformance_fetch {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("const resp = new Response('', {status: 404}); resp.ok;", "test");
+        let result = jstime.run_script(
+            "const resp = new Response('', {status: 404}); resp.ok;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "false");
     }
 

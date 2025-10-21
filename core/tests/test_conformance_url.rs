@@ -56,8 +56,10 @@ mod conformance_url {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result =
-            jstime.run_script("const url = new URL('https://example.com'); url.protocol;", "test");
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com'); url.protocol;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "https:");
     }
 
@@ -66,8 +68,10 @@ mod conformance_url {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result =
-            jstime.run_script("const url = new URL('https://example.com'); url.hostname;", "test");
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com'); url.hostname;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "example.com");
     }
 
@@ -323,8 +327,10 @@ mod conformance_url {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result =
-            jstime.run_script("const url = new URL('https://example.com'); url.port;", "test");
+        let result = jstime.run_script(
+            "const url = new URL('https://example.com'); url.port;",
+            "test",
+        );
         assert_eq!(result.unwrap(), "");
     }
 }

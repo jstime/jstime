@@ -75,7 +75,10 @@ mod conformance_timers {
             .run_script("globalThis.executed = false;", "test")
             .unwrap();
         jstime
-            .run_script("setTimeout(() => { globalThis.executed = true; }, 0);", "test")
+            .run_script(
+                "setTimeout(() => { globalThis.executed = true; }, 0);",
+                "test",
+            )
             .unwrap();
         let result = jstime.run_script("globalThis.executed;", "test");
         assert_eq!(result.unwrap(), "true");
@@ -189,7 +192,10 @@ mod conformance_timers {
         // According to spec, setTimeout can accept a string (legacy behavior)
         // But this is optional and may not be supported in all implementations
         // Test that calling it doesn't crash, regardless of support
-        let result = jstime.run_script("try { setTimeout('1+1', 0); 'ok'; } catch(e) { 'ok'; }", "test");
+        let result = jstime.run_script(
+            "try { setTimeout('1+1', 0); 'ok'; } catch(e) { 'ok'; }",
+            "test",
+        );
         assert_eq!(result.unwrap(), "ok");
     }
 

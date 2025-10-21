@@ -71,9 +71,25 @@ mod conformance_console {
 
         // Test that all required methods exist
         let methods = vec![
-            "assert", "clear", "count", "countReset", "debug", "dir", "dirxml", "error",
-            "group", "groupCollapsed", "groupEnd", "info", "log", "table", "time", "timeEnd",
-            "timeLog", "trace", "warn",
+            "assert",
+            "clear",
+            "count",
+            "countReset",
+            "debug",
+            "dir",
+            "dirxml",
+            "error",
+            "group",
+            "groupCollapsed",
+            "groupEnd",
+            "info",
+            "log",
+            "table",
+            "time",
+            "timeEnd",
+            "timeLog",
+            "trace",
+            "warn",
         ];
 
         for method in methods {
