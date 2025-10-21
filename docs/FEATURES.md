@@ -14,6 +14,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 - [Microtask API](#microtask-api)
 - [Structured Clone API](#structured-clone-api)
 - [Base64 Encoding](#base64-encoding)
+- [File System API](#file-system-api)
 - [WebAssembly](#webassembly)
 - [ES Modules](#es-modules)
 - [REPL](#repl)
@@ -708,6 +709,134 @@ try {
 // Structured clone handles circular references
 const clonedCircular = structuredClone(circular); // Works ✅
 console.log(clonedCircular.self === clonedCircular); // true
+```
+
+## File System API
+
+jstime provides a minimal Node.js-compatible file system API through the `node:fs/promises` module. This provides promise-based access to essential file operations.
+
+### Supported APIs
+
+- `readFile(path, options?)` - Read the entire contents of a file
+- `readdir(path, options?)` - Read the contents of a directory
+
+### Usage
+
+```javascript
+import { readFile, readdir } from 'node:fs/promises';
+// or
+import * as fs from 'node:fs/promises';
+```
+
+### Reading Files
+
+#### Read file as text
+
+```javascript
+import { readFile } from 'node:fs/promises';
+
+// Simple string encoding
+const text = await readFile('./README.md', 'utf-8');
+console.log(text);
+
+// Using options object
+const content = await readFile('./file.txt', { encoding: 'utf-8' });
+console.log(content);
+```
+
+#### Read file as buffer
+
+```javascript
+import { readFile } from 'node:fs/promises';
+
+// Returns Uint8Array when no encoding is specified
+const buffer = await readFile('./image.png');
+console.log(buffer instanceof Uint8Array); // true
+console.log(buffer.length); // file size in bytes
+```
+
+### Listing Directories
+
+```javascript
+import { readdir } from 'node:fs/promises';
+
+// List directory contents
+const files = await readdir('./src');
+console.log('Files:', files); // Array of file/directory names
+
+// Process files
+for (const file of files) {
+  console.log(file);
+}
+```
+
+### Error Handling
+
+All file system operations can throw errors if the file or directory doesn't exist, or if there are permission issues:
+
+```javascript
+import { readFile, readdir } from 'node:fs/promises';
+
+try {
+  const data = await readFile('./nonexistent.txt', 'utf-8');
+} catch (error) {
+  console.error('Failed to read file:', error.message);
+}
+
+try {
+  const files = await readdir('./nonexistent-dir');
+} catch (error) {
+  console.error('Failed to read directory:', error.message);
+}
+```
+
+### API Reference
+
+#### `readFile(path, options?)`
+
+Reads the entire contents of a file.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `options` (object | string, optional):
+  - `encoding` (string): If specified, returns a string. Defaults to null (returns Buffer)
+  - `flag` (string): File system flag. Defaults to 'r'
+
+**Returns:** Promise<string | Uint8Array>
+
+**Supported encodings:** 'utf-8', 'utf8'
+
+#### `readdir(path, options?)`
+
+Reads the contents of a directory.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the directory
+- `options` (object | string, optional):
+  - `encoding` (string): Character encoding for file names. Defaults to 'utf8'
+  - `withFileTypes` (boolean): Not yet supported. Defaults to false
+
+**Returns:** Promise<string[]>
+
+Returns an array of filenames in the directory (excluding '.' and '..').
+
+### Example: Complete File Processing
+
+```javascript
+import { readFile, readdir } from 'node:fs/promises';
+
+// Read all JavaScript files in a directory
+const files = await readdir('./src');
+const jsFiles = files.filter(f => f.endsWith('.js'));
+
+console.log(`Found ${jsFiles.length} JavaScript files`);
+
+// Read and process each file
+for (const file of jsFiles) {
+  const content = await readFile(`./src/${file}`, 'utf-8');
+  const lines = content.split('\n').length;
+  console.log(`${file}: ${lines} lines`);
+}
 ```
 
 ## WebAssembly
