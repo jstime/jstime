@@ -91,9 +91,10 @@ impl JSTime {
 
     fn create(_options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
         let global_context = {
-            let scope = &mut v8::HandleScope::new(&mut isolate);
+            v8::scope!(let scope, &mut isolate);
             let context = v8::Context::new(scope, Default::default());
-            v8::Global::new(scope, context)
+            let isolate_ref: &v8::Isolate = scope;
+            v8::Global::new(isolate_ref, context)
         };
 
         isolate.set_slot(IsolateState::new(global_context));
@@ -101,8 +102,10 @@ impl JSTime {
         // If snapshot data was provided, the builtins already exist within it.
         if true {
             let context = IsolateState::get(&mut isolate).borrow().context();
-            let scope = &mut v8::HandleScope::with_context(&mut isolate, context);
-            builtins::Builtins::create(scope);
+            v8::scope!(let scope, &mut isolate);
+            let context_local = v8::Local::new(scope, context);
+            let mut scope = v8::ContextScope::new(scope, context_local);
+            builtins::Builtins::create(&mut scope);
         }
 
         JSTime {
@@ -124,15 +127,20 @@ impl JSTime {
     pub fn import(&mut self, filename: &str) -> Result<(), String> {
         let result = {
             let context = IsolateState::get(self.isolate()).borrow().context();
-            let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
+            v8::scope!(let scope, self.isolate());
+            let context_local = v8::Local::new(scope, context);
+            let mut scope = v8::ContextScope::new(scope, context_local);
             let loader = module::Loader::new();
 
             let mut cwd = std::env::current_dir().unwrap();
             cwd.push("jstime");
             let cwd = cwd.into_os_string().into_string().unwrap();
-            match loader.import(scope, &cwd, filename) {
+            match loader.import(&mut scope, &cwd, filename) {
                 Ok(_) => Ok(()),
-                Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+                Err(e) => {
+                    let isolate: &v8::Isolate = &scope;
+                    Err(e.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
+                }
             }
         };
 
@@ -162,10 +170,18 @@ impl JSTime {
         filename: &str,
     ) -> Result<String, String> {
         let context = IsolateState::get(self.isolate()).borrow().context();
-        let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-        match script::run(scope, source, filename) {
-            Ok(v) => Ok(v.to_string(scope).unwrap().to_rust_string_lossy(scope)),
-            Err(e) => Err(e.to_string(scope).unwrap().to_rust_string_lossy(scope)),
+        v8::scope!(let scope, self.isolate());
+        let context_local = v8::Local::new(scope, context);
+        let mut scope = v8::ContextScope::new(scope, context_local);
+        match script::run(&mut scope, source, filename) {
+            Ok(v) => {
+                let isolate: &v8::Isolate = &scope;
+                Ok(v.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
+            }
+            Err(e) => {
+                let isolate: &v8::Isolate = &scope;
+                Err(e.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
+            }
         }
     }
 
@@ -173,17 +189,21 @@ impl JSTime {
     /// This is suitable for REPL usage to allow timers to execute in the background.
     pub fn tick_event_loop(&mut self) {
         let context = IsolateState::get(self.isolate()).borrow().context();
-        let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-        let event_loop = event_loop::get_event_loop(scope);
-        event_loop.borrow_mut().tick(scope);
+        v8::scope!(let scope, self.isolate());
+        let context_local = v8::Local::new(scope, context);
+        let mut scope = v8::ContextScope::new(scope, context_local);
+        let event_loop = event_loop::get_event_loop(&mut scope);
+        event_loop.borrow_mut().tick(&mut scope);
     }
 
     /// Run the event loop until all pending operations are complete
     fn run_event_loop(&mut self) {
         let context = IsolateState::get(self.isolate()).borrow().context();
-        let scope = &mut v8::HandleScope::with_context(self.isolate(), context);
-        let event_loop = event_loop::get_event_loop(scope);
-        event_loop.borrow_mut().run(scope);
+        v8::scope!(let scope, self.isolate());
+        let context_local = v8::Local::new(scope, context);
+        let mut scope = v8::ContextScope::new(scope, context_local);
+        let event_loop = event_loop::get_event_loop(&mut scope);
+        event_loop.borrow_mut().run(&mut scope);
     }
 }
 

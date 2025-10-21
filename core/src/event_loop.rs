@@ -159,7 +159,7 @@ impl EventLoop {
     }
 
     /// Run the event loop until there are no more pending operations
-    pub(crate) fn run(&mut self, scope: &mut v8::HandleScope) {
+    pub(crate) fn run(&mut self, scope: &mut v8::PinScope) {
         // First, add any pending timers
         self.add_pending_timers();
 
@@ -206,7 +206,7 @@ impl EventLoop {
 
     /// Process ready timers without blocking (suitable for REPL)
     /// This method executes timers that are ready to fire and returns immediately
-    pub(crate) fn tick(&mut self, scope: &mut v8::HandleScope) {
+    pub(crate) fn tick(&mut self, scope: &mut v8::PinScope) {
         // Add any pending timers
         self.add_pending_timers();
 
@@ -252,7 +252,8 @@ impl Default for EventLoop {
 }
 
 /// Get the event loop from the isolate state
-pub(crate) fn get_event_loop(isolate: &mut v8::Isolate) -> Rc<RefCell<EventLoop>> {
+pub(crate) fn get_event_loop(scope: &mut v8::PinScope) -> Rc<RefCell<EventLoop>> {
+    let isolate: &mut v8::Isolate = scope;
     crate::IsolateState::get(isolate)
         .borrow()
         .event_loop
