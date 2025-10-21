@@ -736,11 +736,17 @@ jstime provides a comprehensive Node.js-compatible file system API through the `
 - `truncate(path, len?)` - Truncate a file to a specified length
 - `realpath(path, options?)` - Resolve path to an absolute path
 - `chmod(path, mode)` - Change file permissions (Unix-like systems)
+- `mkdtemp(prefix, options?)` - Create a unique temporary directory
+- `readlink(path, options?)` - Read the target of a symbolic link
+- `symlink(target, path, type?)` - Create a symbolic link
+- `lstat(path, options?)` - Get file statistics without following symlinks
+- `chown(path, uid, gid)` - Change file ownership (Unix-like systems)
+- `utimes(path, atime, mtime)` - Change file access and modification times
 
 ### Usage
 
 ```javascript
-import { readFile, writeFile, appendFile, mkdir, rm, stat } from 'node:fs/promises';
+import { readFile, writeFile, appendFile, mkdir, rm, stat, mkdtemp, symlink } from 'node:fs/promises';
 // or
 import * as fs from 'node:fs/promises';
 ```
@@ -925,6 +931,65 @@ await chmod('./script.sh', 0o755);
 ```
 
 **Note:** `chmod()` is only available on Unix-like systems (Linux, macOS).
+
+#### Working with symbolic links
+
+```javascript
+import { symlink, readlink, lstat } from 'node:fs/promises';
+
+// Create a symbolic link
+await symlink('./target.txt', './link.txt');
+
+// Read the link target
+const target = await readlink('./link.txt');
+console.log('Link points to:', target);
+
+// Get stats without following the link
+const stats = await lstat('./link.txt');
+console.log('Is symlink:', stats.isSymbolicLink); // true
+```
+
+#### Creating temporary directories
+
+```javascript
+import { mkdtemp, writeFile, rmdir } from 'node:fs/promises';
+
+// Create a unique temporary directory
+const tmpDir = await mkdtemp('/tmp/myapp-');
+console.log('Temp dir:', tmpDir); // e.g., /tmp/myapp-4a5b6c
+
+// Use the directory
+await writeFile(`${tmpDir}/data.txt`, 'temporary data');
+
+// Clean up
+await rmdir(tmpDir, { recursive: true });
+```
+
+#### Changing file ownership
+
+```javascript
+import { chown } from 'node:fs/promises';
+
+// Change file ownership (Unix-like systems, requires permissions)
+await chown('./file.txt', 1000, 1000);
+```
+
+**Note:** `chown()` is only available on Unix-like systems and typically requires root privileges.
+
+#### Changing file timestamps
+
+```javascript
+import { utimes } from 'node:fs/promises';
+
+// Set access and modification times
+const now = Date.now();
+const yesterday = now - 86400000; // 24 hours ago
+
+await utimes('./file.txt', yesterday, yesterday);
+
+// Or use Date objects
+await utimes('./file.txt', new Date(), new Date());
+```
 
 #### Testing file accessibility
 
@@ -1147,6 +1212,81 @@ Changes file permissions (Unix-like systems only).
 **Returns:** Promise<void>
 
 **Note:** Not supported on Windows. Will throw an error on non-Unix platforms.
+
+#### `mkdtemp(prefix, options?)`
+
+Creates a unique temporary directory.
+
+**Parameters:**
+- `prefix` (string): Directory name prefix
+- `options` (object | string, optional):
+  - `encoding` (string): Character encoding. Defaults to 'utf8'
+
+**Returns:** Promise<string>
+
+Returns the path to the created temporary directory.
+
+#### `readlink(path, options?)`
+
+Reads the target of a symbolic link.
+
+**Parameters:**
+- `path` (string | Buffer | URL): Path to the symbolic link
+- `options` (object | string, optional):
+  - `encoding` (string): Character encoding. Defaults to 'utf8'
+
+**Returns:** Promise<string>
+
+Returns the target path that the symbolic link points to.
+
+#### `symlink(target, path, type?)`
+
+Creates a symbolic link.
+
+**Parameters:**
+- `target` (string | Buffer | URL): Target path to link to
+- `path` (string | Buffer | URL): Path of the symbolic link to create
+- `type` (string, optional): Type of symlink ('file', 'dir', 'junction') - Windows only
+
+**Returns:** Promise<void>
+
+**Note:** On Windows, requires administrator privileges or Developer Mode.
+
+#### `lstat(path, options?)`
+
+Gets file statistics without following symbolic links.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to stat
+- `options` (object, optional): Options
+
+**Returns:** Promise<Stats>
+
+Returns a Stats object. Unlike `stat()`, if the path is a symbolic link, the stats are for the link itself, not the target.
+
+#### `chown(path, uid, gid)`
+
+Changes file ownership (Unix-like systems only).
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `uid` (number): User ID
+- `gid` (number): Group ID
+
+**Returns:** Promise<void>
+
+**Note:** Only supported on Unix-like systems. Requires appropriate permissions.
+
+#### `utimes(path, atime, mtime)`
+
+Changes file access and modification times.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `atime` (number | Date): Access time (milliseconds since epoch or Date object)
+- `mtime` (number | Date): Modification time (milliseconds since epoch or Date object)
+
+**Returns:** Promise<void>
 
 #### `constants`
 

@@ -47,6 +47,24 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
         v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(chmod),
         },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(mkdtemp),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(readlink),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(symlink),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(lstat),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(chown),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(utimes),
+        },
     ]
 }
 
@@ -109,6 +127,30 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 
     let name = v8::String::new(scope, "chmod").unwrap();
     let value = v8::Function::new(scope, chmod).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "mkdtemp").unwrap();
+    let value = v8::Function::new(scope, mkdtemp).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "readlink").unwrap();
+    let value = v8::Function::new(scope, readlink).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "symlink").unwrap();
+    let value = v8::Function::new(scope, symlink).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "lstat").unwrap();
+    let value = v8::Function::new(scope, lstat).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "chown").unwrap();
+    let value = v8::Function::new(scope, chown).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "utimes").unwrap();
+    let value = v8::Function::new(scope, utimes).unwrap();
     bindings.set(scope, name.into(), value.into());
 }
 
@@ -851,5 +893,316 @@ fn chmod(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
         let msg = v8::String::new(scope, "chmod is not supported on this platform").unwrap();
         let exception = v8::Exception::error(scope, msg);
         scope.throw_exception(exception);
+    }
+}
+
+fn mkdtemp(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 1 {
+        let msg = v8::String::new(scope, "prefix is required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let prefix_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let prefix = prefix_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let random_suffix = format!("{:x}", timestamp);
+    let dir_path = format!("{}{}", prefix, &random_suffix[random_suffix.len() - 6..]);
+
+    match fs::create_dir(&dir_path) {
+        Ok(_) => {
+            let result = v8::String::new(scope, &dir_path).unwrap();
+            retval.set(result.into());
+        }
+        Err(e) => {
+            let msg =
+                v8::String::new(scope, &format!("Failed to create temp directory: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn readlink(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 1 {
+        let msg = v8::String::new(scope, "path is required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    match fs::read_link(&path_str) {
+        Ok(target) => {
+            let target_str = target.to_string_lossy();
+            let result = v8::String::new(scope, &target_str).unwrap();
+            retval.set(result.into());
+        }
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to read link: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn symlink(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 2 {
+        let msg = v8::String::new(scope, "target and path are required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let target_arg = args.get(0);
+    let path_arg = args.get(1);
+    let isolate: &v8::Isolate = scope;
+    let target = target_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+    let path = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    #[cfg(unix)]
+    {
+        match std::os::unix::fs::symlink(&target, &path) {
+            Ok(_) => {}
+            Err(e) => {
+                let msg =
+                    v8::String::new(scope, &format!("Failed to create symlink: {}", e)).unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        // On Windows, we need to determine if target is a file or directory
+        let is_dir = fs::metadata(&target).map(|m| m.is_dir()).unwrap_or(false);
+        let result = if is_dir {
+            std::os::windows::fs::symlink_dir(&target, &path)
+        } else {
+            std::os::windows::fs::symlink_file(&target, &path)
+        };
+
+        match result {
+            Ok(_) => {}
+            Err(e) => {
+                let msg =
+                    v8::String::new(scope, &format!("Failed to create symlink: {}", e)).unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+            }
+        }
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        let msg = v8::String::new(scope, "symlink is not supported on this platform").unwrap();
+        let exception = v8::Exception::error(scope, msg);
+        scope.throw_exception(exception);
+    }
+}
+
+fn lstat(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 1 {
+        let msg = v8::String::new(scope, "path is required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    match fs::symlink_metadata(&path_str) {
+        Ok(metadata) => {
+            let stats = v8::Object::new(scope);
+
+            let is_file = v8::Boolean::new(scope, metadata.is_file());
+            let is_file_key = v8::String::new(scope, "isFile").unwrap();
+            stats.set(scope, is_file_key.into(), is_file.into());
+
+            let is_dir = v8::Boolean::new(scope, metadata.is_dir());
+            let is_dir_key = v8::String::new(scope, "isDirectory").unwrap();
+            stats.set(scope, is_dir_key.into(), is_dir.into());
+
+            let is_symlink = v8::Boolean::new(scope, metadata.is_symlink());
+            let is_symlink_key = v8::String::new(scope, "isSymbolicLink").unwrap();
+            stats.set(scope, is_symlink_key.into(), is_symlink.into());
+
+            let size = v8::Number::new(scope, metadata.len() as f64);
+            let size_key = v8::String::new(scope, "size").unwrap();
+            stats.set(scope, size_key.into(), size.into());
+
+            if let Ok(modified) = metadata.modified() {
+                if let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH) {
+                    let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
+                    let mtime_key = v8::String::new(scope, "mtimeMs").unwrap();
+                    stats.set(scope, mtime_key.into(), mtime_ms.into());
+                }
+            }
+
+            retval.set(stats.into());
+        }
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to lstat file: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn chown(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
+    let arg_len = args.length();
+    if arg_len < 3 {
+        let msg = v8::String::new(scope, "path, uid, and gid are required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    let uid_arg = args.get(1);
+    let gid_arg = args.get(2);
+
+    let uid = if uid_arg.is_number() {
+        uid_arg.number_value(scope).unwrap() as u32
+    } else {
+        let msg = v8::String::new(scope, "uid must be a number").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    };
+
+    let gid = if gid_arg.is_number() {
+        gid_arg.number_value(scope).unwrap() as u32
+    } else {
+        let msg = v8::String::new(scope, "gid must be a number").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    };
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::chown as unix_chown;
+        match unix_chown(&path_str, Some(uid), Some(gid)) {
+            Ok(_) => {}
+            Err(e) => {
+                let msg =
+                    v8::String::new(scope, &format!("Failed to change ownership: {}", e)).unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+            }
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        let msg = v8::String::new(scope, "chown is not supported on this platform").unwrap();
+        let exception = v8::Exception::error(scope, msg);
+        scope.throw_exception(exception);
+    }
+}
+
+fn utimes(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
+    let arg_len = args.length();
+    if arg_len < 3 {
+        let msg = v8::String::new(scope, "path, atime, and mtime are required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    let atime_arg = args.get(1);
+    let mtime_arg = args.get(2);
+
+    let atime_ms = if atime_arg.is_number() || atime_arg.is_date() {
+        atime_arg.number_value(scope).unwrap()
+    } else {
+        let msg = v8::String::new(scope, "atime must be a number or Date").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    };
+
+    let mtime_ms = if mtime_arg.is_number() || mtime_arg.is_date() {
+        mtime_arg.number_value(scope).unwrap()
+    } else {
+        let msg = v8::String::new(scope, "mtime must be a number or Date").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    };
+
+    use std::time::{Duration, UNIX_EPOCH};
+    let atime = UNIX_EPOCH + Duration::from_millis(atime_ms as u64);
+    let mtime = UNIX_EPOCH + Duration::from_millis(mtime_ms as u64);
+
+    match filetime::set_file_times(&path_str, atime.into(), mtime.into()) {
+        Ok(_) => {}
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to set file times: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
     }
 }

@@ -4,7 +4,7 @@
 'use strict';
 
 // eslint-disable-next-line no-unused-expressions
-(({ readFile: _readFile, readDir: _readDir, writeFile: _writeFile, appendFile: _appendFile, mkdir: _mkdir, rmdir: _rmdir, unlink: _unlink, rename: _rename, copyFile: _copyFile, stat: _stat, access: _access, rm: _rm, truncate: _truncate, realpath: _realpath, chmod: _chmod }) => {
+(({ readFile: _readFile, readDir: _readDir, writeFile: _writeFile, appendFile: _appendFile, mkdir: _mkdir, rmdir: _rmdir, unlink: _unlink, rename: _rename, copyFile: _copyFile, stat: _stat, access: _access, rm: _rm, truncate: _truncate, realpath: _realpath, chmod: _chmod, mkdtemp: _mkdtemp, readlink: _readlink, symlink: _symlink, lstat: _lstat, chown: _chown, utimes: _utimes }) => {
   // Helper to convert synchronous operations to promises
   function promisify(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -198,6 +198,69 @@
     return promisify(_chmod, path, mode);
   }
 
+  /**
+   * Creates a unique temporary directory.
+   * @param {string} prefix - directory name prefix
+   * @param {Object | string} options - encoding or options object
+   * @returns {Promise<string>}
+   */
+  function mkdtemp(prefix, options) {
+    return promisify(_mkdtemp, prefix, options);
+  }
+
+  /**
+   * Reads the target of a symbolic link.
+   * @param {string | Buffer | URL} path - path to symlink
+   * @param {Object | string} options - encoding or options object
+   * @returns {Promise<string>}
+   */
+  function readlink(path, options) {
+    return promisify(_readlink, path, options);
+  }
+
+  /**
+   * Creates a symbolic link.
+   * @param {string | Buffer | URL} target - target path
+   * @param {string | Buffer | URL} path - symlink path
+   * @param {string} type - type of symlink (optional, for Windows)
+   * @returns {Promise<void>}
+   */
+  function symlink(target, path, type) {
+    return promisify(_symlink, target, path, type);
+  }
+
+  /**
+   * Gets file statistics without following symlinks.
+   * @param {string | Buffer | URL} path - file path
+   * @param {Object} options - options object
+   * @returns {Promise<Stats>}
+   */
+  function lstat(path, options) {
+    return promisify(_lstat, path, options);
+  }
+
+  /**
+   * Changes file ownership (Unix-like systems only).
+   * @param {string | Buffer | URL} path - file path
+   * @param {number} uid - user ID
+   * @param {number} gid - group ID
+   * @returns {Promise<void>}
+   */
+  function chown(path, uid, gid) {
+    return promisify(_chown, path, uid, gid);
+  }
+
+  /**
+   * Changes file access and modification times.
+   * @param {string | Buffer | URL} path - file path
+   * @param {number | Date} atime - access time
+   * @param {number | Date} mtime - modification time
+   * @returns {Promise<void>}
+   */
+  function utimes(path, atime, mtime) {
+    return promisify(_utimes, path, atime, mtime);
+  }
+
   // Constants
   const constants = {
     F_OK: 0,  // File exists
@@ -223,6 +286,12 @@
     truncate,
     realpath,
     chmod,
+    mkdtemp,
+    readlink,
+    symlink,
+    lstat,
+    chown,
+    utimes,
     constants,
   };
 

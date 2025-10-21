@@ -250,4 +250,59 @@ mod tests {
         let result = jstime.run_script("globalThis.testChmod", "test");
         assert_eq!(result.unwrap(), "true");
     }
+
+    #[test]
+    fn test_mkdtemp() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-mkdtemp.js");
+        let result = jstime.run_script("globalThis.testMkdtemp", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_symlink_readlink() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-symlink-readlink.js");
+        let result = jstime.run_script("globalThis.testSymlinkReadlink", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_lstat() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-lstat.js");
+        let result = jstime.run_script("globalThis.testLstat", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_chown() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-chown.js");
+        let result = jstime.run_script("globalThis.testChown", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_utimes() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-utimes.js");
+        let result = jstime.run_script("globalThis.testUtimes", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
 }
