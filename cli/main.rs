@@ -186,14 +186,7 @@ fn repl(mut jstime: jstime::JSTime) {
                     "URL" => vec!["createObjectURL", "revokeObjectURL", "prototype"],
                     "URLSearchParams" => vec!["prototype"],
                     "Headers" => vec![
-                        "append",
-                        "delete",
-                        "entries",
-                        "forEach",
-                        "get",
-                        "has",
-                        "keys",
-                        "set",
+                        "append", "delete", "entries", "forEach", "get", "has", "keys", "set",
                         "values",
                     ],
                     "Request" => vec![
