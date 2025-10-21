@@ -375,6 +375,9 @@ fn repl(mut jstime: jstime::JSTime) {
         .completion_type(rustyline::CompletionType::List)
         .build();
 
+    // Track if the last readline was interrupted (Ctrl+C) for double Ctrl+C exit
+    let mut last_was_interrupted = false;
+
     loop {
         // Channel for this readline
         let (tx, rx) = channel();
@@ -414,6 +417,9 @@ fn repl(mut jstime: jstime::JSTime) {
 
         match readline_result {
             Ok(line) => {
+                // Reset interrupt flag on successful input
+                last_was_interrupted = false;
+
                 // Add to both the main editor and shared history
                 let _ = rl.add_history_entry(line.as_str());
                 if let Ok(mut entries) = history_entries.lock() {
@@ -431,8 +437,15 @@ fn repl(mut jstime: jstime::JSTime) {
                 jstime.tick_event_loop();
             }
             Err(ReadlineError::Interrupted) => {
-                println!("Thanks for stopping by!");
-                break;
+                // Check if this is a consecutive Ctrl+C
+                if last_was_interrupted {
+                    println!("Thanks for stopping by!");
+                    break;
+                } else {
+                    // First Ctrl+C just clears the line and continues
+                    println!("(To exit, press Ctrl+C again)");
+                    last_was_interrupted = true;
+                }
             }
             Err(ReadlineError::Eof) => {
                 println!("Eof'd");
