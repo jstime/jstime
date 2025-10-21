@@ -383,8 +383,8 @@ fn repl(mut jstime: jstime::JSTime) {
 
         // Start readline in a separate thread
         thread::spawn(move || {
-            let mut rl_temp = Editor::<JsCompleter, DefaultHistory>::with_config(rl_config_clone)
-                .unwrap();
+            let mut rl_temp =
+                Editor::<JsCompleter, DefaultHistory>::with_config(rl_config_clone).unwrap();
             rl_temp.set_helper(Some(JsCompleter));
 
             // Load recent history into the temp editor

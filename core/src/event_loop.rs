@@ -214,7 +214,7 @@ impl EventLoop {
                     let state = crate::IsolateState::get(isolate);
                     let cache = state.borrow().string_cache.clone();
                     let mut cache_borrow = cache.borrow_mut();
-                    
+
                     // Set body
                     let body_key = if let Some(ref cached) = cache_borrow.body {
                         v8::Local::new(scope, cached)
@@ -257,7 +257,7 @@ impl EventLoop {
                         cache_borrow.headers = Some(v8::Global::new(scope, key));
                         key
                     };
-                    
+
                     drop(cache_borrow);
                     let headers_len = response_data.headers.len() as i32;
                     let headers_array = v8::Array::new(scope, headers_len);
