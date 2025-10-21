@@ -129,7 +129,7 @@ fn resolve_builtin_module<'a>(
         if (!mod) {{
             throw new Error('Built-in module not found: {}');
         }}
-        export const {{ readFile, readdir, writeFile, mkdir, rmdir, unlink, rename, copyFile, stat, access, constants }} = mod;
+        export const {{ readFile, readdir, writeFile, appendFile, mkdir, rmdir, unlink, rename, copyFile, stat, access, constants }} = mod;
         export default mod;
         "#,
         module_name, module_name

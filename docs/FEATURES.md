@@ -719,6 +719,7 @@ jstime provides a comprehensive Node.js-compatible file system API through the `
 
 - `readFile(path, options?)` - Read the entire contents of a file
 - `writeFile(path, data, options?)` - Write data to a file
+- `appendFile(path, data, options?)` - Append data to a file
 - `readdir(path, options?)` - Read the contents of a directory
 - `mkdir(path, options?)` - Create a directory
 - `rmdir(path, options?)` - Remove a directory
@@ -732,7 +733,7 @@ jstime provides a comprehensive Node.js-compatible file system API through the `
 ### Usage
 
 ```javascript
-import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
+import { readFile, writeFile, appendFile, mkdir, stat } from 'node:fs/promises';
 // or
 import * as fs from 'node:fs/promises';
 ```
@@ -775,6 +776,22 @@ await writeFile('./output.txt', 'Hello, World!', 'utf-8');
 // Write buffer
 const buffer = new Uint8Array([72, 101, 108, 108, 111]);
 await writeFile('./output.bin', buffer);
+```
+
+### Appending to Files
+
+```javascript
+import { appendFile } from 'node:fs/promises';
+
+// Append text to a file
+await appendFile('./log.txt', 'New log entry\n', 'utf-8');
+
+// Append buffer
+const buffer = new Uint8Array([72, 101, 108, 108, 111]);
+await appendFile('./data.bin', buffer);
+
+// Creates file if it doesn't exist
+await appendFile('./new-file.txt', 'First line\n');
 ```
 
 ### Directory Operations
@@ -928,6 +945,19 @@ Writes data to a file, replacing the file if it already exists.
 
 **Returns:** Promise<void>
 
+#### `appendFile(path, data, options?)`
+
+Appends data to a file, creating the file if it doesn't exist.
+
+**Parameters:**
+- `path` (string | Buffer | URL): The path to the file
+- `data` (string | Uint8Array): Data to append
+- `options` (object | string, optional):
+  - `encoding` (string): Character encoding. Defaults to 'utf8' for strings
+  - `flag` (string): File system flag. Defaults to 'a'
+
+**Returns:** Promise<void>
+
 #### `readdir(path, options?)`
 
 Reads the contents of a directory.
@@ -1038,6 +1068,7 @@ File system constants for use with `access()`:
 import { 
   readFile, 
   writeFile, 
+  appendFile,
   readdir, 
   mkdir, 
   stat, 
@@ -1046,6 +1077,9 @@ import {
 
 // Create output directory
 await mkdir('./output', { recursive: true });
+
+// Create a summary log file
+await writeFile('./output/summary.txt', 'Processing Summary\n==================\n\n');
 
 // Read all JavaScript files in a directory
 const files = await readdir('./src');
@@ -1062,6 +1096,9 @@ for (const file of jsFiles) {
   const stats = await stat(inputPath);
   console.log(`${file}: ${stats.size} bytes`);
   
+  // Append to summary log
+  await appendFile('./output/summary.txt', `${file}: ${stats.size} bytes\n`);
+  
   // Read and transform content
   const content = await readFile(inputPath, 'utf-8');
   const transformed = content.toUpperCase();
@@ -1072,27 +1109,6 @@ for (const file of jsFiles) {
 }
 
 console.log('Processing complete!');
-```
-
-Returns an array of filenames in the directory (excluding '.' and '..').
-
-### Example: Complete File Processing
-
-```javascript
-import { readFile, readdir } from 'node:fs/promises';
-
-// Read all JavaScript files in a directory
-const files = await readdir('./src');
-const jsFiles = files.filter(f => f.endsWith('.js'));
-
-console.log(`Found ${jsFiles.length} JavaScript files`);
-
-// Read and process each file
-for (const file of jsFiles) {
-  const content = await readFile(`./src/${file}`, 'utf-8');
-  const lines = content.split('\n').length;
-  console.log(`${file}: ${lines} lines`);
-}
 ```
 
 ## WebAssembly

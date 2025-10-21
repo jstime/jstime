@@ -12,6 +12,9 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
             function: v8::MapFnTo::map_fn_to(write_file),
         },
         v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(append_file),
+        },
+        v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(mkdir),
         },
         v8::ExternalReference {
@@ -46,6 +49,10 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 
     let name = v8::String::new(scope, "writeFile").unwrap();
     let value = v8::Function::new(scope, write_file).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "appendFile").unwrap();
+    let value = v8::Function::new(scope, append_file).unwrap();
     bindings.set(scope, name.into(), value.into());
 
     let name = v8::String::new(scope, "mkdir").unwrap();
@@ -256,6 +263,70 @@ fn write_file(
         Ok(_) => {}
         Err(e) => {
             let msg = v8::String::new(scope, &format!("Failed to write file: {}", e)).unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+        }
+    }
+}
+
+fn append_file(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    let arg_len = args.length();
+    if arg_len < 2 {
+        let msg = v8::String::new(scope, "path and data are required").unwrap();
+        let exception = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let path_arg = args.get(0);
+    let isolate: &v8::Isolate = scope;
+    let path_str = path_arg
+        .to_string(scope)
+        .unwrap()
+        .to_rust_string_lossy(isolate);
+
+    let data_arg = args.get(1);
+    let data = if data_arg.is_uint8_array() {
+        let uint8_array = v8::Local::<v8::Uint8Array>::try_from(data_arg).unwrap();
+        let mut buffer = vec![0u8; uint8_array.byte_length()];
+        let copied = uint8_array.copy_contents(&mut buffer);
+        if copied != buffer.len() {
+            let msg = v8::String::new(scope, "Failed to copy buffer data").unwrap();
+            let exception = v8::Exception::error(scope, msg);
+            scope.throw_exception(exception);
+            return;
+        }
+        buffer
+    } else {
+        let data_str = data_arg
+            .to_string(scope)
+            .unwrap()
+            .to_rust_string_lossy(isolate);
+        data_str.into_bytes()
+    };
+
+    // Use OpenOptions to append to file
+    use std::io::Write;
+    match fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path_str)
+    {
+        Ok(mut file) => match file.write_all(&data) {
+            Ok(_) => {}
+            Err(e) => {
+                let msg =
+                    v8::String::new(scope, &format!("Failed to append to file: {}", e)).unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+            }
+        },
+        Err(e) => {
+            let msg = v8::String::new(scope, &format!("Failed to open file: {}", e)).unwrap();
             let exception = v8::Exception::error(scope, msg);
             scope.throw_exception(exception);
         }

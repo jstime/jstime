@@ -4,7 +4,7 @@
 'use strict';
 
 // eslint-disable-next-line no-unused-expressions
-(({ readFile: _readFile, readDir: _readDir, writeFile: _writeFile, mkdir: _mkdir, rmdir: _rmdir, unlink: _unlink, rename: _rename, copyFile: _copyFile, stat: _stat, access: _access }) => {
+(({ readFile: _readFile, readDir: _readDir, writeFile: _writeFile, appendFile: _appendFile, mkdir: _mkdir, rmdir: _rmdir, unlink: _unlink, rename: _rename, copyFile: _copyFile, stat: _stat, access: _access }) => {
   // Helper to convert synchronous operations to promises
   function promisify(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -75,6 +75,17 @@
     // If it's a string, Rust will handle it
     // If it's a Uint8Array, Rust will handle it too
     return promisify(_writeFile, path, data);
+  }
+
+  /**
+   * Appends data to a file, creating the file if it doesn't exist.
+   * @param {string | Buffer | URL} path - filename
+   * @param {string | Buffer} data - data to append
+   * @param {Object | string} options - encoding or options object
+   * @returns {Promise<void>}
+   */
+  function appendFile(path, data, options) {
+    return promisify(_appendFile, path, data);
   }
 
   /**
@@ -160,6 +171,7 @@
     readFile,
     readdir,
     writeFile,
+    appendFile,
     mkdir,
     rmdir,
     unlink,

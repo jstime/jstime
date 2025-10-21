@@ -120,6 +120,17 @@ mod tests {
     }
 
     #[test]
+    fn test_appendfile() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let _result = jstime.import("./tests/fixtures/fs/test-appendfile.js");
+        let result = jstime.run_script("globalThis.testAppendFile", "test");
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
     fn test_mkdir() {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
