@@ -36,6 +36,7 @@ pub(crate) struct IsolateState {
     pub(crate) next_timer_id: Rc<RefCell<u64>>,
     pub(crate) pending_fetches: Rc<RefCell<Vec<FetchRequest>>>,
     pub(crate) string_cache: Rc<RefCell<StringCache>>,
+    pub(crate) http_agent: ureq::Agent,
 }
 
 impl IsolateState {
@@ -45,6 +46,14 @@ impl IsolateState {
         let next_timer_id = Rc::new(RefCell::new(1u64));
         let pending_fetches = Rc::new(RefCell::new(Vec::new()));
         let string_cache = Rc::new(RefCell::new(StringCache::new()));
+
+        // Create an HTTP agent for connection pooling
+        // Configure to not treat HTTP status codes as errors (fetch API expects this)
+        let config = ureq::config::Config::builder()
+            .http_status_as_error(false)
+            .build();
+        let http_agent = ureq::Agent::new_with_config(config);
+
         Rc::new(RefCell::new(IsolateState {
             context: Some(context),
             module_map: crate::module::ModuleMap::new(),
@@ -59,6 +68,7 @@ impl IsolateState {
             next_timer_id,
             pending_fetches,
             string_cache,
+            http_agent,
         }))
     }
 

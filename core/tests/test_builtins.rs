@@ -428,7 +428,7 @@ mod tests {
         std::fs::write(&test_file2, "export const url2 = import.meta.url;").unwrap();
         std::fs::write(
             &test_file1,
-            &format!(
+            format!(
                 "import {{ url2 }} from '{}';\nexport const different = import.meta.url !== url2;",
                 test_file2.to_str().unwrap()
             ),

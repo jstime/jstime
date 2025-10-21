@@ -192,9 +192,15 @@ impl EventLoop {
         let fetches: Vec<crate::isolate_state::FetchRequest> = fetches_borrow.drain(..).collect();
         drop(fetches_borrow);
 
+        // Get the HTTP agent from isolate state
+        let isolate: &mut v8::Isolate = scope;
+        let state = crate::IsolateState::get(isolate);
+        let agent = state.borrow().http_agent.clone();
+
         for fetch_request in fetches {
             // Execute the HTTP request in a blocking manner
             let result = Self::execute_fetch(
+                &agent,
                 &fetch_request.url,
                 &fetch_request.method,
                 &fetch_request.headers,
@@ -284,71 +290,79 @@ impl EventLoop {
 
     /// Execute an HTTP request using ureq
     fn execute_fetch(
+        agent: &ureq::Agent,
         url: &str,
         method: &str,
         headers: &[(String, String)],
         body: Option<&str>,
     ) -> Result<FetchResponse, String> {
-        let mut request = match method {
-            "GET" => ureq::get(url),
-            "POST" => ureq::post(url),
-            "PUT" => ureq::put(url),
-            "DELETE" => ureq::delete(url),
-            "HEAD" => ureq::head(url),
-            "PATCH" => ureq::patch(url),
+        // Build and execute the request based on method
+        let response = match method {
+            "GET" => {
+                let mut req = agent.get(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.call()
+            }
+            "HEAD" => {
+                let mut req = agent.head(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.call()
+            }
+            "DELETE" => {
+                let mut req = agent.delete(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.call()
+            }
+            "POST" => {
+                let mut req = agent.post(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.send(body.unwrap_or(""))
+            }
+            "PUT" => {
+                let mut req = agent.put(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.send(body.unwrap_or(""))
+            }
+            "PATCH" => {
+                let mut req = agent.patch(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.send(body.unwrap_or(""))
+            }
             _ => return Err(format!("Unsupported HTTP method: {}", method)),
         };
 
-        // Add headers
-        for (key, value) in headers {
-            request = request.set(key, value);
-        }
-
-        // Send request with optional body
-        let response = if let Some(body_data) = body {
-            request.send_string(body_data)
-        } else {
-            request.call()
-        };
-
         match response {
-            Ok(resp) => {
-                let status = resp.status();
-                let status_text = resp.status_text().to_string();
+            Ok(mut response) => {
+                let status_code = response.status();
+                let status = status_code.as_u16();
+                let status_text = status_code
+                    .canonical_reason()
+                    .unwrap_or("Unknown")
+                    .to_string();
 
-                // Get headers before consuming body
-                let header_names = resp.headers_names();
-                let mut response_headers = Vec::with_capacity(header_names.len());
-                for header_name in header_names {
-                    if let Some(header_value) = resp.header(&header_name) {
-                        response_headers.push((header_name.clone(), header_value.to_string()));
+                // Get headers - ureq 3.x uses http crate's HeaderMap
+                let headers_map = response.headers();
+                let mut response_headers = Vec::with_capacity(headers_map.len());
+                for (name, value) in headers_map {
+                    if let Ok(value_str) = value.to_str() {
+                        response_headers.push((name.as_str().to_string(), value_str.to_string()));
                     }
                 }
 
                 // Read body
-                let body = resp.into_string().unwrap_or_default();
-
-                Ok(FetchResponse {
-                    body,
-                    status,
-                    status_text,
-                    headers: response_headers,
-                })
-            }
-            Err(ureq::Error::Status(status, resp)) => {
-                // Handle error responses (4xx, 5xx)
-                let status_text = resp.status_text().to_string();
-
-                // Get headers before consuming body
-                let header_names = resp.headers_names();
-                let mut response_headers = Vec::with_capacity(header_names.len());
-                for header_name in header_names {
-                    if let Some(header_value) = resp.header(&header_name) {
-                        response_headers.push((header_name.clone(), header_value.to_string()));
-                    }
-                }
-
-                let body = resp.into_string().unwrap_or_default();
+                let body = response.body_mut().read_to_string().unwrap_or_default();
 
                 Ok(FetchResponse {
                     body,
