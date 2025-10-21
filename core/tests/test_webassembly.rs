@@ -83,7 +83,7 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const wasmCode = new Uint8Array([
                 0x00, 0x61, 0x73, 0x6d, // WASM_BINARY_MAGIC
@@ -91,7 +91,7 @@ mod tests {
             ]);
             WebAssembly.validate(wasmCode);
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "true");
     }
@@ -101,12 +101,12 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const invalidCode = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
             WebAssembly.validate(invalidCode);
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "false");
     }
@@ -116,7 +116,7 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             // Create a simple WebAssembly module that adds two numbers
             const wasmCode = new Uint8Array([
@@ -145,7 +145,7 @@ mod tests {
             const wasmInstance = new WebAssembly.Instance(wasmModule);
             wasmInstance.exports.add(5, 7);
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "12");
     }
@@ -155,12 +155,12 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const memory = new WebAssembly.Memory({ initial: 1 });
             memory.buffer instanceof ArrayBuffer;
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "true");
     }
@@ -170,13 +170,13 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const memory = new WebAssembly.Memory({ initial: 1, maximum: 10 });
             const oldSize = memory.grow(2);
             oldSize === 1 && memory.buffer.byteLength === 3 * 65536;
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "true");
     }
@@ -186,12 +186,12 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const table = new WebAssembly.Table({ initial: 2, element: 'anyfunc' });
             table.length;
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "2");
     }
@@ -201,7 +201,7 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             // Create a simple WebAssembly module that exports a function
             const wasmCode = new Uint8Array([
@@ -230,7 +230,7 @@ mod tests {
             const wasmInstance = new WebAssembly.Instance(wasmModule);
             typeof wasmInstance.exports.add === 'function';
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         assert_eq!(result.unwrap(), "true");
     }
@@ -240,7 +240,7 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const wasmCode = new Uint8Array([
                 0x00, 0x61, 0x73, 0x6d, // WASM_BINARY_MAGIC
@@ -251,7 +251,7 @@ mod tests {
                 return module instanceof WebAssembly.Module;
             });
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         // Returns a promise
         assert!(result.unwrap().contains("Promise"));
@@ -262,7 +262,7 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        
+
         let script = r#"
             const wasmCode = new Uint8Array([
                 0x00, 0x61, 0x73, 0x6d, // WASM_BINARY_MAGIC
@@ -274,7 +274,7 @@ mod tests {
                        result.module instanceof WebAssembly.Module;
             });
         "#;
-        
+
         let result = jstime.run_script(script, "test");
         // Returns a promise
         assert!(result.unwrap().contains("Promise"));
