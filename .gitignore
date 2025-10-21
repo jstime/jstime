@@ -1,2 +1,6 @@
 target/
 .vscode/
+# Ignore test output files
+test-*-output.*
+test-demo-*
+*-new.txt
