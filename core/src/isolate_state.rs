@@ -9,6 +9,24 @@ pub(crate) struct FetchRequest {
     pub(crate) resolver: v8::Global<v8::PromiseResolver>,
 }
 
+pub(crate) struct StringCache {
+    pub(crate) body: Option<v8::Global<v8::String>>,
+    pub(crate) status: Option<v8::Global<v8::String>>,
+    pub(crate) status_text: Option<v8::Global<v8::String>>,
+    pub(crate) headers: Option<v8::Global<v8::String>>,
+}
+
+impl StringCache {
+    pub(crate) fn new() -> Self {
+        Self {
+            body: None,
+            status: None,
+            status_text: None,
+            headers: None,
+        }
+    }
+}
+
 pub(crate) struct IsolateState {
     pub(crate) context: Option<v8::Global<v8::Context>>,
     pub(crate) module_map: crate::module::ModuleMap,
@@ -17,6 +35,7 @@ pub(crate) struct IsolateState {
     pub(crate) timers_to_add: Rc<RefCell<Vec<crate::event_loop::PendingTimer>>>,
     pub(crate) next_timer_id: Rc<RefCell<u64>>,
     pub(crate) pending_fetches: Rc<RefCell<Vec<FetchRequest>>>,
+    pub(crate) string_cache: Rc<RefCell<StringCache>>,
 }
 
 impl IsolateState {
@@ -25,6 +44,7 @@ impl IsolateState {
         let timers_to_add = Rc::new(RefCell::new(Vec::new()));
         let next_timer_id = Rc::new(RefCell::new(1u64));
         let pending_fetches = Rc::new(RefCell::new(Vec::new()));
+        let string_cache = Rc::new(RefCell::new(StringCache::new()));
         Rc::new(RefCell::new(IsolateState {
             context: Some(context),
             module_map: crate::module::ModuleMap::new(),
@@ -38,6 +58,7 @@ impl IsolateState {
             timers_to_add,
             next_timer_id,
             pending_fetches,
+            string_cache,
         }))
     }
 

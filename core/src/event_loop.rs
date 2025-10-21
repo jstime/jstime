@@ -59,8 +59,14 @@ impl EventLoop {
     }
 
     /// Process pending timers that were queued for addition
+    #[inline]
     fn add_pending_timers(&mut self) {
-        let pending: Vec<PendingTimer> = self.timers_to_add.borrow_mut().drain(..).collect();
+        let mut pending_borrow = self.timers_to_add.borrow_mut();
+        if pending_borrow.is_empty() {
+            return;
+        }
+        let pending: Vec<PendingTimer> = pending_borrow.drain(..).collect();
+        drop(pending_borrow);
 
         for pending_timer in pending {
             match pending_timer {
@@ -102,8 +108,14 @@ impl EventLoop {
     }
 
     /// Actually clear the marked timers
+    #[inline]
     fn clear_marked_timers(&mut self) {
-        let to_clear: Vec<TimerId> = self.timers_to_clear.borrow_mut().drain(..).collect();
+        let mut to_clear_borrow = self.timers_to_clear.borrow_mut();
+        if to_clear_borrow.is_empty() {
+            return;
+        }
+        let to_clear: Vec<TimerId> = to_clear_borrow.drain(..).collect();
+        drop(to_clear_borrow);
 
         for id in to_clear {
             if let Some(timer) = self.timers.remove(&id) {
@@ -130,9 +142,10 @@ impl EventLoop {
 
     /// Process timers that are ready to fire
     /// Returns the callbacks that should be executed
+    #[inline]
     fn collect_ready_timers(&mut self) -> Vec<(TimerId, v8::Global<v8::Function>, bool)> {
         let now = Instant::now();
-        let mut ready_callbacks = Vec::new();
+        let mut ready_callbacks = Vec::with_capacity(8);
 
         // Collect all timers that should fire
         let ready_times: Vec<Instant> = self
@@ -157,6 +170,7 @@ impl EventLoop {
     }
 
     /// Reschedule an interval timer
+    #[inline]
     fn reschedule_interval(&mut self, id: TimerId) {
         if let Some(timer) = self.timers.get_mut(&id)
             && let Some(interval) = timer.interval
@@ -169,9 +183,14 @@ impl EventLoop {
     }
 
     /// Process pending fetch requests
+    #[inline]
     fn process_fetches(&mut self, scope: &mut v8::PinScope) {
-        let fetches: Vec<crate::isolate_state::FetchRequest> =
-            self.pending_fetches.borrow_mut().drain(..).collect();
+        let mut fetches_borrow = self.pending_fetches.borrow_mut();
+        if fetches_borrow.is_empty() {
+            return;
+        }
+        let fetches: Vec<crate::isolate_state::FetchRequest> = fetches_borrow.drain(..).collect();
+        drop(fetches_borrow);
 
         for fetch_request in fetches {
             // Execute the HTTP request in a blocking manner
@@ -190,25 +209,58 @@ impl EventLoop {
                     // Create response object
                     let obj = v8::Object::new(scope);
 
+                    // Get or create cached string keys
+                    let isolate: &mut v8::Isolate = scope;
+                    let state = crate::IsolateState::get(isolate);
+                    let cache = state.borrow().string_cache.clone();
+                    let mut cache_borrow = cache.borrow_mut();
+                    
                     // Set body
-                    let body_key = v8::String::new(scope, "body").unwrap();
+                    let body_key = if let Some(ref cached) = cache_borrow.body {
+                        v8::Local::new(scope, cached)
+                    } else {
+                        let key = v8::String::new(scope, "body").unwrap();
+                        cache_borrow.body = Some(v8::Global::new(scope, key));
+                        key
+                    };
                     let body_value = v8::String::new(scope, &response_data.body).unwrap();
                     obj.set(scope, body_key.into(), body_value.into());
 
                     // Set status
-                    let status_key = v8::String::new(scope, "status").unwrap();
+                    let status_key = if let Some(ref cached) = cache_borrow.status {
+                        v8::Local::new(scope, cached)
+                    } else {
+                        let key = v8::String::new(scope, "status").unwrap();
+                        cache_borrow.status = Some(v8::Global::new(scope, key));
+                        key
+                    };
                     let status_value = v8::Integer::new(scope, response_data.status as i32);
                     obj.set(scope, status_key.into(), status_value.into());
 
                     // Set statusText
-                    let status_text_key = v8::String::new(scope, "statusText").unwrap();
+                    let status_text_key = if let Some(ref cached) = cache_borrow.status_text {
+                        v8::Local::new(scope, cached)
+                    } else {
+                        let key = v8::String::new(scope, "statusText").unwrap();
+                        cache_borrow.status_text = Some(v8::Global::new(scope, key));
+                        key
+                    };
                     let status_text_value =
                         v8::String::new(scope, &response_data.status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
 
                     // Set headers
-                    let headers_key = v8::String::new(scope, "headers").unwrap();
-                    let headers_array = v8::Array::new(scope, response_data.headers.len() as i32);
+                    let headers_key = if let Some(ref cached) = cache_borrow.headers {
+                        v8::Local::new(scope, cached)
+                    } else {
+                        let key = v8::String::new(scope, "headers").unwrap();
+                        cache_borrow.headers = Some(v8::Global::new(scope, key));
+                        key
+                    };
+                    
+                    drop(cache_borrow);
+                    let headers_len = response_data.headers.len() as i32;
+                    let headers_array = v8::Array::new(scope, headers_len);
                     for (i, (key, value)) in response_data.headers.iter().enumerate() {
                         let entry = v8::Array::new(scope, 2);
                         let key_str = v8::String::new(scope, key).unwrap();
@@ -265,8 +317,9 @@ impl EventLoop {
                 let status_text = resp.status_text().to_string();
 
                 // Get headers before consuming body
-                let mut response_headers = Vec::new();
-                for header_name in resp.headers_names() {
+                let header_names = resp.headers_names();
+                let mut response_headers = Vec::with_capacity(header_names.len());
+                for header_name in header_names {
                     if let Some(header_value) = resp.header(&header_name) {
                         response_headers.push((header_name.clone(), header_value.to_string()));
                     }
@@ -287,8 +340,9 @@ impl EventLoop {
                 let status_text = resp.status_text().to_string();
 
                 // Get headers before consuming body
-                let mut response_headers = Vec::new();
-                for header_name in resp.headers_names() {
+                let header_names = resp.headers_names();
+                let mut response_headers = Vec::with_capacity(header_names.len());
+                for header_name in header_names {
                     if let Some(header_value) = resp.header(&header_name) {
                         response_headers.push((header_name.clone(), header_value.to_string()));
                     }

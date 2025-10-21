@@ -8,12 +8,25 @@ mod script;
 pub(crate) use isolate_state::IsolateState;
 
 pub fn init(v8_flags: Option<Vec<String>>) {
-    if let Some(mut v8_flags) = v8_flags {
-        v8_flags.push("jstime".to_owned());
-        v8_flags.rotate_right(1);
-
-        v8::V8::set_flags_from_command_line(v8_flags);
+    let mut flags = v8_flags.unwrap_or_default();
+    
+    // Add performance-oriented V8 flags if not already present
+    let perf_flags = [
+        "--turbofan",           // Enable TurboFan optimizing compiler
+        "--always-turbofan",    // Always optimize functions
+        "--no-lazy",            // Compile all functions immediately
+    ];
+    
+    for flag in &perf_flags {
+        if !flags.iter().any(|f| f.starts_with(flag)) {
+            flags.push(flag.to_string());
+        }
     }
+    
+    flags.push("jstime".to_owned());
+    flags.rotate_right(1);
+    
+    v8::V8::set_flags_from_command_line(flags);
 
     let platform = v8::new_default_platform(0, false).make_shared();
     v8::V8::initialize_platform(platform);
