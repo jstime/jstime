@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(result.unwrap(), r#"{"a":1,"b":"test"}"#);
     }
 
-        #[test]
+    #[test]
     fn atob_exists() {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
