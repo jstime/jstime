@@ -44,7 +44,7 @@ instructions on how to embed jstime in your rust application!
 
 jstime provides a minimal and performant JavaScript runtime with essential APIs.
 
-For detailed documentation on all supported features, see [FEATURES.md](./FEATURES.md).
+For detailed documentation on all supported features, see [FEATURES.md](./docs/FEATURES.md).
 
 ### Quick Overview
 
@@ -59,7 +59,7 @@ For detailed documentation on all supported features, see [FEATURES.md](./FEATUR
 
 ## Current Project Team Members
 
-for information about the governance of the jstime project, see
+For information about the governance of the jstime project, see
 [GOVERNANCE.md](./GOVERNANCE.md).
 
 ### Chair
@@ -77,6 +77,3 @@ for information about the governance of the jstime project, see
 * [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
 * [solumos](https://github.com/solumos) - **Tom Hadley**
 
-## TODO
-
-* Some sort of system interface, maybe [WASI](https://wasi.dev/)
