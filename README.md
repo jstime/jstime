@@ -55,6 +55,7 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 - **Performance API**: High-resolution timing with `performance.now()`
 - **Microtask API**: `queueMicrotask()` for fine-grained async control
 - **Structured Clone API**: `structuredClone()` for deep cloning of complex objects
+- **WebAssembly**: Full WebAssembly support for running high-performance compiled modules
 - **ES Modules**: Full support for `import`/`export` with top-level await
 - **Modern JavaScript**: All ES2015+ features via V8 engine
 
