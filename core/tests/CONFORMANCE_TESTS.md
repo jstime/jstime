@@ -69,6 +69,22 @@ This directory contains conformance tests for jstime's implementation of standar
   - URLSearchParams iteration
   - Live binding between URL and searchParams
 
+### WebAssembly
+- **File**: `test_conformance_webassembly.rs`
+- **Specification**: [WebAssembly JavaScript Interface](https://webassembly.github.io/spec/js-api/)
+- **Tests**: 28 tests
+- **Coverage**:
+  - `WebAssembly` namespace
+  - `WebAssembly.Module` constructor and static methods (imports, exports, customSections)
+  - `WebAssembly.Instance` constructor and exports property
+  - `WebAssembly.Memory` constructor, buffer property, and grow method
+  - `WebAssembly.Table` constructor, length property, and methods (get, set, grow)
+  - `WebAssembly.compile()` asynchronous compilation
+  - `WebAssembly.instantiate()` asynchronous instantiation
+  - `WebAssembly.validate()` bytecode validation
+  - Error constructors (CompileError, LinkError, RuntimeError)
+  - Error hierarchy and inheritance
+
 ### Timers API
 - **File**: `test_conformance_timers.rs`
 - **Specification**: [WHATWG HTML Standard - Timers](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html)
@@ -85,7 +101,7 @@ This directory contains conformance tests for jstime's implementation of standar
 To run all conformance tests:
 
 ```bash
-cargo test --test test_conformance_base64 --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_timers --test test_conformance_url
+cargo test --test test_conformance_base64 --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_timers --test test_conformance_url --test test_conformance_webassembly
 ```
 
 To run a specific conformance test suite:
@@ -108,6 +124,9 @@ cargo test --test test_conformance_timers
 
 # URL conformance tests
 cargo test --test test_conformance_url
+
+# WebAssembly conformance tests
+cargo test --test test_conformance_webassembly
 ```
 
 ## Test Philosophy
@@ -142,8 +161,8 @@ When adding new conformance tests:
 
 ## Total Coverage
 
-- **Total Test Files**: 6
-- **Total Tests**: 136
-- **APIs Covered**: Base64 Encoding, Console, Fetch, Performance, Timers, URL
+- **Total Test Files**: 7
+- **Total Tests**: 164
+- **APIs Covered**: Base64 Encoding, Console, Fetch, Performance, Timers, URL, WebAssembly
 
 All tests pass ✓
