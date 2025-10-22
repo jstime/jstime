@@ -18,6 +18,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 - [Structured Clone API](#structured-clone-api)
 - [Base64 Encoding](#base64-encoding)
 - [Text Encoding API](#text-encoding-api)
+- [Process API](#process-api)
 - [Web Cryptography API](#web-cryptography-api)
 - [File System API](#file-system-api)
 - [WebAssembly](#webassembly)
@@ -1366,6 +1367,213 @@ Potential additions being considered:
 - Additional hash algorithms
 - HMAC support
 - AES encryption/decryption
+
+## Process API
+
+jstime implements a subset of the [Node.js Process API](https://nodejs.org/api/process.html), providing access to process information, environment variables, command-line arguments, and process control.
+
+### Supported APIs
+
+- `process.env` - Access environment variables
+- `process.argv` - Access command-line arguments
+- `process.cwd()` - Get current working directory
+- `process.exit(code?)` - Exit the process with an optional exit code
+
+### process.env
+
+The `process.env` property returns an object containing the user environment variables.
+
+#### Example
+
+```javascript
+// Access environment variables
+console.log('Home directory:', process.env.HOME);
+console.log('PATH:', process.env.PATH);
+
+// Check if a variable exists
+if (process.env.NODE_ENV) {
+  console.log('Running in:', process.env.NODE_ENV);
+}
+
+// Common environment variables
+console.log('User:', process.env.USER);
+console.log('Shell:', process.env.SHELL);
+```
+
+**Note:** `process.env` is read-only. Setting properties on it will not modify the actual environment variables.
+
+### process.argv
+
+The `process.argv` property returns an array containing the command-line arguments passed when the jstime process was launched. The first element is the path to the jstime executable, and the second element (if present) is the path to the JavaScript file being executed.
+
+#### Example
+
+```javascript
+// Print all command-line arguments
+console.log('Arguments:', process.argv);
+
+// Get the executable path
+console.log('Executable:', process.argv[0]);
+
+// Get the script path (if running a script)
+if (process.argv.length > 1) {
+  console.log('Script:', process.argv[1]);
+}
+
+// Get additional arguments
+if (process.argv.length > 2) {
+  console.log('Additional args:', process.argv.slice(2));
+}
+```
+
+**Example usage:**
+```bash
+$ jstime script.js arg1 arg2 arg3
+# process.argv will be: ['jstime', 'script.js', 'arg1', 'arg2', 'arg3']
+```
+
+### process.cwd()
+
+The `process.cwd()` method returns the current working directory of the jstime process.
+
+#### Example
+
+```javascript
+// Get current working directory
+const cwd = process.cwd();
+console.log('Current directory:', cwd);
+
+// Use with path operations
+import { readFile } from 'node:fs/promises';
+
+// Read a file relative to cwd
+const configPath = `${process.cwd()}/config.json`;
+const config = await readFile(configPath, 'utf-8');
+console.log('Config:', config);
+```
+
+**Returns:** String representing the current working directory path.
+
+### process.exit(code?)
+
+The `process.exit()` method instructs jstime to terminate the process synchronously with an exit status. If `code` is omitted, exit uses the 'success' code `0`.
+
+#### Example
+
+```javascript
+// Exit with success code (0)
+process.exit();
+
+// Exit with a specific code
+process.exit(1); // Indicates an error
+
+// Conditional exit
+if (someErrorCondition) {
+  console.error('Fatal error occurred');
+  process.exit(1);
+}
+
+// Exit after cleanup
+console.log('Performing cleanup...');
+// ... cleanup code ...
+process.exit(0);
+```
+
+**Parameters:**
+- `code` (number, optional): The exit code. Defaults to `0` (success).
+
+**Common exit codes:**
+- `0`: Success
+- `1`: General error
+- `2`: Misuse of shell command
+- Other non-zero values indicate various error conditions
+
+**Note:** `process.exit()` terminates the process immediately, preventing any remaining asynchronous operations from completing. Use it only when necessary.
+
+### Complete Example
+
+```javascript
+// script.js - A simple script using the Process API
+
+// Check environment
+console.log('=== Environment ===');
+console.log('User:', process.env.USER || process.env.USERNAME);
+console.log('Home:', process.env.HOME || process.env.USERPROFILE);
+
+// Parse command-line arguments
+console.log('\n=== Arguments ===');
+console.log('Executable:', process.argv[0]);
+if (process.argv.length > 1) {
+  console.log('Script:', process.argv[1]);
+}
+
+// Check for --help flag
+if (process.argv.includes('--help')) {
+  console.log('\nUsage: jstime script.js [options]');
+  process.exit(0);
+}
+
+// Get additional arguments
+const args = process.argv.slice(2);
+if (args.length > 0) {
+  console.log('Additional arguments:', args);
+}
+
+// Show current directory
+console.log('\n=== Working Directory ===');
+console.log('CWD:', process.cwd());
+
+// Exit with success
+console.log('\n✅ Script completed successfully');
+process.exit(0);
+```
+
+**Running the example:**
+```bash
+$ jstime script.js --verbose arg1 arg2
+=== Environment ===
+User: alice
+Home: /home/alice
+
+=== Arguments ===
+Executable: jstime
+Script: script.js
+Additional arguments: [ '--verbose', 'arg1', 'arg2' ]
+
+=== Working Directory ===
+CWD: /home/alice/projects/myapp
+
+✅ Script completed successfully
+```
+
+### Use Cases
+
+The Process API is useful for:
+
+- **Configuration**: Reading API keys, database URLs, and other config from environment variables
+- **Command-line tools**: Building CLI applications that parse arguments
+- **Path resolution**: Working with file paths relative to the current directory
+- **Error handling**: Exiting with appropriate error codes for shell scripts
+- **Debugging**: Inspecting the runtime environment
+
+### Comparison with Node.js
+
+jstime's Process API implements a minimal subset of Node.js's process object:
+
+| Feature | jstime | Node.js |
+|---------|--------|---------|
+| `process.env` | ✅ (read-only) | ✅ (read/write) |
+| `process.argv` | ✅ | ✅ |
+| `process.cwd()` | ✅ | ✅ |
+| `process.exit(code)` | ✅ | ✅ |
+| `process.chdir(dir)` | ❌ | ✅ |
+| `process.pid` | ❌ | ✅ |
+| `process.platform` | ❌ | ✅ |
+| `process.version` | ❌ | ✅ |
+| `process.stdin/stdout/stderr` | ❌ | ✅ |
+| Event emitters | ❌ | ✅ |
+
+For most common use cases (configuration, CLI arguments, working directory), jstime's Process API provides sufficient functionality.
 
 ## File System API
 

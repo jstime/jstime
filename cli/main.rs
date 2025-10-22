@@ -2,6 +2,7 @@ use jstime_core as jstime;
 use std::env;
 use std::process;
 use structopt::StructOpt;
+use structopt::clap;
 
 #[derive(StructOpt)]
 #[structopt(name = "jstime", rename_all = "kebab-case")]
@@ -20,7 +21,44 @@ struct Opt {
 }
 
 fn main() {
-    let opt = Opt::from_args();
+    // Parse arguments manually to support trailing script arguments
+    let all_args: Vec<String> = env::args().collect();
+
+    // Split at filename (first non-flag argument)
+    let mut structopt_args = vec![all_args[0].clone()];
+    let mut script_args = Vec::new();
+    let mut found_filename = false;
+
+    for (_i, arg) in all_args.iter().enumerate().skip(1) {
+        if !found_filename && !arg.starts_with("--") && !arg.starts_with('-') {
+            // This is the filename
+            structopt_args.push(arg.clone());
+            found_filename = true;
+        } else if found_filename {
+            // These are script arguments
+            script_args.push(arg.clone());
+        } else {
+            // These are jstime options
+            structopt_args.push(arg.clone());
+        }
+    }
+
+    let opt = Opt::from_iter_safe(&structopt_args);
+    let opt = match opt {
+        Ok(o) => o,
+        Err(e) => {
+            // For help and version, print to stdout and exit with success
+            if e.kind == clap::ErrorKind::HelpDisplayed
+                || e.kind == clap::ErrorKind::VersionDisplayed
+            {
+                println!("{}", e);
+                process::exit(0);
+            }
+            // For other errors, print to stderr and exit with failure
+            eprintln!("{}", e);
+            process::exit(1);
+        }
+    };
 
     if opt.version {
         println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
@@ -32,7 +70,22 @@ fn main() {
             .map(|o| o.split(' ').map(|s| s.to_owned()).collect()),
     );
 
-    let options = jstime::Options::new(None);
+    // Build process.argv - executable path and script arguments
+    let mut process_argv = Vec::new();
+
+    // First argument is always the executable
+    process_argv.push(all_args[0].clone());
+
+    // Add the filename if provided
+    if let Some(ref filename) = opt.filename {
+        process_argv.push(filename.clone());
+    }
+
+    // Add any additional script arguments
+    process_argv.extend(script_args);
+
+    let mut options = jstime::Options::new(None);
+    options.process_argv = process_argv;
     // let options = jstime::Options::new(Some(include_bytes!(concat!(
     //     env!("OUT_DIR"),
     //     "/snapshot_data.blob"

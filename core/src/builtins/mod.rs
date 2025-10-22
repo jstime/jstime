@@ -21,6 +21,7 @@ mod w3c {
 // Node.js Compatible APIs
 mod node {
     pub(crate) mod fs_impl;
+    pub(crate) mod process_impl;
 }
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
@@ -45,6 +46,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
 
     // Node.js
     refs.extend(node::fs_impl::get_external_references());
+    refs.extend(node::process_impl::get_external_references());
 
     refs
 }
@@ -74,6 +76,7 @@ impl Builtins {
 
         // Node.js
         node::fs_impl::register_bindings(scope, bindings);
+        node::process_impl::register_bindings(scope, bindings);
 
         macro_rules! builtin {
             ($name:expr) => {
@@ -107,5 +110,6 @@ impl Builtins {
 
         // Node.js
         builtin!("./node/fs.js");
+        builtin!("./node/process.js");
     }
 }
