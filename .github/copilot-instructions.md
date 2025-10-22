@@ -8,9 +8,9 @@ jstime is a minimal and performant JavaScript runtime built on top of the V8 Jav
 
 - **`jstime_core`** (`core/`): The core runtime library that wraps V8 and provides JavaScript APIs
   - Built-in APIs organized by standards:
-    - **WHATWG**: console, timers, fetch, URL, events (Event/EventTarget), base64, structured clone, microtask queue
-    - **W3C**: performance
-    - **Node.js compatible**: file system (fs/promises)
+    - **WHATWG**: console, timers, fetch, URL, events (Event/EventTarget), base64, structured clone, microtask queue, streams, text encoding
+    - **W3C**: performance, crypto (Web Cryptography API subset)
+    - **Node.js compatible**: file system (fs/promises), process
   - Module loading system with ES modules and JSON modules support
   - Event loop implementation for async operations
   - WebAssembly support via V8
@@ -48,6 +48,8 @@ jstime is a minimal and performant JavaScript runtime built on top of the V8 Jav
 - **urlencoding** (2.1): URL encoding/decoding utilities
 - **rustc-hash** (2.1): Fast non-cryptographic hashing for module maps
 - **filetime** (0.2): File timestamp manipulation for fs API
+- **ring** (0.17): Cryptographic operations for crypto API
+- **align-data** (0.1.0): Data alignment utilities
 - **lazy_static** (1.5.0): Lazy static initialization
 - **rustyline** (17.0.2): REPL implementation with line editing (in cli crate)
 - **structopt** (0.3.26): CLI argument parsing (in cli crate)
@@ -94,12 +96,19 @@ Built-in APIs are located in `core/src/builtins/` and organized by standards bod
 - **base64_impl.rs / base64.js**: atob() and btoa() for base64 encoding/decoding
 - **structured_clone_impl.rs / structured_clone.js**: structuredClone() for deep cloning
 - **queue_microtask_impl.rs / queue_microtask.js**: queueMicrotask()
+- **streams_impl.rs / streams.js**: ReadableStream, WritableStream, TransformStream
+- **text_encoding_impl.rs / text_encoding.js**: TextEncoder and TextDecoder for UTF-8
 
 **W3C Standards** (`w3c/`):
 - **performance_impl.rs / performance.js**: performance.now() and performance.timeOrigin
+- **crypto_impl.rs / crypto.js**: crypto.getRandomValues(), crypto.randomUUID(), crypto.subtle.digest()
 
 **Node.js Compatible** (`node/`):
 - **fs_impl.rs / fs.js**: File system API (node:fs/promises module)
+- **process_impl.rs / process.js**: process.env, process.argv, process.cwd(), process.exit(), process.stdout, process.stderr, process.stdin
+
+**Polyfills** (`polyfills/`):
+- **date_locale.js**: Date.prototype.toLocaleString() and related methods
 
 ### Adding New Built-ins
 
@@ -128,15 +137,18 @@ Built-in APIs are located in `core/src/builtins/` and organized by standards bod
 - **`core/tests/test_conformance_*.rs`**: WHATWG/W3C spec conformance tests
   - `test_conformance_base64.rs`: Base64 encoding (29 tests)
   - `test_conformance_console.rs`: Console API (13 tests)
-  - `test_conformance_event.rs`: Event and EventTarget (tests)
+  - `test_conformance_crypto.rs`: Crypto API (17 tests)
+  - `test_conformance_event.rs`: Event and EventTarget (33 tests)
   - `test_conformance_fetch.rs`: Fetch API (32 tests)
+  - `test_conformance_json_modules.rs`: JSON module imports (12 tests)
   - `test_conformance_performance.rs`: Performance API (19 tests)
+  - `test_conformance_streams.rs`: Streams API (26 tests)
+  - `test_conformance_structured_clone.rs`: Structured clone (21 tests)
+  - `test_conformance_text_encoding.rs`: Text Encoding API (39 tests)
   - `test_conformance_timers.rs`: Timers API (17 tests)
   - `test_conformance_url.rs`: URL API (26 tests)
   - `test_conformance_webassembly.rs`: WebAssembly API (28 tests)
-  - `test_conformance_structured_clone.rs`: Structured clone (tests)
-  - `test_conformance_json_modules.rs`: JSON module imports (tests)
-- **`core/tests/test_*.rs`**: Feature-specific tests (timers, fetch, fs, webassembly)
+- **`core/tests/test_*.rs`**: Feature-specific tests (timers, fetch, fs, process, crypto, webassembly)
 - **`core/tests/common/mod.rs`**: Shared test utilities (setup guards, helper functions)
 - **`core/tests/fixtures/`**: Test data and sample files organized by feature
 

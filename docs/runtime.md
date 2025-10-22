@@ -126,17 +126,16 @@ $ jstime module.mjs
 
 ## Limitations and Future Work
 
-While jstime provides a solid foundation for JavaScript execution, there are some limitations:
+While jstime provides a solid foundation for JavaScript execution with many web standard APIs, there are some limitations:
 
-- **No file system API**: Currently no built-in API for reading/writing files
-- **No process API**: No access to environment variables or process information
-- **Limited streaming**: Fetch API doesn't support streaming response bodies
 - **No WebSocket support**: WebSocket API not yet implemented
+- **Limited DOM APIs**: No DOM APIs (this is a server-side runtime)
+- **Limited Node.js compatibility**: Only a subset of Node.js APIs are available
 
 Future enhancements being considered:
 
-- **WASI (WebAssembly System Interface)**: Support for WASI to enable WebAssembly modules to access file system and other system APIs
+- **WASI (WebAssembly System Interface)**: Support for WASI to enable WebAssembly modules to access additional system APIs
 - **Additional Web APIs**: More browser APIs as they become relevant
-- **Node.js compatibility layer**: Compatibility APIs for running Node.js code
+- **Expanded Node.js compatibility**: Additional Node.js APIs where applicable
 
 ## Additional Resources

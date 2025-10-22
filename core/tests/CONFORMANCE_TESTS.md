@@ -96,6 +96,23 @@ This directory contains conformance tests for jstime's implementation of standar
   - Argument passing to timer callbacks
   - Timer ordering and execution
 
+### Event and EventTarget
+- **File**: `test_conformance_event.rs`
+- **Specification**: [DOM Standard - Events](https://dom.spec.whatwg.org/#events)
+- **Tests**: 33 tests
+- **Coverage**:
+  - `Event` constructor and properties (type, target, currentTarget, eventPhase)
+  - Event state properties (bubbles, cancelable, defaultPrevented, composed, isTrusted, timeStamp)
+  - Event methods (preventDefault, stopPropagation, stopImmediatePropagation)
+  - Event phase constants (NONE, CAPTURING_PHASE, AT_TARGET, BUBBLING_PHASE)
+  - `EventTarget` constructor
+  - Event listener registration (addEventListener)
+  - Event listener removal (removeEventListener)
+  - Event dispatching (dispatchEvent)
+  - Multiple listeners on same target
+  - Listener execution order
+  - Event propagation control
+
 ### Streams API
 - **File**: `test_conformance_streams.rs`
 - **Specification**: [WHATWG Streams Standard](https://streams.spec.whatwg.org/)
@@ -113,12 +130,71 @@ This directory contains conformance tests for jstime's implementation of standar
   - Integration with Fetch API (`Response.body`)
   - Data transformation through pipelines
 
+### Text Encoding API
+- **File**: `test_conformance_text_encoding.rs`
+- **Specification**: [WHATWG Encoding Standard](https://encoding.spec.whatwg.org/)
+- **Tests**: 39 tests
+- **Coverage**:
+  - `TextEncoder` constructor and encoding property
+  - `TextEncoder.encode()` method with UTF-8 encoding
+  - `TextEncoder.encodeInto()` method for efficient encoding
+  - `TextDecoder` constructor with encoding label support
+  - `TextDecoder` properties (encoding, fatal, ignoreBOM)
+  - `TextDecoder.decode()` method
+  - Multi-byte character encoding (2-byte, 3-byte, 4-byte UTF-8)
+  - Empty string and buffer handling
+  - Special characters and emoji encoding/decoding
+  - Buffer overflow handling in encodeInto
+  - Round-trip encoding and decoding
+
+### Structured Clone API
+- **File**: `test_conformance_structured_clone.rs`
+- **Specification**: [HTML Standard - Structured Clone](https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning)
+- **Tests**: 21 tests
+- **Coverage**:
+  - `structuredClone()` global function
+  - Primitive types (strings, numbers, booleans, null, undefined, BigInt)
+  - Object cloning with deep copy
+  - Array cloning with nested structures
+  - Date object cloning
+  - RegExp cloning with flags
+  - Map cloning
+  - Set cloning
+  - ArrayBuffer and TypedArray cloning
+  - Circular reference handling
+  - Error handling for non-cloneable types (functions, symbols)
+
+### Crypto API
+- **File**: `test_conformance_crypto.rs`
+- **Specification**: [W3C Web Cryptography API](https://w3c.github.io/webcrypto/)
+- **Tests**: 17 tests
+- **Coverage**:
+  - `crypto` global object
+  - `crypto.getRandomValues()` with various TypedArray types
+  - `crypto.randomUUID()` UUID v4 generation
+  - `crypto.subtle.digest()` with SHA-256, SHA-384, SHA-512
+  - Hash output sizes and formats
+  - Error handling for invalid algorithm names
+  - Error handling for non-TypedArray inputs
+
+### JSON Modules
+- **File**: `test_conformance_json_modules.rs`
+- **Specification**: [JSON modules proposal](https://github.com/tc39/proposal-json-modules)
+- **Tests**: 12 tests
+- **Coverage**:
+  - JSON module imports with `import` statement
+  - Default export behavior
+  - Object and array JSON imports
+  - Nested JSON structure imports
+  - Module resolution for JSON files
+  - Error handling for invalid JSON
+
 ## Running Conformance Tests
 
 To run all conformance tests:
 
 ```bash
-cargo test --test test_conformance_base64 --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_streams --test test_conformance_timers --test test_conformance_url --test test_conformance_webassembly
+cargo test test_conformance_
 ```
 
 To run a specific conformance test suite:
@@ -130,14 +206,29 @@ cargo test --test test_conformance_base64
 # Console conformance tests
 cargo test --test test_conformance_console
 
+# Crypto conformance tests
+cargo test --test test_conformance_crypto
+
+# Event conformance tests
+cargo test --test test_conformance_event
+
 # Fetch conformance tests
 cargo test --test test_conformance_fetch
+
+# JSON modules conformance tests
+cargo test --test test_conformance_json_modules
 
 # Performance conformance tests
 cargo test --test test_conformance_performance
 
 # Streams conformance tests
 cargo test --test test_conformance_streams
+
+# Structured Clone conformance tests
+cargo test --test test_conformance_structured_clone
+
+# Text Encoding conformance tests
+cargo test --test test_conformance_text_encoding
 
 # Timers conformance tests
 cargo test --test test_conformance_timers
@@ -181,8 +272,8 @@ When adding new conformance tests:
 
 ## Total Coverage
 
-- **Total Test Files**: 8
-- **Total Tests**: 190
-- **APIs Covered**: Base64 Encoding, Console, Fetch, Performance, Streams, Timers, URL, WebAssembly
+- **Total Test Files**: 13
+- **Total Tests**: 312
+- **APIs Covered**: Base64 Encoding, Console, Crypto, Event and EventTarget, Fetch, JSON Modules, Performance, Streams, Structured Clone, Text Encoding, Timers, URL, WebAssembly
 
 All tests pass ✓

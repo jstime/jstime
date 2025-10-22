@@ -5,6 +5,7 @@ This document describes the module system support in jstime, including ES Module
 ## Table of Contents
 
 - [ES Modules](#es-modules)
+- [JSON Modules](#json-modules)
 - [WebAssembly](#webassembly)
 
 
@@ -274,5 +275,85 @@ console.log('Data file URL:', dataPath.href);
 $ jstime main.js
 
 # The runtime automatically handles module imports
+```
+
+## JSON Modules
+
+jstime supports importing JSON files as ES modules, following the [JSON modules proposal](https://github.com/tc39/proposal-json-modules). This allows you to import JSON data directly into your JavaScript code.
+
+**📁 Example:** See [examples/json-import-example.js](../../examples/json-import-example.js) for a complete demonstration.
+
+### Features
+
+- Import JSON files using standard `import` syntax
+- JSON data is parsed and available as the default export
+- Type-safe: imported values are standard JavaScript objects/arrays
+- Automatic file resolution with `.json` extension
+
+### Examples
+
+**data.json**
+```json
+{
+  "name": "jstime",
+  "version": "0.60.0",
+  "features": ["ES Modules", "WebAssembly", "Fetch API"]
+}
+```
+
+**app.js**
+```javascript
+// Import JSON data as the default export
+import data from './data.json';
+
+console.log(data.name);        // "jstime"
+console.log(data.version);     // "0.60.0"
+console.log(data.features[0]); // "ES Modules"
+```
+
+**config-example.js**
+```javascript
+// Import JSON configuration
+import config from './config.json';
+
+// Use the configuration data
+console.log(`App: ${config.app.name}`);
+console.log(`Environment: ${config.environment}`);
+console.log(`API URL: ${config.api.url}`);
+
+// JSON data is a regular JavaScript object
+const features = config.features.map(f => f.toUpperCase());
+console.log('Features:', features);
+```
+
+**array-example.js**
+```javascript
+// Import a JSON array
+import users from './users.json';
+
+// Work with the imported array
+users.forEach(user => {
+  console.log(`${user.name}: ${user.email}`);
+});
+
+// Filter and transform
+const admins = users.filter(u => u.role === 'admin');
+console.log(`Found ${admins.length} administrators`);
+```
+
+### Usage Notes
+
+- JSON modules are read-only: the imported data is a constant
+- The JSON file must be valid JSON (trailing commas are not allowed)
+- JSON modules use the default export pattern
+- The imported data is deeply frozen (immutable)
+
+### Running JSON Module Examples
+
+```bash
+# Run a module that imports JSON
+$ jstime app.js
+
+# The runtime automatically handles JSON module imports
 ```
 
