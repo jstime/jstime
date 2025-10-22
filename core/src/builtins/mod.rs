@@ -6,6 +6,7 @@ mod whatwg {
     pub(crate) mod fetch_impl;
     pub(crate) mod queue_microtask_impl;
     pub(crate) mod structured_clone_impl;
+    pub(crate) mod text_encoding_impl;
     pub(crate) mod timers_impl;
     pub(crate) mod url_impl;
 }
@@ -22,7 +23,7 @@ mod node {
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     // Pre-allocate with approximate capacity to avoid reallocation
-    let mut refs = Vec::with_capacity(45);
+    let mut refs = Vec::with_capacity(50);
 
     // WHATWG
     refs.extend(whatwg::base64_impl::get_external_references());
@@ -33,6 +34,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     refs.extend(whatwg::timers_impl::get_external_references());
     refs.extend(whatwg::fetch_impl::get_external_references());
     refs.extend(whatwg::structured_clone_impl::get_external_references());
+    refs.extend(whatwg::text_encoding_impl::get_external_references());
 
     // W3C
     refs.extend(w3c::performance_impl::get_external_references());
@@ -59,6 +61,7 @@ impl Builtins {
         whatwg::timers_impl::register_bindings(scope, bindings);
         whatwg::fetch_impl::register_bindings(scope, bindings);
         whatwg::structured_clone_impl::register_bindings(scope, bindings);
+        whatwg::text_encoding_impl::register_bindings(scope, bindings);
 
         // W3C
         w3c::performance_impl::register_bindings(scope, bindings);
@@ -89,6 +92,7 @@ impl Builtins {
         builtin!("./whatwg/timers.js");
         builtin!("./whatwg/fetch.js");
         builtin!("./whatwg/structured_clone.js");
+        builtin!("./whatwg/text_encoding.js");
 
         // W3C
         builtin!("./w3c/performance.js");

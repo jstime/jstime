@@ -169,6 +169,29 @@ jstime examples/structured-clone-demo.mjs
 
 ---
 
+### Text Encoding API
+
+**File:** `text-encoding-demo.js`
+
+Demonstrates the Text Encoding API for converting between strings and UTF-8 bytes:
+- Using `TextEncoder` to encode strings to UTF-8
+- Using `TextDecoder` to decode UTF-8 bytes to strings
+- Encoding multi-byte characters (€, 世, 界, 😀)
+- Working with different languages and scripts
+- Using `encodeInto()` for efficient encoding into existing buffers
+- Handling buffer overflow scenarios
+- Round-trip encoding/decoding
+- Understanding UTF-8 byte sizes
+
+**To run:**
+```bash
+jstime examples/text-encoding-demo.js
+```
+
+**See also:** [Text Encoding API documentation](../docs/FEATURES.md#text-encoding-api)
+
+---
+
 ### File System API
 
 **File:** `fs-demo.js` (ES Module)
@@ -243,6 +266,7 @@ jstime examples/json-import-example.js
 
 ### Data APIs
 - [Structured Clone](structured-clone-demo.mjs) - Deep cloning objects
+- [Text Encoding](text-encoding-demo.js) - UTF-8 encoding and decoding
 
 ### File System
 - [Basic File System](fs-demo.js) - Reading files and directories
