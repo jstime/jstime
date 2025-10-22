@@ -30,9 +30,7 @@ fn structured_clone(
 
     if value_serializer.write_value(context, value).is_none() {
         // Serialization failed, throw an error
-        let message = v8::String::new(scope, "Value could not be cloned").unwrap();
-        let exception = v8::Exception::error(scope, message);
-        scope.throw_exception(exception);
+        crate::error::throw_error(scope, "Value could not be cloned");
         return;
     }
 
@@ -44,9 +42,7 @@ fn structured_clone(
 
     if value_deserializer.read_header(context).is_none() {
         // Failed to read header
-        let message = v8::String::new(scope, "Failed to deserialize value").unwrap();
-        let exception = v8::Exception::error(scope, message);
-        scope.throw_exception(exception);
+        crate::error::throw_error(scope, "Failed to deserialize value");
         return;
     }
 
@@ -56,9 +52,7 @@ fn structured_clone(
         }
         None => {
             // Deserialization failed
-            let message = v8::String::new(scope, "Failed to deserialize value").unwrap();
-            let exception = v8::Exception::error(scope, message);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, "Failed to deserialize value");
         }
     }
 }
@@ -82,10 +76,7 @@ impl v8::ValueDeserializerImpl for StructuredCloneDelegate {
         scope: &mut v8::PinScope<'s, '_>,
         _value_deserializer: &dyn v8::ValueDeserializerHelper,
     ) -> Option<v8::Local<'s, v8::Object>> {
-        let msg =
-            v8::String::new(scope, "Host objects are not supported in structuredClone").unwrap();
-        let exc = v8::Exception::error(scope, msg);
-        scope.throw_exception(exc);
+        crate::error::throw_error(scope, "Host objects are not supported in structuredClone");
         None
     }
 }

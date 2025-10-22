@@ -32,11 +32,7 @@ fn text_encoder_encode(
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    if args.length() == 0 {
-        let message =
-            v8::String::new(scope, "TextEncoder.encode requires at least 1 argument").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "TextEncoder.encode") {
         return;
     }
 
@@ -67,14 +63,7 @@ fn text_encoder_encode_into(
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    if args.length() < 2 {
-        let message = v8::String::new(
-            scope,
-            "TextEncoder.encodeInto requires at least 2 arguments",
-        )
-        .unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 2, "TextEncoder.encodeInto") {
         return;
     }
 
@@ -92,9 +81,7 @@ fn text_encoder_encode_into(
 
     // Ensure destination is a Uint8Array
     if !destination.is_uint8_array() {
-        let message = v8::String::new(scope, "Destination must be a Uint8Array").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+        crate::error::throw_type_error(scope, "Destination must be a Uint8Array");
         return;
     }
 
@@ -165,7 +152,10 @@ fn text_decoder_decode(
 
     // Ensure input is a typed array or ArrayBuffer
     let bytes = if input.is_array_buffer_view() {
-        let view = v8::Local::<v8::ArrayBufferView>::try_from(input).unwrap();
+        let Some(view) = v8::Local::<v8::ArrayBufferView>::try_from(input).ok() else {
+            crate::error::throw_type_error(scope, "Failed to convert to ArrayBufferView");
+            return;
+        };
         let byte_length = view.byte_length();
 
         if byte_length == 0 {
@@ -175,7 +165,10 @@ fn text_decoder_decode(
             unsafe { std::slice::from_raw_parts(data as *const u8, byte_length) }
         }
     } else if input.is_array_buffer() {
-        let array_buffer = v8::Local::<v8::ArrayBuffer>::try_from(input).unwrap();
+        let Some(array_buffer) = v8::Local::<v8::ArrayBuffer>::try_from(input).ok() else {
+            crate::error::throw_type_error(scope, "Failed to convert to ArrayBuffer");
+            return;
+        };
         let backing_store = array_buffer.get_backing_store();
         let byte_length = array_buffer.byte_length();
 
@@ -193,10 +186,7 @@ fn text_decoder_decode(
             }
         }
     } else {
-        let message =
-            v8::String::new(scope, "Input must be an ArrayBuffer or ArrayBufferView").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+        crate::error::throw_type_error(scope, "Input must be an ArrayBuffer or ArrayBufferView");
         return;
     };
 
