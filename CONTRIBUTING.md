@@ -67,7 +67,13 @@ See [core/src/builtins/README.md](./core/src/builtins/README.md) for detailed in
 2. Create `your_api.js` (JavaScript polyfill)
 3. Register in `builtins/mod.rs`
 4. Write tests in `core/tests/`
-5. Update `docs/FEATURES.md`
+5. Update the appropriate documentation file:
+   - Web APIs: `docs/apis/web-apis.md`
+   - Text Encoding/Crypto: `docs/apis/encoding-crypto.md`
+   - System APIs: `docs/apis/system.md`
+   - Module System: `docs/apis/modules.md`
+   - Runtime features: `docs/runtime.md`
+   - Update `docs/FEATURES.md` if adding a new API category
 
 ### Testing
 

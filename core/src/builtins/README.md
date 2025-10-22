@@ -50,4 +50,10 @@ See [CONTRIBUTING.md](../../../CONTRIBUTING.md#adding-built-in-apis) for instruc
 1. Create `your_api_impl.rs` (Rust) and `your_api.js` (JavaScript) in the appropriate directory (whatwg/, w3c/, or node/)
 2. Register in `mod.rs`
 3. Write tests in `core/tests/`
-4. Update `docs/FEATURES.md`
+4. Update the appropriate documentation file:
+   - Web APIs: `docs/apis/web-apis.md`
+   - Text Encoding/Crypto: `docs/apis/encoding-crypto.md`
+   - System APIs: `docs/apis/system.md`
+   - Module System: `docs/apis/modules.md`
+   - Runtime features: `docs/runtime.md`
+   - Update `docs/FEATURES.md` if adding a new API category
