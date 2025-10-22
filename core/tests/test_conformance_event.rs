@@ -9,10 +9,7 @@ mod conformance_event {
     // Event Constructor Tests
     #[test]
     fn event_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Event;", "conformance_event");
+        let result = common::get_type_of("Event");
         assert_eq!(result.unwrap(), "function");
     }
 
@@ -221,10 +218,7 @@ mod conformance_event {
     // EventTarget Tests
     #[test]
     fn event_target_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof EventTarget;", "conformance_event");
+        let result = common::get_type_of("EventTarget");
         assert_eq!(result.unwrap(), "function");
     }
 

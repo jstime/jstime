@@ -8,73 +8,49 @@ mod tests {
 
     #[test]
     fn webassembly_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly", "test");
+        let result = common::get_type_of("WebAssembly");
         assert_eq!(result.unwrap(), "object");
     }
 
     #[test]
     fn webassembly_module_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.Module", "test");
+        let result = common::get_type_of("WebAssembly.Module");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn webassembly_instance_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.Instance", "test");
+        let result = common::get_type_of("WebAssembly.Instance");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn webassembly_memory_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.Memory", "test");
+        let result = common::get_type_of("WebAssembly.Memory");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn webassembly_table_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.Table", "test");
+        let result = common::get_type_of("WebAssembly.Table");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn webassembly_compile_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.compile", "test");
+        let result = common::get_type_of("WebAssembly.compile");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn webassembly_instantiate_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.instantiate", "test");
+        let result = common::get_type_of("WebAssembly.instantiate");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn webassembly_validate_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof WebAssembly.validate", "test");
+        let result = common::get_type_of("WebAssembly.validate");
         assert_eq!(result.unwrap(), "function");
     }
 

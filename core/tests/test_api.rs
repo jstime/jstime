@@ -40,7 +40,7 @@ mod api {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let hello_path = "./tests/fixtures/hello-world.js";
+        let hello_path = "./tests/fixtures/modules/hello-world.js";
         let _result = jstime.import(hello_path);
         let result = jstime.run_script("globalThis.hello", "jstime");
         assert_eq!(result.unwrap(), "hello world");

@@ -11,46 +11,31 @@ mod conformance_timers {
 
     #[test]
     fn settimeout_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof setTimeout;", "test");
+        let result = common::get_type_of("setTimeout");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn cleartimeout_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof clearTimeout;", "test");
+        let result = common::get_type_of("clearTimeout");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn setinterval_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof setInterval;", "test");
+        let result = common::get_type_of("setInterval");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn clearinterval_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof clearInterval;", "test");
+        let result = common::get_type_of("clearInterval");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn settimeout_returns_number() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof setTimeout(() => {}, 0);", "test");
+        let result = common::get_type_of("setTimeout(() => {}, 0)");
         assert_eq!(result.unwrap(), "number");
     }
 

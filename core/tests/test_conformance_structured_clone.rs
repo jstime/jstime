@@ -8,19 +8,13 @@ mod conformance_structured_clone {
 
     #[test]
     fn structuredclone_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof structuredClone", "test");
+        let result = common::get_type_of("structuredClone");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn structuredclone_is_global() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof globalThis.structuredClone", "test");
+        let result = common::get_type_of("globalThis.structuredClone");
         assert_eq!(result.unwrap(), "function");
     }
 
