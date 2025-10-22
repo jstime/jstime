@@ -58,6 +58,9 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 - **Performance API**: High-resolution timing with `performance.now()`
 - **Microtask API**: `queueMicrotask()` for fine-grained async control
 - **Structured Clone API**: `structuredClone()` for deep cloning of complex objects
+- **Text Encoding API**: `TextEncoder` and `TextDecoder` for UTF-8 encoding/decoding
+- **Crypto API**: `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()` for cryptographic operations
+- **Process API**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()` for process information
 - **File System API**: Complete Node.js-compatible `fs/promises` with `readFile()`, `writeFile()`, `mkdir()`, `stat()`, and more
 - **WebAssembly**: Full WebAssembly support for running high-performance compiled modules
 - **ES Modules**: Full support for `import`/`export` with top-level await
@@ -82,11 +85,6 @@ cargo test
 
 For more details on conformance testing, see [core/tests/CONFORMANCE_TESTS.md](./core/tests/CONFORMANCE_TESTS.md).
 
-## Current Project Team Members
-
-For information about the governance of the jstime project, see
-[GOVERNANCE.md](./GOVERNANCE.md).
-
 ## Contributing
 
 Interested in contributing? We'd love to have you! ❤️
@@ -100,6 +98,8 @@ We welcome contributions of all kinds: bug fixes, features, documentation, examp
 
 ## Project Team
 
+For information about the governance of the jstime project, see [GOVERNANCE.md](./GOVERNANCE.md).
+
 ### Chair
 
 * [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
@@ -112,6 +112,5 @@ We welcome contributions of all kinds: bug fixes, features, documentation, examp
 * [devsnek](https://github.com/devsnek) - **Gus Caplan**
 * [EstebanBorai](https://github.com/EstebanBorai) - **Esteban Borai**
 * [jalafel](https://github.com/jalafel) - **Jess Tran**
-* [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
 * [solumos](https://github.com/solumos) - **Tom Hadley**
 
