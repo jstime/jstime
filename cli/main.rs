@@ -1,8 +1,8 @@
 use jstime_core as jstime;
 use std::env;
 use std::process;
-use structopt::clap;
 use structopt::StructOpt;
+use structopt::clap;
 
 #[derive(StructOpt)]
 #[structopt(name = "jstime", rename_all = "kebab-case")]
@@ -48,7 +48,9 @@ fn main() {
         Ok(o) => o,
         Err(e) => {
             // For help and version, print to stdout and exit with success
-            if e.kind == clap::ErrorKind::HelpDisplayed || e.kind == clap::ErrorKind::VersionDisplayed {
+            if e.kind == clap::ErrorKind::HelpDisplayed
+                || e.kind == clap::ErrorKind::VersionDisplayed
+            {
                 println!("{}", e);
                 process::exit(0);
             }
