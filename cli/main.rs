@@ -422,40 +422,21 @@ fn repl(mut jstime: jstime::JSTime) {
         p
     });
 
-    // Use Arc<Mutex<Vec<String>>> to share history entries across threads
-    let history_entries = Arc::new(Mutex::new(Vec::new()));
+    // Wrap the editor in Arc<Mutex> to share it with the readline thread
+    let rl_shared = Arc::new(Mutex::new(rl));
 
-    // Pre-build the config once
-    let rl_config = rustyline::Config::builder()
-        .completion_type(rustyline::CompletionType::List)
-        .build();
-
-    // Track if the last readline was interrupted (Ctrl+C) for double Ctrl+C exit
-    let mut last_was_interrupted = false;
+    // Track the last interrupt time for double Ctrl+C exit
+    let mut last_interrupt_time: Option<std::time::Instant> = None;
 
     loop {
         // Channel for this readline
         let (tx, rx) = channel();
-        let history_clone = Arc::clone(&history_entries);
-        let rl_config_clone = rl_config.clone();
-
-        // Track when this readline started for detecting quick double Ctrl+C
-        let readline_start = std::time::Instant::now();
+        let rl_clone = Arc::clone(&rl_shared);
 
         // Start readline in a separate thread
         thread::spawn(move || {
-            let mut rl_temp =
-                Editor::<JsCompleter, DefaultHistory>::with_config(rl_config_clone).unwrap();
-            rl_temp.set_helper(Some(JsCompleter));
-
-            // Load recent history into the temp editor
-            if let Ok(entries) = history_clone.lock() {
-                for entry in entries.iter() {
-                    let _ = rl_temp.add_history_entry(entry);
-                }
-            }
-
-            let result = rl_temp.readline(">> ");
+            let mut rl_guard = rl_clone.lock().unwrap();
+            let result = rl_guard.readline(">> ");
             let _ = tx.send(result);
         });
 
@@ -475,18 +456,13 @@ fn repl(mut jstime: jstime::JSTime) {
 
         match readline_result {
             Ok(line) => {
-                // Reset interrupt flag on successful input
-                last_was_interrupted = false;
+                // Reset interrupt tracking on successful input
+                last_interrupt_time = None;
 
-                // Add to both the main editor and shared history
-                let _ = rl.add_history_entry(line.as_str());
-                if let Ok(mut entries) = history_entries.lock() {
-                    entries.push(line.clone());
-                    // Keep only last 1000 entries to avoid unbounded growth
-                    if entries.len() > 1000 {
-                        entries.remove(0);
-                    }
-                }
+                // Add to history
+                let mut rl_guard = rl_shared.lock().unwrap();
+                let _ = rl_guard.add_history_entry(line.as_str());
+                drop(rl_guard);
 
                 match jstime.run_script_no_event_loop(&line, "REPL") {
                     Ok(v) => println!("{v}"),
@@ -495,23 +471,19 @@ fn repl(mut jstime: jstime::JSTime) {
                 jstime.tick_event_loop();
             }
             Err(ReadlineError::Interrupted) => {
-                // Calculate how long the readline was active
-                let readline_duration = readline_start.elapsed();
+                let now = std::time::Instant::now();
 
-                // If readline was active for more than 300ms before being interrupted,
-                // treat it as a fresh start (user was likely typing or thinking).
-                // This resets the double-Ctrl+C state.
-                let was_quick_interrupt = readline_duration.as_millis() < 300;
-
-                // Check if this is a consecutive quick Ctrl+C
-                if last_was_interrupted && was_quick_interrupt {
+                // Check if this is a consecutive Ctrl+C within 1 second
+                if let Some(last_time) = last_interrupt_time
+                    && now.duration_since(last_time).as_millis() < 1000
+                {
                     println!("Thanks for stopping by!");
                     break;
-                } else {
-                    // Either first Ctrl+C or user was interacting with the prompt
-                    println!("(To exit, press Ctrl+C again)");
-                    last_was_interrupted = was_quick_interrupt;
                 }
+
+                // First Ctrl+C or too much time has passed
+                println!("(To exit, press Ctrl+C again)");
+                last_interrupt_time = Some(now);
             }
             Err(ReadlineError::Eof) => {
                 println!("Eof'd");
@@ -525,6 +497,7 @@ fn repl(mut jstime: jstime::JSTime) {
     }
 
     if let Some(history_path) = history_path {
-        let _ = rl.save_history(&history_path);
+        let mut rl_guard = rl_shared.lock().unwrap();
+        let _ = rl_guard.save_history(&history_path);
     }
 }
