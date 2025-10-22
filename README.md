@@ -46,6 +46,8 @@ jstime provides a minimal and performant JavaScript runtime with essential APIs.
 
 For detailed documentation on all supported features, see [FEATURES.md](./docs/FEATURES.md).
 
+**👉 Check out the [examples/](./examples/) directory for runnable code samples!**
+
 ### Quick Overview
 
 - **Console API**: `console.log()`, `console.error()`, etc.
