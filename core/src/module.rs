@@ -50,10 +50,14 @@ impl Loader {
                 }
             }
             None => {
+                // Check if we have a caught exception
                 if tc.has_caught() {
                     Err(tc.exception().unwrap())
                 } else {
-                    panic!("Module import failed without exception")
+                    // Error was caught during resolve, create a generic error
+                    let msg = v8::String::new(tc, "Module import failed").unwrap();
+                    let exception = v8::Exception::error(tc, msg);
+                    Err(exception)
                 }
             }
         }
@@ -102,7 +106,22 @@ fn resolve<'a>(
     let code = v8::String::new(scope, &js_src).unwrap();
     let mut source = v8::script_compiler::Source::new(code, Some(&origin));
 
-    let module = v8::script_compiler::compile_module(scope, &mut source);
+    // Compile the module - errors will be thrown as exceptions
+    let (module, error_msg) = {
+        v8::tc_scope!(let tc, scope);
+        let module = v8::script_compiler::compile_module(tc, &mut source);
+
+        if let Some(module) = module {
+            (Some(module), None)
+        } else if tc.has_caught() {
+            // Format the compilation error as a string
+            let error_message = crate::error::format_exception(tc);
+            (None, Some(error_message))
+        } else {
+            (None, None)
+        }
+    };
+
     if let Some(module) = module {
         let isolate: &mut v8::Isolate = scope;
         let state = IsolateState::get(isolate);
@@ -110,8 +129,16 @@ fn resolve<'a>(
             .borrow_mut()
             .module_map
             .insert(isolate, &requested_abs_path, module);
+        Some(module)
+    } else if let Some(error_msg) = error_msg {
+        // Now create a new error with our formatted message
+        let msg = v8::String::new(scope, &error_msg).unwrap();
+        let exception = v8::Exception::error(scope, msg);
+        scope.throw_exception(exception);
+        None
+    } else {
+        None
     }
-    module
 }
 
 fn resolve_builtin_module<'a>(

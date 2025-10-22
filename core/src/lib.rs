@@ -161,9 +161,36 @@ impl JSTime {
             let cwd = cwd.into_os_string().into_string().unwrap();
             match loader.import(&mut scope, &cwd, filename) {
                 Ok(_) => Ok(()),
-                Err(e) => {
+                Err(exception) => {
+                    // Format the exception value directly
                     let isolate: &v8::Isolate = &scope;
-                    Err(e.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
+                    let exception_str = exception
+                        .to_string(&scope)
+                        .map(|s| s.to_rust_string_lossy(isolate))
+                        .unwrap_or_else(|| "Unknown error".to_string());
+
+                    // Try to get stack property for more details
+                    if let Ok(exception_obj) = v8::Local::<v8::Object>::try_from(exception) {
+                        let stack_key = v8::String::new(&scope, "stack").unwrap();
+                        if let Some(stack_val) = exception_obj.get(&scope, stack_key.into())
+                            && let Some(stack_str) = stack_val.to_string(&scope)
+                        {
+                            let stack = stack_str.to_rust_string_lossy(isolate);
+                            if !stack.is_empty() && stack != exception_str {
+                                return Err(stack);
+                            }
+                        }
+                    }
+
+                    // Remove "Error: " prefix if present (V8 adds this when creating Error objects)
+                    let exception_str = if let Some(stripped) = exception_str.strip_prefix("Error: ")
+                    {
+                        stripped.to_string()
+                    } else {
+                        exception_str
+                    };
+
+                    Err(exception_str)
                 }
             }
         };
@@ -202,10 +229,7 @@ impl JSTime {
                 let isolate: &v8::Isolate = &scope;
                 Ok(v.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
             }
-            Err(e) => {
-                let isolate: &v8::Isolate = &scope;
-                Err(e.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
-            }
+            Err(e) => Err(e),
         }
     }
 

@@ -28,12 +28,17 @@ mod api {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(err, "ReferenceError: a is not defined\n    at jstime:1:1");
+        // New format includes file:line, source code, caret indicator, and error message with stack
+        assert_eq!(
+            err,
+            "jstime:1\na\n^\n\nReferenceError: a is not defined\n    at jstime:1:1"
+        );
         let err = match jstime.run_script("}", "jstime") {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(err, "SyntaxError: Unexpected token \'}\'");
+        // Syntax errors now include file:line, source code, caret indicator, and error message
+        assert_eq!(err, "jstime:1\n}\n^\n\nSyntaxError: Unexpected token \'}\'");
     }
     #[test]
     fn import() {
