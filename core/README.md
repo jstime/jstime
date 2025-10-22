@@ -85,7 +85,7 @@ jstime_core provides these JavaScript APIs:
 - **ES Modules**: `import`/`export` with top-level `await`
 - **WebAssembly**: Full WebAssembly support via V8
 
-See [FEATURES.md](../docs/FEATURES.md) for detailed API documentation.
+See [docs/FEATURES.md](../docs/FEATURES.md) for overview and [docs/apis/](../docs/apis/) for detailed API documentation.
 
 ## Project Structure
 
@@ -113,7 +113,10 @@ core/
 
 ## Documentation
 
-- [FEATURES.md](../docs/FEATURES.md) - Complete API documentation
+- [FEATURES.md](../docs/FEATURES.md) - Features overview
+- [Web APIs](../docs/apis/web-apis.md) - Detailed web API documentation
+- [System APIs](../docs/apis/system.md) - Process and file system APIs
+- [Module System](../docs/apis/modules.md) - ES Modules and WebAssembly
 - [Built-ins README](./src/builtins/README.md) - Built-in API implementation guide
 - [Tests README](./tests/README.md) - Testing guide
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Development workflow

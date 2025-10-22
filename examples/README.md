@@ -34,7 +34,7 @@ Demonstrates the Console API for logging and debugging:
 jstime examples/console-demo.js
 ```
 
-**See also:** [Console API documentation](../docs/FEATURES.md#console-api)
+**See also:** [Console API documentation](../docs/apis/web-apis.md#console-api)
 
 ---
 
@@ -55,7 +55,7 @@ Demonstrates the Timers API for scheduling code execution:
 jstime examples/timers-demo.js
 ```
 
-**See also:** [Timers documentation](../docs/FEATURES.md#timers)
+**See also:** [Timers documentation](../docs/apis/web-apis.md#timers)
 
 ---
 
@@ -78,7 +78,7 @@ Demonstrates the Fetch API for making HTTP requests:
 jstime examples/fetch-demo.mjs
 ```
 
-**See also:** [Fetch API documentation](../docs/FEATURES.md#fetch-api) | [Detailed Fetch API docs](../docs/FETCH_API.md)
+**See also:** [Fetch API documentation](../docs/apis/web-apis.md#fetch-api)
 
 ---
 
@@ -99,7 +99,7 @@ Demonstrates the URL and URLSearchParams APIs:
 jstime examples/url-demo.js
 ```
 
-**See also:** [URL API documentation](../docs/FEATURES.md#url-api)
+**See also:** [URL API documentation](../docs/apis/web-apis.md#url-api)
 
 ---
 
@@ -120,7 +120,7 @@ Demonstrates the Performance API for high-resolution timing:
 jstime examples/performance-demo.js
 ```
 
-**See also:** [Performance API documentation](../docs/FEATURES.md#performance-api)
+**See also:** [Performance API documentation](../docs/apis/web-apis.md#performance-api)
 
 ---
 
@@ -143,7 +143,7 @@ Demonstrates the Event and EventTarget APIs:
 jstime examples/events-demo.js
 ```
 
-**See also:** [Event and EventTarget documentation](../docs/FEATURES.md#event-and-eventtarget)
+**See also:** [Event and EventTarget documentation](../docs/apis/web-apis.md#event-and-eventtarget)
 
 ---
 
@@ -165,7 +165,7 @@ Demonstrates the Structured Clone API for deep cloning:
 jstime examples/structured-clone-demo.mjs
 ```
 
-**See also:** [Structured Clone documentation](../docs/FEATURES.md#structured-clone-api)
+**See also:** [Structured Clone documentation](../docs/apis/web-apis.md#structured-clone-api)
 
 ---
 
@@ -188,7 +188,7 @@ Demonstrates the Text Encoding API for converting between strings and UTF-8 byte
 jstime examples/text-encoding-demo.js
 ```
 
-**See also:** [Text Encoding API documentation](../docs/FEATURES.md#text-encoding-api)
+**See also:** [Text Encoding API documentation](../docs/apis/encoding-crypto.md#text-encoding-api)
 
 ---
 
@@ -210,7 +210,7 @@ jstime examples/fs-demo.js
 
 **Advanced example:** `fs-complete-demo.js` - Shows all filesystem operations including writing, copying, renaming, and more.
 
-**See also:** [File System API documentation](../docs/FEATURES.md#file-system-api)
+**See also:** [File System API documentation](../docs/apis/system.md#file-system-api)
 
 ---
 
@@ -231,7 +231,7 @@ Demonstrates WebAssembly support in jstime:
 jstime examples/webassembly-demo.js
 ```
 
-**See also:** [WebAssembly documentation](../docs/FEATURES.md#webassembly)
+**See also:** [WebAssembly documentation](../docs/apis/modules.md#webassembly)
 
 ---
 
@@ -248,7 +248,7 @@ Demonstrates importing JSON files as ES modules:
 jstime examples/json-import-example.js
 ```
 
-**See also:** [ES Modules documentation](../docs/FEATURES.md#es-modules)
+**See also:** [ES Modules documentation](../docs/apis/modules.md#es-modules)
 
 ---
 
@@ -291,5 +291,7 @@ Feel free to create your own examples to explore jstime's features!
 
 - [Main README](../README.md) - Getting started with jstime
 - [Features Documentation](../docs/FEATURES.md) - Complete API reference
-- [Fetch API Details](../docs/FETCH_API.md) - In-depth Fetch documentation
+- [Web APIs](../docs/apis/web-apis.md) - Web standard APIs
+- [System APIs](../docs/apis/system.md) - Process and file system APIs
+- [Module System](../docs/apis/modules.md) - ES Modules and WebAssembly
 - [Contributing Guide](../CONTRIBUTING.md) - How to contribute
