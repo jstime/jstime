@@ -114,5 +114,13 @@ impl Builtins {
         // Node.js
         builtin!("./node/fs.js");
         builtin!("./node/process.js");
+
+        // Polyfills (load last to override native implementations)
+        // Date locale methods polyfill - replaces broken V8 ICU implementation
+        // TODO: Remove this polyfill when V8's native ICU implementation works correctly
+        // with proper ICU data. Track V8 updates and test if toLocaleString() works
+        // without this polyfill in future versions.
+        let date_locale_polyfill = include_str!("./polyfills/date_locale.js");
+        crate::script::run(scope, date_locale_polyfill, "date_locale_polyfill.js").unwrap();
     }
 }

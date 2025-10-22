@@ -18,6 +18,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "align-data"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1926655ba000b19e21f0402be09a1d52d318c8a8a68622870bfb7af2a71315cd"
+
+[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -669,6 +675,7 @@ dependencies = [
 name = "jstime_core"
 version = "0.60.0"
 dependencies = [
+ "align-data",
  "filetime",
  "lazy_static",
  "ring",

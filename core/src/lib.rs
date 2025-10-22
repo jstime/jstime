@@ -9,6 +9,18 @@ mod script;
 pub(crate) use isolate_state::IsolateState;
 
 pub fn init(v8_flags: Option<Vec<String>>) {
+    // Initialize ICU data before V8 initialization
+    // This is required for locale-specific operations like toLocaleString()
+    static ICU_INIT: std::sync::Once = std::sync::Once::new();
+    ICU_INIT.call_once(|| {
+        let icu_data =
+            align_data::include_aligned!(align_data::Align16, "../third_party/icu/icudtl.dat");
+        // Ignore errors - ICU data initialization is best-effort
+        let _ = v8::icu::set_common_data_74(icu_data);
+        // Set default locale to en_US
+        v8::icu::set_default_locale("en_US");
+    });
+
     let mut flags = v8_flags.unwrap_or_default();
 
     // Add performance-oriented V8 flags if not already present
@@ -32,9 +44,12 @@ pub fn init(v8_flags: Option<Vec<String>>) {
 
     v8::V8::set_flags_from_command_line(flags);
 
-    let platform = v8::new_default_platform(0, false).make_shared();
-    v8::V8::initialize_platform(platform);
-    v8::V8::initialize();
+    static V8_INIT: std::sync::Once = std::sync::Once::new();
+    V8_INIT.call_once(|| {
+        let platform = v8::new_default_platform(0, false).make_shared();
+        v8::V8::initialize_platform(platform);
+        v8::V8::initialize();
+    });
 }
 
 /// Options for `JSTime::new`.
@@ -66,7 +81,8 @@ impl JSTime {
     /// Create a new JSTime instance from `options`.
     pub fn new(options: Options) -> JSTime {
         let create_params = v8::Isolate::create_params()
-            .external_references(builtins::get_external_references().into());
+            .external_references(builtins::get_external_references().into())
+            .heap_limits(0, 1024 * 1024 * 1024); // 1GB max heap size
         // if let Some(snapshot) = options.snapshot {
         // create_params = create_params.snapshot_blob(snapshot);
         // }

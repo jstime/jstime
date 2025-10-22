@@ -764,4 +764,58 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "3");
     }
+
+    #[test]
+    fn date_now() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof Date.now()", "jstime");
+        assert_eq!(result.unwrap(), "number");
+    }
+
+    #[test]
+    fn date_to_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("new Date(0).toString()", "jstime");
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("1970"));
+    }
+
+    #[test]
+    fn date_to_locale_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("new Date().toLocaleString()", "jstime");
+        assert!(result.is_ok());
+        // Result should be in format: MM/DD/YYYY, HH:MM:SS AM/PM
+        let output = result.unwrap();
+        assert!(output.contains('/'));
+        assert!(output.contains(','));
+        assert!(output.contains(':'));
+    }
+
+    #[test]
+    fn date_to_locale_date_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("new Date(2025, 0, 15).toLocaleDateString()", "jstime");
+        assert_eq!(result.unwrap(), "01/15/2025");
+    }
+
+    #[test]
+    fn date_to_locale_time_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "new Date(2025, 0, 15, 14, 30, 45).toLocaleTimeString()",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "2:30:45 PM");
+    }
 }
