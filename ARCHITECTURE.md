@@ -27,7 +27,7 @@ jstime is a minimal JavaScript runtime built on top of the V8 JavaScript engine.
 
 ### Technology Stack
 
-- **Language**: Rust (2021 edition)
+- **Language**: Rust (2024 edition)
 - **JavaScript Engine**: V8 (v140.2.0)
 - **Build System**: Cargo
 - **Testing**: Rust's built-in test framework
@@ -61,8 +61,9 @@ jstime is a minimal JavaScript runtime built on top of the V8 JavaScript engine.
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │              Built-in APIs (builtins/)               │   │
-│  │  console | timers | fetch | url | performance        │   │
-│  │  base64 | events | structured_clone | fs | wasm     │   │
+│  │  console | timers | fetch | streams | url           │   │
+│  │  performance | events | base64 | structured_clone   │   │
+│  │  text_encoding | crypto | fs | process | wasm       │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │         Core Runtime Components                      │   │
@@ -239,21 +240,29 @@ Each API follows a two-part structure:
 - Console: Logging and debugging
 - Timers: setTimeout, setInterval
 - Performance: High-resolution timing
+- Microtask: queueMicrotask
 
 **Web APIs**:
 - Fetch: HTTP client
+- Streams: ReadableStream, WritableStream, TransformStream
 - URL: URL parsing and manipulation
 - Events: Event and EventTarget
 
 **Data APIs**:
 - Base64: Encoding and decoding
 - Structured Clone: Deep object cloning
+- Text Encoding: TextEncoder and TextDecoder
+
+**Crypto APIs**:
+- Web Crypto: getRandomValues, randomUUID, subtle.digest
 
 **System APIs**:
 - File System: Node.js-compatible fs/promises API
+- Process: Environment variables, arguments, working directory
 
 **Advanced APIs**:
 - WebAssembly: WASM module execution (via V8)
+- JSON Modules: Import JSON files as ES modules
 
 ## Module System
 
