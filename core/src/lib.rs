@@ -183,12 +183,12 @@ impl JSTime {
                     }
 
                     // Remove "Error: " prefix if present (V8 adds this when creating Error objects)
-                    let exception_str = if let Some(stripped) = exception_str.strip_prefix("Error: ")
-                    {
-                        stripped.to_string()
-                    } else {
-                        exception_str
-                    };
+                    let exception_str =
+                        if let Some(stripped) = exception_str.strip_prefix("Error: ") {
+                            stripped.to_string()
+                        } else {
+                            exception_str
+                        };
 
                     Err(exception_str)
                 }
