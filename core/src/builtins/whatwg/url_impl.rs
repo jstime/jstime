@@ -117,11 +117,13 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 }
 
 // Helper to convert v8 string to Rust string
+#[inline]
 fn to_rust_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     value.to_string(scope).unwrap().to_rust_string_lossy(scope)
 }
 
 // Helper to create v8 string from Rust string
+#[inline]
 fn to_v8_string<'a>(scope: &mut v8::PinScope<'a, '_>, s: &str) -> v8::Local<'a, v8::String> {
     v8::String::new(scope, s).unwrap()
 }
@@ -519,11 +521,15 @@ fn url_search_params_new(
     rv.set(array.into());
 }
 
+#[inline]
 fn parse_query_string(query: &str) -> Vec<(String, String)> {
-    let mut params = Vec::new();
     if query.is_empty() {
-        return params;
+        return Vec::new();
     }
+
+    // Pre-allocate with estimated capacity based on '&' count
+    let estimated_capacity = query.matches('&').count() + 1;
+    let mut params = Vec::with_capacity(estimated_capacity);
 
     for pair in query.split('&') {
         if pair.is_empty() {
@@ -550,7 +556,7 @@ fn url_search_params_to_string(
     let params_array = v8::Local::<v8::Array>::try_from(args.get(0)).unwrap();
     let len = params_array.length();
 
-    let mut parts = Vec::new();
+    let mut parts = Vec::with_capacity(len as usize);
     for i in 0..len {
         let entry = params_array.get_index(scope, i).unwrap();
         let entry_array = v8::Local::<v8::Array>::try_from(entry).unwrap();

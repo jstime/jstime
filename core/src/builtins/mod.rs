@@ -25,8 +25,11 @@ mod node {
 }
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
-    // Pre-allocate with approximate capacity to avoid reallocation
-    let mut refs = Vec::with_capacity(50);
+    // Pre-allocate with exact capacity to avoid reallocation
+    // Total: 2 (base64) + 1 (console) + 6 (event) + 1 (queue_microtask) + 25 (url) + 3 (timers)
+    //        + 1 (fetch) + 3 (streams) + 1 (structured_clone) + 3 (text_encoding)
+    //        + 3 (crypto) + 2 (performance) + 21 (fs) + 4 (process) = 76
+    let mut refs = Vec::with_capacity(76);
 
     // WHATWG
     refs.extend(whatwg::base64_impl::get_external_references());
