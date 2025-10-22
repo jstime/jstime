@@ -13,7 +13,8 @@ pub fn init(v8_flags: Option<Vec<String>>) {
     // This is required for locale-specific operations like toLocaleString()
     static ICU_INIT: std::sync::Once = std::sync::Once::new();
     ICU_INIT.call_once(|| {
-        let icu_data = align_data::include_aligned!(align_data::Align16, "../third_party/icu/icudtl.dat");
+        let icu_data =
+            align_data::include_aligned!(align_data::Align16, "../third_party/icu/icudtl.dat");
         // Ignore errors - ICU data initialization is best-effort
         let _ = v8::icu::set_common_data_74(icu_data);
         // Set default locale to en_US
