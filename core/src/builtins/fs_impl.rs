@@ -635,12 +635,12 @@ fn stat(
             let size_key = v8::String::new(scope, "size").unwrap();
             stats.set(scope, size_key.into(), size.into());
 
-            if let Ok(modified) = metadata.modified() {
-                if let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH) {
-                    let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                    let mtime_key = v8::String::new(scope, "mtimeMs").unwrap();
-                    stats.set(scope, mtime_key.into(), mtime_ms.into());
-                }
+            if let Ok(modified) = metadata.modified()
+                && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
+            {
+                let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
+                let mtime_key = v8::String::new(scope, "mtimeMs").unwrap();
+                stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
             retval.set(stats.into());
@@ -1079,12 +1079,12 @@ fn lstat(
             let size_key = v8::String::new(scope, "size").unwrap();
             stats.set(scope, size_key.into(), size.into());
 
-            if let Ok(modified) = metadata.modified() {
-                if let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH) {
-                    let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                    let mtime_key = v8::String::new(scope, "mtimeMs").unwrap();
-                    stats.set(scope, mtime_key.into(), mtime_ms.into());
-                }
+            if let Ok(modified) = metadata.modified()
+                && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
+            {
+                let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
+                let mtime_key = v8::String::new(scope, "mtimeMs").unwrap();
+                stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
             retval.set(stats.into());
