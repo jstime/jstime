@@ -270,6 +270,7 @@ mod conformance_base64 {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
+        let _result = jstime.run_script("atob(123);", "test");
         // This should throw due to invalid base64 length
         let result = jstime.run_script(
             "try { atob(123); 'no error'; } catch(e) { 'error'; }",
