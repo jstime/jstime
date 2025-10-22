@@ -2,6 +2,8 @@
 
 jstime is a minimal and performant JavaScript runtime built on top of V8. This document provides an overview of the various features and APIs supported by jstime.
 
+**🚀 Want to see these features in action?** Check out the [examples/](../examples/) directory for runnable code samples demonstrating each API!
+
 ## Table of Contents
 
 - [JavaScript Language Support](#javascript-language-support)
@@ -66,6 +68,8 @@ async function fetchData() {
 
 jstime implements the [WHATWG Console Standard](https://console.spec.whatwg.org/#console-namespace), providing familiar logging methods for debugging and output.
 
+**📁 Example:** See [examples/console-demo.js](../examples/console-demo.js) for a complete demonstration.
+
 ### Supported Methods
 
 - `console.log()` - Output informational messages
@@ -102,6 +106,8 @@ console.log('Float: %f', 3.14159);
 ## Event and EventTarget
 
 jstime implements the [DOM Standard Event and EventTarget interfaces](https://dom.spec.whatwg.org/#events), providing a standard way to handle events in JavaScript.
+
+**📁 Example:** See [examples/events-demo.js](../examples/events-demo.js) for a complete demonstration.
 
 ### Supported APIs
 
@@ -307,6 +313,8 @@ emitter.dispatchEvent(new Event('connection-error'));
 
 jstime implements the [HTML Standard Timer APIs](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers), allowing you to schedule code execution.
 
+**📁 Example:** See [examples/timers-demo.js](../examples/timers-demo.js) for a complete demonstration.
+
 ### Supported Functions
 
 - `setTimeout(callback, delay, ...args)` - Execute a function after a specified delay
@@ -342,6 +350,8 @@ setTimeout((name, age) => {
 ## Fetch API
 
 jstime implements the [WHATWG Fetch API](https://fetch.spec.whatwg.org/), providing a modern interface for making HTTP requests. For detailed documentation, see [FETCH_API.md](./FETCH_API.md).
+
+**📁 Example:** See [examples/fetch-demo.mjs](../examples/fetch-demo.mjs) for a complete demonstration.
 
 ### Supported APIs
 
@@ -410,6 +420,8 @@ fetch('https://api.example.com/data')
 
 jstime implements the [WHATWG URL Standard](https://url.spec.whatwg.org/), providing tools for parsing and manipulating URLs.
 
+**📁 Example:** See [examples/url-demo.js](../examples/url-demo.js) for a complete demonstration.
+
 ### Supported APIs
 
 - `URL` - Parse and construct URLs
@@ -474,6 +486,8 @@ console.log(url2.href);  // 'https://example.com/search?q=javascript&limit=10'
 ## Performance API
 
 jstime implements the [High Resolution Time API](https://w3c.github.io/hr-time/), providing access to high-resolution timestamps.
+
+**📁 Example:** See [examples/performance-demo.js](../examples/performance-demo.js) for a complete demonstration.
 
 ### Supported APIs
 
@@ -557,6 +571,8 @@ queueMicrotask(() => {
 ## Structured Clone API
 
 jstime implements the [HTML Standard Structured Clone Algorithm](https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning), allowing deep cloning of JavaScript values including complex types that JSON cannot handle.
+
+**📁 Example:** See [examples/structured-clone-demo.mjs](../examples/structured-clone-demo.mjs) for a complete demonstration.
 
 ### Supported Function
 
@@ -714,6 +730,10 @@ console.log(clonedCircular.self === clonedCircular); // true
 ## File System API
 
 jstime provides a comprehensive Node.js-compatible file system API through the `node:fs/promises` module. This provides promise-based access to essential file operations.
+
+**📁 Examples:** 
+- Basic usage: [examples/fs-demo.js](../examples/fs-demo.js)
+- Complete API: [examples/fs-complete-demo.js](../examples/fs-complete-demo.js)
 
 ### Supported APIs
 
@@ -1350,6 +1370,8 @@ console.log('Processing complete!');
 
 jstime provides full support for [WebAssembly](https://webassembly.org/) through the V8 engine, allowing you to run high-performance compiled modules alongside JavaScript code.
 
+**📁 Example:** See [examples/webassembly-demo.js](../examples/webassembly-demo.js) for a complete demonstration.
+
 ### Supported APIs
 
 - `WebAssembly.Module` - Compile WebAssembly bytecode
@@ -1542,6 +1564,8 @@ Then you can load and run the compiled `.wasm` files in jstime.
 ## ES Modules
 
 jstime supports ES modules, allowing you to organize your code using `import` and `export` statements.
+
+**📁 Example:** See [examples/json-import-example.js](../examples/json-import-example.js) for JSON import demonstration.
 
 ### Features
 
