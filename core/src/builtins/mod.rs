@@ -5,6 +5,7 @@ mod whatwg {
     pub(crate) mod event_impl;
     pub(crate) mod fetch_impl;
     pub(crate) mod queue_microtask_impl;
+    pub(crate) mod streams_impl;
     pub(crate) mod structured_clone_impl;
     pub(crate) mod text_encoding_impl;
     pub(crate) mod timers_impl;
@@ -34,6 +35,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     refs.extend(whatwg::url_impl::get_external_references());
     refs.extend(whatwg::timers_impl::get_external_references());
     refs.extend(whatwg::fetch_impl::get_external_references());
+    refs.extend(whatwg::streams_impl::get_external_references());
     refs.extend(whatwg::structured_clone_impl::get_external_references());
     refs.extend(whatwg::text_encoding_impl::get_external_references());
 
@@ -62,6 +64,7 @@ impl Builtins {
         whatwg::url_impl::register_bindings(scope, bindings);
         whatwg::timers_impl::register_bindings(scope, bindings);
         whatwg::fetch_impl::register_bindings(scope, bindings);
+        whatwg::streams_impl::register_bindings(scope, bindings);
         whatwg::structured_clone_impl::register_bindings(scope, bindings);
         whatwg::text_encoding_impl::register_bindings(scope, bindings);
 
@@ -94,6 +97,7 @@ impl Builtins {
         builtin!("./whatwg/url.js");
         builtin!("./whatwg/timers.js");
         builtin!("./whatwg/fetch.js");
+        builtin!("./whatwg/streams.js");
         builtin!("./whatwg/structured_clone.js");
         builtin!("./whatwg/text_encoding.js");
 

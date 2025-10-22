@@ -96,12 +96,29 @@ This directory contains conformance tests for jstime's implementation of standar
   - Argument passing to timer callbacks
   - Timer ordering and execution
 
+### Streams API
+- **File**: `test_conformance_streams.rs`
+- **Specification**: [WHATWG Streams Standard](https://streams.spec.whatwg.org/)
+- **Tests**: 26 tests
+- **Coverage**:
+  - `ReadableStream` constructor and methods (getReader, cancel)
+  - `ReadableStreamDefaultReader` (read, releaseLock, closed)
+  - `WritableStream` constructor and methods (getWriter, abort)
+  - `WritableStreamDefaultWriter` (write, close, releaseLock, ready, desiredSize)
+  - `TransformStream` constructor and properties (readable, writable)
+  - Stream controller operations (enqueue, close, error)
+  - Stream locking behavior
+  - Stream state management
+  - Promise-based API behavior
+  - Integration with Fetch API (`Response.body`)
+  - Data transformation through pipelines
+
 ## Running Conformance Tests
 
 To run all conformance tests:
 
 ```bash
-cargo test --test test_conformance_base64 --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_timers --test test_conformance_url --test test_conformance_webassembly
+cargo test --test test_conformance_base64 --test test_conformance_console --test test_conformance_fetch --test test_conformance_performance --test test_conformance_streams --test test_conformance_timers --test test_conformance_url --test test_conformance_webassembly
 ```
 
 To run a specific conformance test suite:
@@ -118,6 +135,9 @@ cargo test --test test_conformance_fetch
 
 # Performance conformance tests
 cargo test --test test_conformance_performance
+
+# Streams conformance tests
+cargo test --test test_conformance_streams
 
 # Timers conformance tests
 cargo test --test test_conformance_timers
@@ -161,8 +181,8 @@ When adding new conformance tests:
 
 ## Total Coverage
 
-- **Total Test Files**: 7
-- **Total Tests**: 164
-- **APIs Covered**: Base64 Encoding, Console, Fetch, Performance, Timers, URL, WebAssembly
+- **Total Test Files**: 8
+- **Total Tests**: 190
+- **APIs Covered**: Base64 Encoding, Console, Fetch, Performance, Streams, Timers, URL, WebAssembly
 
 All tests pass ✓

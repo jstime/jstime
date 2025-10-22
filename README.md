@@ -53,6 +53,7 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 - **Console API**: `console.log()`, `console.error()`, etc.
 - **Timers**: `setTimeout()`, `setInterval()`, and clearing functions
 - **Fetch API**: Modern HTTP client with `fetch()`, `Headers`, `Request`, `Response`
+- **Streams API**: `ReadableStream`, `WritableStream`, `TransformStream` for streaming data processing
 - **URL API**: `URL` and `URLSearchParams` for URL manipulation
 - **Performance API**: High-resolution timing with `performance.now()`
 - **Microtask API**: `queueMicrotask()` for fine-grained async control
@@ -67,7 +68,8 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 jstime includes comprehensive test coverage including conformance tests for standard APIs:
 
 - **Console API** - WHATWG Console Standard compliance
-- **Fetch API** - WHATWG Fetch Standard compliance  
+- **Fetch API** - WHATWG Fetch Standard compliance
+- **Streams API** - WHATWG Streams Standard compliance
 - **Performance API** - W3C High Resolution Time compliance
 - **URL API** - WHATWG URL Standard compliance
 - **Timers API** - WHATWG HTML Standard timers compliance

@@ -11,6 +11,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 - [Event and EventTarget](#event-and-eventtarget)
 - [Timers](#timers)
 - [Fetch API](#fetch-api)
+- [Streams API](#streams-api)
 - [URL API](#url-api)
 - [Performance API](#performance-api)
 - [Microtask API](#microtask-api)
@@ -416,6 +417,138 @@ fetch('https://api.example.com/data')
     return response.json();
   })
   .then(data => console.log(data));
+```
+
+## Streams API
+
+jstime implements the [WHATWG Streams API](https://streams.spec.whatwg.org/), providing a standard way to handle streaming data. Streams are essential for processing large files, handling network responses, and transforming data incrementally.
+
+**📁 Example:** See [examples/streams-demo.js](../examples/streams-demo.js) for a complete demonstration.
+
+### Supported APIs
+
+- `ReadableStream` - For reading data chunks sequentially
+- `WritableStream` - For writing data chunks sequentially
+- `TransformStream` - For transforming data as it passes through
+- `ReadableStreamDefaultReader` - Default reader for readable streams
+- `WritableStreamDefaultWriter` - Default writer for writable streams
+
+### Why Streams Matter
+
+- **Memory Efficiency**: Process large files without loading everything into memory
+- **Fetch Integration**: `Response.body` returns a ReadableStream for efficient data handling
+- **Data Transformation**: Transform data incrementally as it flows through pipelines
+- **Standard API**: Compatible with the WHATWG Streams specification
+
+### ReadableStream
+
+A ReadableStream represents a source of streaming data that you can read from.
+
+```javascript
+// Create a readable stream with data chunks
+const readable = new ReadableStream({
+  start(controller) {
+    controller.enqueue("chunk1");
+    controller.enqueue("chunk2");
+    controller.close();
+  }
+});
+
+// Read from the stream
+const reader = readable.getReader();
+reader.read().then(result => {
+  console.log(result.value); // "chunk1"
+  console.log(result.done);  // false
+});
+```
+
+### WritableStream
+
+A WritableStream represents a destination for streaming data that you can write to.
+
+```javascript
+// Create a writable stream
+const writable = new WritableStream({
+  write(chunk) {
+    console.log("Writing:", chunk);
+  },
+  close() {
+    console.log("Stream closed");
+  }
+});
+
+// Write to the stream
+const writer = writable.getWriter();
+writer.write("Hello");
+writer.write("World");
+writer.close();
+```
+
+### TransformStream
+
+A TransformStream consists of a readable and writable side, and can transform data as it passes through.
+
+```javascript
+// Create a transform stream to uppercase text
+const transform = new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(chunk.toUpperCase());
+  }
+});
+
+const writer = transform.writable.getWriter();
+const reader = transform.readable.getReader();
+
+writer.write("hello");
+writer.close();
+
+reader.read().then(result => {
+  console.log(result.value); // "HELLO"
+});
+```
+
+### Integration with Fetch API
+
+The Fetch API's `Response.body` property returns a ReadableStream, allowing you to process response data incrementally:
+
+```javascript
+const response = await fetch('https://api.example.com/data');
+const reader = response.body.getReader();
+
+// Read chunks as they arrive
+while (true) {
+  const {value, done} = await reader.read();
+  if (done) break;
+  console.log("Received chunk:", value);
+}
+```
+
+### Stream Pipelines
+
+You can chain streams together to create data processing pipelines:
+
+```javascript
+// Transform pipeline: source -> transform -> destination
+const source = new ReadableStream({
+  start(controller) {
+    controller.enqueue("data");
+    controller.close();
+  }
+});
+
+const transform = new TransformStream({
+  transform(chunk, controller) {
+    controller.enqueue(`[${chunk}]`);
+  }
+});
+
+const writer = transform.writable.getWriter();
+const reader = transform.readable.getReader();
+
+// Process data through the pipeline
+writer.write("chunk1");
+writer.write("chunk2");
+writer.close();
 ```
 
 ## URL API

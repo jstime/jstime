@@ -94,6 +94,25 @@
       this.type = 'basic';
       this.url = init.url || '';
       this._bodyUsed = false;
+      this._bodyStream = null;
+    }
+
+    get body() {
+      if (this._bodyStream) {
+        return this._bodyStream;
+      }
+      
+      // Create a ReadableStream from the body
+      this._bodyStream = new globalThis.ReadableStream({
+        start: (controller) => {
+          if (this._body !== null && this._body !== undefined) {
+            controller.enqueue(String(this._body));
+          }
+          controller.close();
+        }
+      });
+      
+      return this._bodyStream;
     }
 
     get bodyUsed() {
