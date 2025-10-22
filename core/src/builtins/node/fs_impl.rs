@@ -159,32 +159,22 @@ fn read_file(
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let arg_len = args.length();
-    if arg_len < 1 {
-        let msg = v8::String::new(scope, "path is required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "readFile") {
         return;
     }
 
     // Get the file path
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
     // Get the encoding if provided (second argument)
+    let arg_len = args.length();
     let encoding = if arg_len >= 2 {
         let encoding_arg = args.get(1);
         if !encoding_arg.is_null_or_undefined() {
-            Some(
-                encoding_arg
-                    .to_string(scope)
-                    .unwrap()
-                    .to_rust_string_lossy(isolate),
-            )
+            crate::error::to_rust_string_or_throw(scope, encoding_arg, "encoding")
         } else {
             None
         }
@@ -204,17 +194,11 @@ fn read_file(
                             retval.set(result.into());
                         }
                         Err(e) => {
-                            let msg =
-                                v8::String::new(scope, &format!("Invalid UTF-8: {}", e)).unwrap();
-                            let exception = v8::Exception::error(scope, msg);
-                            scope.throw_exception(exception);
+                            crate::error::throw_error(scope, &format!("Invalid UTF-8: {}", e));
                         }
                     }
                 } else {
-                    let msg =
-                        v8::String::new(scope, &format!("Unsupported encoding: {}", enc)).unwrap();
-                    let exception = v8::Exception::error(scope, msg);
-                    scope.throw_exception(exception);
+                    crate::error::throw_error(scope, &format!("Unsupported encoding: {}", enc));
                 }
             } else {
                 // Return as Uint8Array (Buffer)
@@ -226,9 +210,7 @@ fn read_file(
             }
         }
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to read file: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to read file: {}", e));
         }
     }
 }
@@ -238,21 +220,15 @@ fn read_dir(
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let arg_len = args.length();
-    if arg_len < 1 {
-        let msg = v8::String::new(scope, "path is required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "readDir") {
         return;
     }
 
     // Get the directory path
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
     // Read the directory
     match fs::read_dir(&path_str) {
@@ -270,10 +246,7 @@ fn read_dir(
                         index += 1;
                     }
                     Err(e) => {
-                        let msg = v8::String::new(scope, &format!("Failed to read entry: {}", e))
-                            .unwrap();
-                        let exception = v8::Exception::error(scope, msg);
-                        scope.throw_exception(exception);
+                        crate::error::throw_error(scope, &format!("Failed to read entry: {}", e));
                         return;
                     }
                 }
@@ -282,9 +255,7 @@ fn read_dir(
             retval.set(array.into());
         }
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to read directory: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to read directory: {}", e));
         }
     }
 }
@@ -294,47 +265,39 @@ fn write_file(
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
-    let arg_len = args.length();
-    if arg_len < 2 {
-        let msg = v8::String::new(scope, "path and data are required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 2, "writeFile") {
         return;
     }
 
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
     let data_arg = args.get(1);
     let data = if data_arg.is_uint8_array() {
-        let uint8_array = v8::Local::<v8::Uint8Array>::try_from(data_arg).unwrap();
+        let Some(uint8_array) = v8::Local::<v8::Uint8Array>::try_from(data_arg).ok() else {
+            crate::error::throw_type_error(scope, "Failed to convert to Uint8Array");
+            return;
+        };
         let mut buffer = vec![0u8; uint8_array.byte_length()];
         let copied = uint8_array.copy_contents(&mut buffer);
         if copied != buffer.len() {
-            let msg = v8::String::new(scope, "Failed to copy buffer data").unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, "Failed to copy buffer data");
             return;
         }
         buffer
     } else {
-        let data_str = data_arg
-            .to_string(scope)
-            .unwrap()
-            .to_rust_string_lossy(isolate);
+        let Some(data_str) = crate::error::to_rust_string_or_throw(scope, data_arg, "data") else {
+            return;
+        };
         data_str.into_bytes()
     };
 
     match fs::write(&path_str, &data) {
         Ok(_) => {}
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to write file: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to write file: {}", e));
         }
     }
 }

@@ -12,7 +12,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 
 // Helper to convert v8 string to Rust string
 fn to_rust_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
-    value.to_string(scope).unwrap().to_rust_string_lossy(scope)
+    crate::error::try_to_rust_string(scope, value, "value").unwrap_or_default()
 }
 
 fn fetch_send(
@@ -25,15 +25,36 @@ fn fetch_send(
     let method = to_rust_string(scope, args.get(1));
 
     // Extract headers array
-    let headers_array = v8::Local::<v8::Array>::try_from(args.get(2)).unwrap();
+    let headers_array_val = args.get(2);
+    let headers_array = match crate::error::try_get_array_result(headers_array_val) {
+        Ok(arr) => arr,
+        Err(msg) => {
+            crate::error::throw_type_error(scope, msg);
+            return;
+        }
+    };
     let headers_len = headers_array.length();
     let mut headers = Vec::with_capacity(headers_len as usize);
 
     for i in 0..headers_len {
-        let entry = headers_array.get_index(scope, i).unwrap();
-        let entry_array = v8::Local::<v8::Array>::try_from(entry).unwrap();
-        let key = to_rust_string(scope, entry_array.get_index(scope, 0).unwrap());
-        let value = to_rust_string(scope, entry_array.get_index(scope, 1).unwrap());
+        let Some(entry) = headers_array.get_index(scope, i) else {
+            continue;
+        };
+        let entry_array = match crate::error::try_get_array_result(entry) {
+            Ok(arr) => arr,
+            Err(msg) => {
+                crate::error::throw_type_error(scope, msg);
+                return;
+            }
+        };
+        let Some(key_val) = entry_array.get_index(scope, 0) else {
+            continue;
+        };
+        let Some(value_val) = entry_array.get_index(scope, 1) else {
+            continue;
+        };
+        let key = to_rust_string(scope, key_val);
+        let value = to_rust_string(scope, value_val);
         headers.push((key, value));
     }
 
@@ -46,7 +67,10 @@ fn fetch_send(
     };
 
     // Create a promise
-    let resolver = v8::PromiseResolver::new(scope).unwrap();
+    let Some(resolver) = v8::PromiseResolver::new(scope) else {
+        crate::error::throw_error(scope, "Failed to create promise");
+        return;
+    };
     let promise = resolver.get_promise(scope);
 
     // Store the fetch request

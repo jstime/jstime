@@ -1,4 +1,5 @@
 mod builtins;
+mod error;
 mod event_loop;
 mod isolate_state;
 mod js_loading;

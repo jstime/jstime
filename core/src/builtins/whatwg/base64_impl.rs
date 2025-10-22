@@ -21,10 +21,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 
 // atob: decode base64 string to binary string
 fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue) {
-    if args.length() == 0 {
-        let message = v8::String::new(scope, "atob requires at least 1 argument").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "atob") {
         return;
     }
 
@@ -41,9 +38,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
     // Check if conversion failed
     if input.is_null_or_undefined() || input_str.is_empty() && !input.is_string() {
-        let message = v8::String::new(scope, "Failed to convert argument to string").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+        crate::error::throw_type_error(scope, "Failed to convert argument to string");
         return;
     }
 
@@ -51,9 +46,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     let decoded = match base64_decode(&input_str) {
         Ok(bytes) => bytes,
         Err(e) => {
-            let message = v8::String::new(scope, &e).unwrap();
-            let exception = v8::Exception::error(scope, message);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &e);
             return;
         }
     };
@@ -74,10 +67,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
 // btoa: encode binary string to base64
 fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue) {
-    if args.length() == 0 {
-        let message = v8::String::new(scope, "btoa requires at least 1 argument").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "btoa") {
         return;
     }
 
@@ -94,22 +84,17 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
     // Check if conversion failed (skip for legitimate empty strings)
     if input.is_null_or_undefined() || input_str.is_empty() && !input.is_string() {
-        let message = v8::String::new(scope, "Failed to convert argument to string").unwrap();
-        let exception = v8::Exception::type_error(scope, message);
-        scope.throw_exception(exception);
+        crate::error::throw_type_error(scope, "Failed to convert argument to string");
         return;
     }
 
     // Check if string contains characters outside the Latin-1 range
     for ch in input_str.chars() {
         if ch as u32 > 0xFF {
-            let message = v8::String::new(
+            crate::error::throw_error(
                 scope,
                 "The string to be encoded contains characters outside of the Latin1 range.",
-            )
-            .unwrap();
-            let exception = v8::Exception::error(scope, message);
-            scope.throw_exception(exception);
+            );
             return;
         }
     }

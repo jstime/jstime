@@ -32,7 +32,13 @@ fn set_timeout(
     mut rv: v8::ReturnValue,
 ) {
     let callback_obj = args.get(0);
-    let callback = v8::Local::<v8::Function>::try_from(callback_obj).unwrap();
+    let callback = match crate::error::try_get_function_result(callback_obj) {
+        Ok(f) => f,
+        Err(msg) => {
+            crate::error::throw_type_error(scope, msg);
+            return;
+        }
+    };
 
     let delay_obj = args.get(1);
     let delay_ms = if delay_obj.is_undefined() || delay_obj.is_null() {
@@ -73,7 +79,13 @@ fn set_interval(
     mut rv: v8::ReturnValue,
 ) {
     let callback_obj = args.get(0);
-    let callback = v8::Local::<v8::Function>::try_from(callback_obj).unwrap();
+    let callback = match crate::error::try_get_function_result(callback_obj) {
+        Ok(f) => f,
+        Err(msg) => {
+            crate::error::throw_type_error(scope, msg);
+            return;
+        }
+    };
 
     let interval_obj = args.get(1);
     let interval_ms = if interval_obj.is_undefined() || interval_obj.is_null() {
