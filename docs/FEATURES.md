@@ -16,6 +16,7 @@ jstime is a minimal and performant JavaScript runtime built on top of V8. This d
 - [Microtask API](#microtask-api)
 - [Structured Clone API](#structured-clone-api)
 - [Base64 Encoding](#base64-encoding)
+- [Text Encoding API](#text-encoding-api)
 - [File System API](#file-system-api)
 - [WebAssembly](#webassembly)
 - [ES Modules](#es-modules)
@@ -725,6 +726,280 @@ try {
 // Structured clone handles circular references
 const clonedCircular = structuredClone(circular); // Works ✅
 console.log(clonedCircular.self === clonedCircular); // true
+```
+
+## Text Encoding API
+
+jstime implements the [WHATWG Encoding Standard](https://encoding.spec.whatwg.org/), providing `TextEncoder` and `TextDecoder` for encoding and decoding text as UTF-8 bytes.
+
+### Supported APIs
+
+- `TextEncoder` - Encode strings to UTF-8 bytes
+- `TextDecoder` - Decode UTF-8 bytes to strings
+
+### TextEncoder
+
+The `TextEncoder` class represents an encoder for UTF-8 encoding. It takes a stream of code points as input and emits a stream of UTF-8 bytes.
+
+#### Constructor
+
+```javascript
+new TextEncoder()
+```
+
+The `TextEncoder` constructor takes no arguments and always encodes to UTF-8.
+
+#### Properties
+
+- `encoding` (read-only) - Always returns `"utf-8"`
+
+#### Methods
+
+- `encode(input)` - Encodes a string into a `Uint8Array` of UTF-8 bytes
+  - `input` (string, optional) - The string to encode. Defaults to empty string.
+  - Returns: `Uint8Array` containing the UTF-8 encoded bytes
+
+- `encodeInto(source, destination)` - Encodes a string into an existing `Uint8Array`
+  - `source` (string) - The string to encode
+  - `destination` (Uint8Array) - The destination buffer to write to
+  - Returns: `{ read: number, written: number }` object indicating how many UTF-16 code units were read and how many UTF-8 bytes were written
+
+### TextDecoder
+
+The `TextDecoder` class represents a decoder for UTF-8 encoded text. It takes a stream of UTF-8 bytes as input and emits a stream of code points.
+
+#### Constructor
+
+```javascript
+new TextDecoder(label = 'utf-8', options = {})
+```
+
+**Parameters:**
+- `label` (string, optional) - The encoding label. Only `"utf-8"`, `"utf8"`, and `"unicode-1-1-utf-8"` are supported. Defaults to `"utf-8"`.
+- `options` (object, optional) - Currently accepts but ignores `fatal` and `ignoreBOM` options for compatibility
+
+#### Properties
+
+- `encoding` (read-only) - Returns `"utf-8"`
+- `fatal` (read-only) - Returns the value set in the constructor options
+- `ignoreBOM` (read-only) - Returns the value set in the constructor options
+
+#### Methods
+
+- `decode(input, options)` - Decodes a buffer of UTF-8 bytes into a string
+  - `input` (ArrayBuffer | ArrayBufferView, optional) - The bytes to decode
+  - `options` (object, optional) - Currently accepts but ignores `stream` option for compatibility
+  - Returns: `string` containing the decoded text
+
+### Examples
+
+#### Basic Encoding and Decoding
+
+```javascript
+// Create encoder and decoder
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// Encode a string
+const text = "Hello, World!";
+const encoded = encoder.encode(text);
+console.log(encoded); // Uint8Array(13) [72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33]
+
+// Decode the bytes
+const decoded = decoder.decode(encoded);
+console.log(decoded); // "Hello, World!"
+```
+
+#### Encoding UTF-8 Multi-byte Characters
+
+```javascript
+const encoder = new TextEncoder();
+
+// Euro sign (3 bytes in UTF-8)
+const euro = encoder.encode('€');
+console.log(euro); // Uint8Array(3) [226, 130, 172]
+
+// Chinese characters (3 bytes each)
+const chinese = encoder.encode('世界');
+console.log(chinese); // Uint8Array(6) [228, 184, 150, 231, 149, 140]
+
+// Emoji (4 bytes in UTF-8)
+const emoji = encoder.encode('😀');
+console.log(emoji); // Uint8Array(4) [240, 159, 152, 128]
+```
+
+#### Using encodeInto for Efficient Encoding
+
+```javascript
+const encoder = new TextEncoder();
+
+// Pre-allocate a buffer
+const buffer = new Uint8Array(100);
+
+// Encode into the buffer
+const result = encoder.encodeInto('Hello', buffer);
+console.log(result); // { read: 5, written: 5 }
+
+// Check what was written
+const written = buffer.slice(0, result.written);
+console.log(Array.from(written)); // [72, 101, 108, 108, 111]
+```
+
+#### Handling Buffer Overflow with encodeInto
+
+```javascript
+const encoder = new TextEncoder();
+
+// Small buffer that can't fit the entire string
+const buffer = new Uint8Array(3);
+
+const result = encoder.encodeInto('hello', buffer);
+console.log(result); // { read: 3, written: 3 }
+
+// Only 'hel' was written
+const decoder = new TextDecoder();
+console.log(decoder.decode(buffer)); // "hel"
+```
+
+#### Decoding Different Buffer Types
+
+```javascript
+const decoder = new TextDecoder();
+
+// Decode from Uint8Array
+const uint8 = new Uint8Array([72, 101, 108, 108, 111]);
+console.log(decoder.decode(uint8)); // "Hello"
+
+// Decode from ArrayBuffer
+const buffer = new Uint8Array([72, 105]).buffer;
+console.log(decoder.decode(buffer)); // "Hi"
+
+// Decode from other TypedArray views
+const uint16 = new Uint16Array([0x4865, 0x6c6c, 0x6f00]);
+const uint8View = new Uint8Array(uint16.buffer, 0, 5);
+console.log(decoder.decode(uint8View)); // "Hello"
+```
+
+#### Round-trip Encoding and Decoding
+
+```javascript
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// Test with various character sets
+const testStrings = [
+  'ASCII text',
+  'Español',
+  '日本語',
+  'Emoji: 🌍🌎🌏',
+  'Mixed: Hello 世界 🚀',
+  'Special chars: \n\t\r\0'
+];
+
+testStrings.forEach(original => {
+  const encoded = encoder.encode(original);
+  const decoded = decoder.decode(encoded);
+  console.log(decoded === original); // true for all
+});
+```
+
+#### Working with File Data
+
+```javascript
+import { readFile, writeFile } from 'node:fs/promises';
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// Write text to a file as UTF-8 bytes
+const text = 'Hello, World! 🌍';
+const bytes = encoder.encode(text);
+await writeFile('message.txt', bytes);
+
+// Read UTF-8 bytes from a file and decode
+const fileBytes = await readFile('message.txt');
+const fileText = decoder.decode(fileBytes);
+console.log(fileText); // "Hello, World! 🌍"
+```
+
+#### Getting Encoding Information
+
+```javascript
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+console.log(encoder.encoding); // "utf-8"
+console.log(decoder.encoding); // "utf-8"
+
+// TextEncoder only supports UTF-8
+// const encoder2 = new TextEncoder('iso-8859-1'); // Would still be UTF-8
+
+// TextDecoder only supports UTF-8 in jstime
+// const decoder2 = new TextDecoder('iso-8859-1'); // Throws RangeError
+```
+
+### Use Cases
+
+The Text Encoding API is useful for:
+
+- **Binary data processing**: Converting between strings and byte arrays
+- **File I/O**: Reading and writing text files with explicit encoding
+- **Network communication**: Encoding/decoding text data for transmission
+- **WebAssembly**: Passing string data between JavaScript and WebAssembly modules
+- **Cryptography**: Preparing text data for hashing or encryption
+- **Data serialization**: Converting text to bytes for storage or transmission
+
+### UTF-8 Support
+
+jstime's `TextEncoder` and `TextDecoder` support the full UTF-8 character set:
+
+- ✅ **ASCII** (1 byte): Basic Latin characters
+- ✅ **Latin-1 Supplement** (2 bytes): European characters
+- ✅ **BMP** (Basic Multilingual Plane, 2-3 bytes): Most modern scripts
+- ✅ **Supplementary Planes** (4 bytes): Emoji, historic scripts, rare characters
+
+```javascript
+const encoder = new TextEncoder();
+
+// 1 byte (ASCII)
+console.log(encoder.encode('A').length); // 1
+
+// 2 bytes (Latin-1 Supplement)
+console.log(encoder.encode('ñ').length); // 2
+
+// 3 bytes (BMP)
+console.log(encoder.encode('€').length); // 3
+console.log(encoder.encode('世').length); // 3
+
+// 4 bytes (Supplementary Planes)
+console.log(encoder.encode('😀').length); // 4
+```
+
+### Comparison with Base64
+
+While both deal with text encoding, they serve different purposes:
+
+| Feature | Text Encoding API | Base64 (btoa/atob) |
+|---------|------------------|-------------------|
+| **Purpose** | Convert between strings and UTF-8 bytes | Convert binary data to ASCII text |
+| **Input** | Any Unicode string | Latin-1 strings (0-255) only |
+| **Output** | Uint8Array (bytes) | ASCII string |
+| **Character support** | Full Unicode (UTF-8) | Latin-1 only |
+| **Use case** | Binary data processing | Text-safe binary transmission |
+
+```javascript
+const encoder = new TextEncoder();
+
+// Text Encoding: Unicode → UTF-8 bytes
+const utf8Bytes = encoder.encode('Hello 世界');
+console.log(utf8Bytes); // Uint8Array with UTF-8 bytes
+
+// Base64: Latin-1 string → Base64 ASCII
+const base64 = btoa('Hello');
+console.log(base64); // "SGVsbG8="
+
+// Base64 cannot handle Unicode directly
+// btoa('世界'); // Error!
 ```
 
 ## File System API
