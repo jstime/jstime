@@ -110,9 +110,14 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 }
 
 // Base64 encoding/decoding helper functions
+#[inline]
 fn base64_encode(input: &[u8]) -> String {
     const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::new();
+
+    // Pre-allocate string with exact capacity needed
+    // Each 3 bytes encode to 4 base64 chars
+    let output_len = input.len().div_ceil(3) * 4;
+    let mut result = String::with_capacity(output_len);
 
     let mut i = 0;
     while i < input.len() {
@@ -146,6 +151,7 @@ fn base64_encode(input: &[u8]) -> String {
     result
 }
 
+#[inline]
 fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     // Remove whitespace
     let input: String = input.chars().filter(|c| !c.is_whitespace()).collect();
@@ -159,7 +165,10 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
         return Err("Invalid base64 string length".to_string());
     }
 
-    let mut result = Vec::new();
+    // Pre-allocate result vector with estimated size
+    // Each 4 base64 chars decodes to at most 3 bytes
+    let estimated_size = (input.len() / 4) * 3;
+    let mut result = Vec::with_capacity(estimated_size);
 
     for chunk in input.as_bytes().chunks(4) {
         let b1 = decode_char(chunk[0] as char)?;
@@ -187,6 +196,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     Ok(result)
 }
 
+#[inline]
 fn decode_char(c: char) -> Result<u8, String> {
     match c {
         'A'..='Z' => Ok((c as u8) - b'A'),
