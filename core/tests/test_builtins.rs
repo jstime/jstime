@@ -784,16 +784,38 @@ mod tests {
         assert!(result.unwrap().contains("1970"));
     }
 
-    // NOTE: toLocaleString() currently crashes with V8 140.2.0 due to ICU data issues
-    // The ICU data files provided by the v8 crate appear to be incomplete for date formatting.
-    // This is a known limitation that needs to be addressed in a future update.
     #[test]
-    #[ignore] // Ignored because it currently crashes
     fn date_to_locale_string() {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
         let result = jstime.run_script("new Date().toLocaleString()", "jstime");
         assert!(result.is_ok());
+        // Result should be in format: MM/DD/YYYY, HH:MM:SS AM/PM
+        let output = result.unwrap();
+        assert!(output.contains('/'));
+        assert!(output.contains(','));
+        assert!(output.contains(':'));
+    }
+
+    #[test]
+    fn date_to_locale_date_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("new Date(2025, 0, 15).toLocaleDateString()", "jstime");
+        assert_eq!(result.unwrap(), "01/15/2025");
+    }
+
+    #[test]
+    fn date_to_locale_time_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "new Date(2025, 0, 15, 14, 30, 45).toLocaleTimeString()",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "2:30:45 PM");
     }
 }

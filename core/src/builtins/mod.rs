@@ -111,5 +111,10 @@ impl Builtins {
         // Node.js
         builtin!("./node/fs.js");
         builtin!("./node/process.js");
+
+        // Polyfills (load last to override native implementations)
+        // Date locale methods polyfill - replaces broken V8 ICU implementation
+        let date_locale_polyfill = include_str!("./polyfills/date_locale.js");
+        crate::script::run(scope, date_locale_polyfill, "date_locale_polyfill.js").unwrap();
     }
 }
