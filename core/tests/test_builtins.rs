@@ -7,10 +7,7 @@ mod tests {
     use super::*;
     #[test]
     fn queue_microtask() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof globalThis.queueMicrotask;", "jstime");
+        let result = common::get_type_of("globalThis.queueMicrotask");
         assert_eq!(result.unwrap(), "function");
     }
     #[test]
@@ -27,10 +24,7 @@ mod tests {
 
     #[test]
     fn url_class_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof URL;", "jstime");
+        let result = common::get_type_of("URL");
         assert_eq!(result.unwrap(), "function");
     }
 
@@ -118,10 +112,7 @@ mod tests {
 
     #[test]
     fn url_search_params_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof URLSearchParams;", "jstime");
+        let result = common::get_type_of("URLSearchParams");
         assert_eq!(result.unwrap(), "function");
     }
 
@@ -270,28 +261,19 @@ mod tests {
 
     #[test]
     fn performance_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance;", "jstime");
+        let result = common::get_type_of("performance");
         assert_eq!(result.unwrap(), "object");
     }
 
     #[test]
     fn performance_now_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.now;", "jstime");
+        let result = common::get_type_of("performance.now");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn performance_now_returns_number() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.now();", "jstime");
+        let result = common::get_type_of("performance.now()");
         assert_eq!(result.unwrap(), "number");
     }
 
@@ -311,10 +293,7 @@ mod tests {
 
     #[test]
     fn performance_time_origin_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.timeOrigin;", "jstime");
+        let result = common::get_type_of("performance.timeOrigin");
         assert_eq!(result.unwrap(), "number");
     }
 
@@ -448,10 +427,7 @@ mod tests {
 
     #[test]
     fn structuredclone_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof structuredClone;", "jstime");
+        let result = common::get_type_of("structuredClone");
         assert_eq!(result.unwrap(), "function");
     }
 
@@ -469,19 +445,13 @@ mod tests {
 
     #[test]
     fn atob_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof atob;", "jstime");
+        let result = common::get_type_of("atob");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn btoa_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof btoa;", "jstime");
+        let result = common::get_type_of("btoa");
         assert_eq!(result.unwrap(), "function");
     }
 
@@ -576,19 +546,13 @@ mod tests {
 
     #[test]
     fn event_class_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Event;", "jstime");
+        let result = common::get_type_of("Event");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn event_target_class_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof EventTarget;", "jstime");
+        let result = common::get_type_of("EventTarget");
         assert_eq!(result.unwrap(), "function");
     }
 

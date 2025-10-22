@@ -32,20 +32,14 @@ mod conformance_base64 {
     // Test that btoa is a function
     #[test]
     fn btoa_is_function() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof btoa;", "test");
+        let result = common::get_type_of("btoa");
         assert_eq!(result.unwrap(), "function");
     }
 
     // Test that atob is a function
     #[test]
     fn atob_is_function() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof atob;", "test");
+        let result = common::get_type_of("atob");
         assert_eq!(result.unwrap(), "function");
     }
 

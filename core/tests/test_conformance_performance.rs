@@ -11,46 +11,31 @@ mod conformance_performance {
 
     #[test]
     fn performance_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance;", "test");
+        let result = common::get_type_of("performance");
         assert_eq!(result.unwrap(), "object");
     }
 
     #[test]
     fn performance_is_not_null() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("performance !== null;", "test");
+        let result = common::run_test_script("performance !== null;");
         assert_eq!(result.unwrap(), "true");
     }
 
     #[test]
     fn performance_now_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.now;", "test");
+        let result = common::get_type_of("performance.now");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn performance_now_returns_number() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.now();", "test");
+        let result = common::get_type_of("performance.now()");
         assert_eq!(result.unwrap(), "number");
     }
 
     #[test]
     fn performance_now_returns_positive_number() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("performance.now() >= 0;", "test");
+        let result = common::run_test_script("performance.now() >= 0;");
         assert_eq!(result.unwrap(), "true");
     }
 
@@ -80,19 +65,13 @@ mod conformance_performance {
 
     #[test]
     fn performance_timeorigin_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.timeOrigin;", "test");
+        let result = common::get_type_of("performance.timeOrigin");
         assert_eq!(result.unwrap(), "number");
     }
 
     #[test]
     fn performance_timeorigin_is_positive() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("performance.timeOrigin > 0;", "test");
+        let result = common::run_test_script("performance.timeOrigin > 0;");
         assert_eq!(result.unwrap(), "true");
     }
 
@@ -112,19 +91,13 @@ mod conformance_performance {
 
     #[test]
     fn performance_tojson_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.toJSON;", "test");
+        let result = common::get_type_of("performance.toJSON");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn performance_tojson_returns_object() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof performance.toJSON();", "test");
+        let result = common::get_type_of("performance.toJSON()");
         assert_eq!(result.unwrap(), "object");
     }
 
