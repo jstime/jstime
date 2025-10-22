@@ -2,6 +2,7 @@ mod base64_impl;
 mod console_impl;
 mod event_impl;
 mod fetch_impl;
+mod fs_impl;
 mod performance_impl;
 mod queue_microtask_impl;
 mod structured_clone_impl;
@@ -10,7 +11,7 @@ mod url_impl;
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     // Pre-allocate with approximate capacity to avoid reallocation
-    let mut refs = Vec::with_capacity(40);
+    let mut refs = Vec::with_capacity(45);
     refs.extend(base64_impl::get_external_references());
     refs.extend(console_impl::get_external_references());
     refs.extend(event_impl::get_external_references());
@@ -20,6 +21,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     refs.extend(fetch_impl::get_external_references());
     refs.extend(performance_impl::get_external_references());
     refs.extend(structured_clone_impl::get_external_references());
+    refs.extend(fs_impl::get_external_references());
     refs
 }
 
@@ -39,6 +41,7 @@ impl Builtins {
         fetch_impl::register_bindings(scope, bindings);
         performance_impl::register_bindings(scope, bindings);
         structured_clone_impl::register_bindings(scope, bindings);
+        fs_impl::register_bindings(scope, bindings);
 
         macro_rules! builtin {
             ($name:expr) => {
@@ -63,5 +66,6 @@ impl Builtins {
         builtin!("./fetch.js");
         builtin!("./performance.js");
         builtin!("./structured_clone.js");
+        builtin!("./fs.js");
     }
 }
