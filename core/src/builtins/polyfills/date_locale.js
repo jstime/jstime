@@ -1,5 +1,9 @@
 // Polyfill for Date locale methods
 // Replaces the broken native ICU-based implementations with working JS versions
+//
+// TODO: Remove this polyfill once V8's ICU implementation is fixed or when we can
+// provide complete ICU data that doesn't crash or hang. The native V8 implementation
+// should be preferred once it works correctly with proper ICU data.
 
 (function() {
     'use strict';
