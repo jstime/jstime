@@ -307,38 +307,32 @@ fn append_file(
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
-    let arg_len = args.length();
-    if arg_len < 2 {
-        let msg = v8::String::new(scope, "path and data are required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 2, "appendFile") {
         return;
     }
 
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
     let data_arg = args.get(1);
     let data = if data_arg.is_uint8_array() {
-        let uint8_array = v8::Local::<v8::Uint8Array>::try_from(data_arg).unwrap();
+        let Some(uint8_array) = v8::Local::<v8::Uint8Array>::try_from(data_arg).ok() else {
+            crate::error::throw_type_error(scope, "Failed to convert to Uint8Array");
+            return;
+        };
         let mut buffer = vec![0u8; uint8_array.byte_length()];
         let copied = uint8_array.copy_contents(&mut buffer);
         if copied != buffer.len() {
-            let msg = v8::String::new(scope, "Failed to copy buffer data").unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, "Failed to copy buffer data");
             return;
         }
         buffer
     } else {
-        let data_str = data_arg
-            .to_string(scope)
-            .unwrap()
-            .to_rust_string_lossy(isolate);
+        let Some(data_str) = crate::error::to_rust_string_or_throw(scope, data_arg, "data") else {
+            return;
+        };
         data_str.into_bytes()
     };
 
@@ -352,41 +346,35 @@ fn append_file(
         Ok(mut file) => match file.write_all(&data) {
             Ok(_) => {}
             Err(e) => {
-                let msg =
-                    v8::String::new(scope, &format!("Failed to append to file: {}", e)).unwrap();
-                let exception = v8::Exception::error(scope, msg);
-                scope.throw_exception(exception);
+                crate::error::throw_error(scope, &format!("Failed to append to file: {}", e));
             }
         },
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to open file: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to open file: {}", e));
         }
     }
 }
 
 fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
-    let arg_len = args.length();
-    if arg_len < 1 {
-        let msg = v8::String::new(scope, "path is required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "mkdir") {
         return;
     }
 
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
+    let arg_len = args.length();
     let recursive = if arg_len >= 2 {
         let options_arg = args.get(1);
         if options_arg.is_object() {
-            let options = options_arg.to_object(scope).unwrap();
-            let recursive_key = v8::String::new(scope, "recursive").unwrap();
+            let Some(options) = options_arg.to_object(scope) else {
+                return;
+            };
+            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
+                return;
+            };
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -408,35 +396,31 @@ fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
     match result {
         Ok(_) => {}
         Err(e) => {
-            let msg =
-                v8::String::new(scope, &format!("Failed to create directory: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to create directory: {}", e));
         }
     }
 }
 
 fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
-    let arg_len = args.length();
-    if arg_len < 1 {
-        let msg = v8::String::new(scope, "path is required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "rmdir") {
         return;
     }
 
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
+    let arg_len = args.length();
     let recursive = if arg_len >= 2 {
         let options_arg = args.get(1);
         if options_arg.is_object() {
-            let options = options_arg.to_object(scope).unwrap();
-            let recursive_key = v8::String::new(scope, "recursive").unwrap();
+            let Some(options) = options_arg.to_object(scope) else {
+                return;
+            };
+            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
+                return;
+            };
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -458,67 +442,49 @@ fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
     match result {
         Ok(_) => {}
         Err(e) => {
-            let msg =
-                v8::String::new(scope, &format!("Failed to remove directory: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to remove directory: {}", e));
         }
     }
 }
 
 fn unlink(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
-    let arg_len = args.length();
-    if arg_len < 1 {
-        let msg = v8::String::new(scope, "path is required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "unlink") {
         return;
     }
 
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
     match fs::remove_file(&path_str) {
         Ok(_) => {}
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to remove file: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to remove file: {}", e));
         }
     }
 }
 
 fn rename(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
-    let arg_len = args.length();
-    if arg_len < 2 {
-        let msg = v8::String::new(scope, "oldPath and newPath are required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 2, "rename") {
         return;
     }
 
     let old_path_arg = args.get(0);
     let new_path_arg = args.get(1);
-    let isolate: &v8::Isolate = scope;
-    let old_path = old_path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
-    let new_path = new_path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(old_path) = crate::error::to_rust_string_or_throw(scope, old_path_arg, "oldPath")
+    else {
+        return;
+    };
+    let Some(new_path) = crate::error::to_rust_string_or_throw(scope, new_path_arg, "newPath")
+    else {
+        return;
+    };
 
     match fs::rename(&old_path, &new_path) {
         Ok(_) => {}
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to rename: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to rename: {}", e));
         }
     }
 }
@@ -528,32 +494,23 @@ fn copy_file(
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
-    let arg_len = args.length();
-    if arg_len < 2 {
-        let msg = v8::String::new(scope, "src and dest are required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 2, "copyFile") {
         return;
     }
 
     let src_arg = args.get(0);
     let dest_arg = args.get(1);
-    let isolate: &v8::Isolate = scope;
-    let src_path = src_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
-    let dest_path = dest_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(src_path) = crate::error::to_rust_string_or_throw(scope, src_arg, "src") else {
+        return;
+    };
+    let Some(dest_path) = crate::error::to_rust_string_or_throw(scope, dest_arg, "dest") else {
+        return;
+    };
 
     match fs::copy(&src_path, &dest_path) {
         Ok(_) => {}
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to copy file: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to copy file: {}", e));
         }
     }
 }
@@ -563,55 +520,57 @@ fn stat(
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let arg_len = args.length();
-    if arg_len < 1 {
-        let msg = v8::String::new(scope, "path is required").unwrap();
-        let exception = v8::Exception::type_error(scope, msg);
-        scope.throw_exception(exception);
+    if !crate::error::check_arg_count(scope, &args, 1, "stat") {
         return;
     }
 
     let path_arg = args.get(0);
-    let isolate: &v8::Isolate = scope;
-    let path_str = path_arg
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(isolate);
+    let Some(path_str) = crate::error::to_rust_string_or_throw(scope, path_arg, "path") else {
+        return;
+    };
 
     match fs::metadata(&path_str) {
         Ok(metadata) => {
             let stats = v8::Object::new(scope);
 
             let is_file = v8::Boolean::new(scope, metadata.is_file());
-            let is_file_key = v8::String::new(scope, "isFile").unwrap();
+            let Some(is_file_key) = v8::String::new(scope, "isFile") else {
+                return;
+            };
             stats.set(scope, is_file_key.into(), is_file.into());
 
             let is_dir = v8::Boolean::new(scope, metadata.is_dir());
-            let is_dir_key = v8::String::new(scope, "isDirectory").unwrap();
+            let Some(is_dir_key) = v8::String::new(scope, "isDirectory") else {
+                return;
+            };
             stats.set(scope, is_dir_key.into(), is_dir.into());
 
             let is_symlink = v8::Boolean::new(scope, metadata.is_symlink());
-            let is_symlink_key = v8::String::new(scope, "isSymbolicLink").unwrap();
+            let Some(is_symlink_key) = v8::String::new(scope, "isSymbolicLink") else {
+                return;
+            };
             stats.set(scope, is_symlink_key.into(), is_symlink.into());
 
             let size = v8::Number::new(scope, metadata.len() as f64);
-            let size_key = v8::String::new(scope, "size").unwrap();
+            let Some(size_key) = v8::String::new(scope, "size") else {
+                return;
+            };
             stats.set(scope, size_key.into(), size.into());
 
             if let Ok(modified) = metadata.modified()
                 && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
             {
                 let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                let mtime_key = v8::String::new(scope, "mtimeMs").unwrap();
+                let Some(mtime_key) = v8::String::new(scope, "mtimeMs") else {
+                    return;
+                };
                 stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
             retval.set(stats.into());
         }
         Err(e) => {
-            let msg = v8::String::new(scope, &format!("Failed to stat file: {}", e)).unwrap();
-            let exception = v8::Exception::error(scope, msg);
-            scope.throw_exception(exception);
+            crate::error::throw_error(scope, &format!("Failed to stat file: {}", e));
         }
     }
 }
