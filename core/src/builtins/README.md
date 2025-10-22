@@ -48,6 +48,15 @@ See [CONTRIBUTING.md](../../../CONTRIBUTING.md#adding-built-in-apis) for instruc
 
 **Quick steps:**
 1. Create `your_api_impl.rs` (Rust) and `your_api.js` (JavaScript) in the appropriate directory (whatwg/, w3c/, or node/)
-2. Register in `mod.rs`
+2. Register in `mod.rs` by adding a single entry to the `define_builtins!` macro:
+   ```rust
+   define_builtins! {
+       whatwg: [
+           // ... existing entries ...
+           (your_api_impl, "your_api"),  // Add your new builtin here
+       ],
+       // ...
+   }
+   ```
 3. Write tests in `core/tests/`
 4. Update `docs/FEATURES.md`

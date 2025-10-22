@@ -65,7 +65,7 @@ See [core/src/builtins/README.md](./core/src/builtins/README.md) for detailed in
 **Quick overview:**
 1. Create `your_api_impl.rs` (Rust implementation)
 2. Create `your_api.js` (JavaScript polyfill)
-3. Register in `builtins/mod.rs`
+3. Register in `builtins/mod.rs` by adding one entry to the `define_builtins!` macro
 4. Write tests in `core/tests/`
 5. Update `docs/FEATURES.md`
 
