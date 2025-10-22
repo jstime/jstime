@@ -182,3 +182,110 @@ fn test_process_env_special_chars() {
         std::env::remove_var("TEST_SPECIAL");
     }
 }
+
+#[test]
+fn test_process_stdout_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    let result = jstime.run_script("typeof process.stdout", "test");
+    assert_eq!(result.unwrap(), "object");
+
+    let result = jstime.run_script("typeof process.stdout.write", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_process_stderr_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    let result = jstime.run_script("typeof process.stderr", "test");
+    assert_eq!(result.unwrap(), "object");
+
+    let result = jstime.run_script("typeof process.stderr.write", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_process_stdin_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    let result = jstime.run_script("typeof process.stdin", "test");
+    assert_eq!(result.unwrap(), "object");
+
+    let result = jstime.run_script("typeof process.stdin.read", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_process_stdout_write_string() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    // Test writing a string to stdout
+    let result = jstime.run_script("process.stdout.write('test output'); 'success'", "test");
+    assert_eq!(result.unwrap(), "success");
+}
+
+#[test]
+fn test_process_stderr_write_string() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    // Test writing a string to stderr
+    let result = jstime.run_script("process.stderr.write('test error'); 'success'", "test");
+    assert_eq!(result.unwrap(), "success");
+}
+
+#[test]
+fn test_process_stdout_write_returns_true() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    let result = jstime.run_script("process.stdout.write('test')", "test");
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_process_stdout_istty() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    let result = jstime.run_script("typeof process.stdout.isTTY", "test");
+    assert_eq!(result.unwrap(), "boolean");
+}
+
+#[test]
+fn test_process_stdin_istty() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options {
+        process_argv: vec!["jstime".to_string()],
+    };
+    let mut jstime = jstime::JSTime::new(options);
+
+    let result = jstime.run_script("typeof process.stdin.isTTY", "test");
+    assert_eq!(result.unwrap(), "boolean");
+}

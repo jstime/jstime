@@ -209,10 +209,12 @@ jstime's Process API implements a minimal subset of Node.js's process object:
 | `process.pid` | ❌ | ✅ |
 | `process.platform` | ❌ | ✅ |
 | `process.version` | ❌ | ✅ |
-| `process.stdin/stdout/stderr` | ❌ | ✅ |
+| `process.stdin/stdout/stderr` | ✅ (basic) | ✅ |
 | Event emitters | ❌ | ✅ |
 
-For most common use cases (configuration, CLI arguments, working directory), jstime's Process API provides sufficient functionality.
+The `process.stdout`, `process.stderr`, and `process.stdin` are implemented as basic stream-like objects with `write()` and `read()` methods respectively. They support writing strings and Uint8Arrays, but don't include the full Node.js Stream API features.
+
+For most common use cases (configuration, CLI arguments, working directory, basic I/O), jstime's Process API provides sufficient functionality.
 
 ## File System API
 
