@@ -73,7 +73,7 @@ See [core/src/builtins/README.md](./core/src/builtins/README.md) for detailed in
    - System APIs: `docs/apis/system.md`
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
-   - Update `docs/FEATURES.md` if adding a new API category
+   - Update `docs/README.md` if adding a new API category
 
 ### Testing
 

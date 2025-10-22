@@ -1,10 +1,10 @@
-# jstime Features
+# jstime Documentation
 
 jstime is a minimal and performant JavaScript runtime built on top of V8. This document provides an overview of the various features and APIs supported by jstime.
 
 **🚀 Want to see these features in action?** Check out the [examples/](../examples/) directory for runnable code samples demonstrating each API!
 
-## Documentation
+## Features
 
 jstime's feature documentation is organized into the following categories:
 

@@ -117,7 +117,7 @@ Built-in APIs are located in `core/src/builtins/` and organized by standards bod
    - System APIs: `docs/apis/system.md`
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
-   - Update `docs/FEATURES.md` if adding a new API category
+   - Update `docs/README.md` if adding a new API category
 
 ## Testing
 
@@ -242,7 +242,7 @@ jstime supports ES modules with:
    - System APIs: `docs/apis/system.md`
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
-   - Update `docs/FEATURES.md` if adding a new API category
+   - Update `docs/README.md` if adding a new API category
 
 ### Debugging
 
@@ -266,7 +266,7 @@ jstime supports ES modules with:
   - System APIs: `docs/apis/system.md`
   - Module System: `docs/apis/modules.md`
   - Runtime features: `docs/runtime.md`
-  - Main index: `docs/FEATURES.md`
+  - Main index: `docs/README.md`
 - See ARCHITECTURE.md for detailed architecture information
 - See PERFORMANCE.md for performance optimization details
 - See CONTRIBUTING.md for development workflow
@@ -297,7 +297,7 @@ jstime supports ES modules with:
 - [Project Repository](https://github.com/jstime/jstime)
 - [Architecture Documentation](../ARCHITECTURE.md)
 - [Performance Documentation](../PERFORMANCE.md)
-- [Features Overview](../docs/FEATURES.md)
+- [Features Overview](../docs/README.md)
 - [Web APIs](../docs/apis/web-apis.md)
 - [System APIs](../docs/apis/system.md)
 - [Text Encoding & Crypto](../docs/apis/encoding-crypto.md)

@@ -290,7 +290,7 @@ Feel free to create your own examples to explore jstime's features!
 ## Additional Resources
 
 - [Main README](../README.md) - Getting started with jstime
-- [Features Documentation](../docs/FEATURES.md) - Complete API reference
+- [Features Documentation](../docs/README.md) - Complete API reference
 - [Web APIs](../docs/apis/web-apis.md) - Web standard APIs
 - [System APIs](../docs/apis/system.md) - Process and file system APIs
 - [Module System](../docs/apis/modules.md) - ES Modules and WebAssembly
