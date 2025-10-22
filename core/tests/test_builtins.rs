@@ -764,4 +764,36 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "3");
     }
+
+    #[test]
+    fn date_now() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("typeof Date.now()", "jstime");
+        assert_eq!(result.unwrap(), "number");
+    }
+
+    #[test]
+    fn date_to_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("new Date(0).toString()", "jstime");
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("1970"));
+    }
+
+    // NOTE: toLocaleString() currently crashes with V8 140.2.0 due to ICU data issues
+    // The ICU data files provided by the v8 crate appear to be incomplete for date formatting.
+    // This is a known limitation that needs to be addressed in a future update.
+    #[test]
+    #[ignore] // Ignored because it currently crashes
+    fn date_to_locale_string() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script("new Date().toLocaleString()", "jstime");
+        assert!(result.is_ok());
+    }
 }

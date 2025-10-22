@@ -17,6 +17,7 @@ ureq = "3.1"
 rustc-hash = "2.1"
 filetime = "0.2"
 ring = "0.17"
+align-data = "0.1.0"
 
 [dev-dependencies]
 serde_json = "1.0"
