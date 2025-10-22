@@ -53,9 +53,9 @@ jstime/
 
 ```bash
 # Make your changes, then:
-cargo fmt --all           # Format code
-cargo clippy -- -D warnings  # Check lints
-cargo test                # Run tests
+cargo fmt --all                        # Format code
+cargo clippy --all-targets -- -D warnings  # Check lints (including tests)
+cargo test                             # Run tests
 ```
 
 ### Adding Built-in APIs
