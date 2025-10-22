@@ -71,6 +71,8 @@ Demonstrates the Fetch API for making HTTP requests:
 - Parsing JSON and text responses
 - Error handling
 
+**Note:** This example requires network access and may fail in restricted environments.
+
 **To run:**
 ```bash
 jstime examples/fetch-demo.mjs
