@@ -32,7 +32,20 @@ fn main() {
             .map(|o| o.split(' ').map(|s| s.to_owned()).collect()),
     );
 
-    let options = jstime::Options::new(None);
+    // Build process.argv - executable path and script arguments
+    let args: Vec<String> = env::args().collect();
+    let mut process_argv = Vec::new();
+
+    // First argument is always the executable
+    process_argv.push(args[0].clone());
+
+    // Add the filename if provided
+    if let Some(ref filename) = opt.filename {
+        process_argv.push(filename.clone());
+    }
+
+    let mut options = jstime::Options::new(None);
+    options.process_argv = process_argv;
     // let options = jstime::Options::new(Some(include_bytes!(concat!(
     //     env!("OUT_DIR"),
     //     "/snapshot_data.blob"

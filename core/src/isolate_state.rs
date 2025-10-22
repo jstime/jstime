@@ -37,10 +37,14 @@ pub(crate) struct IsolateState {
     pub(crate) pending_fetches: Rc<RefCell<Vec<FetchRequest>>>,
     pub(crate) string_cache: Rc<RefCell<StringCache>>,
     pub(crate) http_agent: ureq::Agent,
+    pub(crate) process_argv: Vec<String>,
 }
 
 impl IsolateState {
-    pub(crate) fn new(context: v8::Global<v8::Context>) -> Rc<RefCell<IsolateState>> {
+    pub(crate) fn new(
+        context: v8::Global<v8::Context>,
+        process_argv: Vec<String>,
+    ) -> Rc<RefCell<IsolateState>> {
         let timers_to_clear = Rc::new(RefCell::new(Vec::new()));
         let timers_to_add = Rc::new(RefCell::new(Vec::new()));
         let next_timer_id = Rc::new(RefCell::new(1u64));
@@ -69,6 +73,7 @@ impl IsolateState {
             pending_fetches,
             string_cache,
             http_agent,
+            process_argv,
         }))
     }
 

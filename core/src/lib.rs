@@ -42,6 +42,7 @@ pub fn init(v8_flags: Option<Vec<String>>) {
 pub struct Options {
     // pub snapshot: Option<&'static [u8]>,
     // taking_snapshot: bool,
+    pub process_argv: Vec<String>,
 }
 
 impl Options {
@@ -49,6 +50,7 @@ impl Options {
         Options {
             // snapshot,
             // ..Options::default()
+            process_argv: Vec::new(),
         }
     }
 }
@@ -106,7 +108,7 @@ impl JSTime {
     //     }
     // }
 
-    fn create(_options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
+    fn create(options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
         // Set up import.meta callback before creating context
         isolate.set_host_initialize_import_meta_object_callback(
             module::host_initialize_import_meta_object_callback,
@@ -119,7 +121,7 @@ impl JSTime {
             v8::Global::new(isolate_ref, context)
         };
 
-        isolate.set_slot(IsolateState::new(global_context));
+        isolate.set_slot(IsolateState::new(global_context, options.process_argv));
 
         // If snapshot data was provided, the builtins already exist within it.
         if true {
