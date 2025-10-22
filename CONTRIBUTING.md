@@ -1,7 +1,11 @@
-# Contributing to  jstime
+# Contributing to jstime
 
 First off, thank you so much for considering contributing to jstime. This is a scrappy project trying to make JavaScript runtimes fun. The scope and direction of the project is fairly limited at this time, but any contributions are greatly appreciated.
 
+## Quick Links
+
+* [Development Guide](./DEVELOPMENT.md) - Set up your development environment and learn the workflow
+* [Architecture Guide](./ARCHITECTURE.md) - Understand how jstime is structured
 * [Code of Conduct](#code-of-conduct)
 * [Pull Requests](#pull-requests)
 * [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin)

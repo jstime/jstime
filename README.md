@@ -85,6 +85,19 @@ For more details on conformance testing, see [core/tests/CONFORMANCE_TESTS.md](.
 For information about the governance of the jstime project, see
 [GOVERNANCE.md](./GOVERNANCE.md).
 
+## Contributing
+
+Interested in contributing? Check out these resources:
+
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Development setup and workflow guide
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Learn how jstime is built
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
+- **[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)** - Community standards
+
+We welcome contributions of all kinds: bug fixes, features, documentation, and more!
+
+## Project Team
+
 ### Chair
 
 * [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
