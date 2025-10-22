@@ -87,14 +87,19 @@ For information about the governance of the jstime project, see
 
 ## Contributing
 
-Interested in contributing? Check out these resources:
+Interested in contributing? We'd love to have you! ❤️
 
-- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Development setup and workflow guide
+**👉 New to the project? Start with the [Quick Start Guide](./QUICK_START.md)** - Get up and running in 5 minutes!
+
+### Resources for Contributors
+
+- **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide for new contributors
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Complete development workflow and guidelines
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Learn how jstime is built
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Contribution guidelines and code of conduct
 - **[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)** - Community standards
 
-We welcome contributions of all kinds: bug fixes, features, documentation, and more!
+We welcome contributions of all kinds: bug fixes, features, documentation, examples, and more!
 
 ## Project Team
 
