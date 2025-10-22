@@ -1,27 +1,45 @@
-mod base64_impl;
-mod console_impl;
-mod event_impl;
-mod fetch_impl;
-mod fs_impl;
-mod performance_impl;
-mod queue_microtask_impl;
-mod structured_clone_impl;
-mod timers_impl;
-mod url_impl;
+// WHATWG Standards
+mod whatwg {
+    pub(crate) mod base64_impl;
+    pub(crate) mod console_impl;
+    pub(crate) mod event_impl;
+    pub(crate) mod fetch_impl;
+    pub(crate) mod queue_microtask_impl;
+    pub(crate) mod structured_clone_impl;
+    pub(crate) mod timers_impl;
+    pub(crate) mod url_impl;
+}
+
+// W3C Standards
+mod w3c {
+    pub(crate) mod performance_impl;
+}
+
+// Node.js Compatible APIs
+mod node {
+    pub(crate) mod fs_impl;
+}
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     // Pre-allocate with approximate capacity to avoid reallocation
     let mut refs = Vec::with_capacity(45);
-    refs.extend(base64_impl::get_external_references());
-    refs.extend(console_impl::get_external_references());
-    refs.extend(event_impl::get_external_references());
-    refs.extend(queue_microtask_impl::get_external_references());
-    refs.extend(url_impl::get_external_references());
-    refs.extend(timers_impl::get_external_references());
-    refs.extend(fetch_impl::get_external_references());
-    refs.extend(performance_impl::get_external_references());
-    refs.extend(structured_clone_impl::get_external_references());
-    refs.extend(fs_impl::get_external_references());
+
+    // WHATWG
+    refs.extend(whatwg::base64_impl::get_external_references());
+    refs.extend(whatwg::console_impl::get_external_references());
+    refs.extend(whatwg::event_impl::get_external_references());
+    refs.extend(whatwg::queue_microtask_impl::get_external_references());
+    refs.extend(whatwg::url_impl::get_external_references());
+    refs.extend(whatwg::timers_impl::get_external_references());
+    refs.extend(whatwg::fetch_impl::get_external_references());
+    refs.extend(whatwg::structured_clone_impl::get_external_references());
+
+    // W3C
+    refs.extend(w3c::performance_impl::get_external_references());
+
+    // Node.js
+    refs.extend(node::fs_impl::get_external_references());
+
     refs
 }
 
@@ -32,16 +50,21 @@ impl Builtins {
         let bindings = v8::Object::new(scope);
 
         // Register all builtin bindings
-        base64_impl::register_bindings(scope, bindings);
-        console_impl::register_bindings(scope, bindings);
-        event_impl::register_bindings(scope, bindings);
-        queue_microtask_impl::register_bindings(scope, bindings);
-        url_impl::register_bindings(scope, bindings);
-        timers_impl::register_bindings(scope, bindings);
-        fetch_impl::register_bindings(scope, bindings);
-        performance_impl::register_bindings(scope, bindings);
-        structured_clone_impl::register_bindings(scope, bindings);
-        fs_impl::register_bindings(scope, bindings);
+        // WHATWG
+        whatwg::base64_impl::register_bindings(scope, bindings);
+        whatwg::console_impl::register_bindings(scope, bindings);
+        whatwg::event_impl::register_bindings(scope, bindings);
+        whatwg::queue_microtask_impl::register_bindings(scope, bindings);
+        whatwg::url_impl::register_bindings(scope, bindings);
+        whatwg::timers_impl::register_bindings(scope, bindings);
+        whatwg::fetch_impl::register_bindings(scope, bindings);
+        whatwg::structured_clone_impl::register_bindings(scope, bindings);
+
+        // W3C
+        w3c::performance_impl::register_bindings(scope, bindings);
+
+        // Node.js
+        node::fs_impl::register_bindings(scope, bindings);
 
         macro_rules! builtin {
             ($name:expr) => {
@@ -57,15 +80,20 @@ impl Builtins {
             };
         }
 
-        builtin!("./base64.js");
-        builtin!("./console.js");
-        builtin!("./event.js");
-        builtin!("./queue_microtask.js");
-        builtin!("./url.js");
-        builtin!("./timers.js");
-        builtin!("./fetch.js");
-        builtin!("./performance.js");
-        builtin!("./structured_clone.js");
-        builtin!("./fs.js");
+        // WHATWG
+        builtin!("./whatwg/base64.js");
+        builtin!("./whatwg/console.js");
+        builtin!("./whatwg/event.js");
+        builtin!("./whatwg/queue_microtask.js");
+        builtin!("./whatwg/url.js");
+        builtin!("./whatwg/timers.js");
+        builtin!("./whatwg/fetch.js");
+        builtin!("./whatwg/structured_clone.js");
+
+        // W3C
+        builtin!("./w3c/performance.js");
+
+        // Node.js
+        builtin!("./node/fs.js");
     }
 }
