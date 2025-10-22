@@ -116,7 +116,7 @@ core/
 - [FEATURES.md](../docs/FEATURES.md) - Complete API documentation
 - [Built-ins README](./src/builtins/README.md) - Built-in API implementation guide
 - [Tests README](./tests/README.md) - Testing guide
-- [DEVELOPMENT.md](../DEVELOPMENT.md) - Development workflow
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Development workflow
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Architecture overview
 
 ## Development

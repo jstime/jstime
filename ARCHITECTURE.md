@@ -585,4 +585,4 @@ Understanding this architecture is the first step to contributing effectively:
 3. **Read specs**: Implement according to standards
 4. **Ask questions**: File issues or discussions for clarification
 
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for practical development information.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development information.
