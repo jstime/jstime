@@ -8,37 +8,25 @@ mod tests {
 
     #[test]
     fn fetch_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof fetch;", "jstime");
+        let result = common::get_type_of("fetch");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn headers_class_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers;", "jstime");
+        let result = common::get_type_of("Headers");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn request_class_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Request;", "jstime");
+        let result = common::get_type_of("Request");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn response_class_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Response;", "jstime");
+        let result = common::get_type_of("Response");
         assert_eq!(result.unwrap(), "function");
     }
 
