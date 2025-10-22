@@ -13,6 +13,7 @@ mod whatwg {
 
 // W3C Standards
 mod w3c {
+    pub(crate) mod crypto_impl;
     pub(crate) mod performance_impl;
 }
 
@@ -37,6 +38,7 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     refs.extend(whatwg::text_encoding_impl::get_external_references());
 
     // W3C
+    refs.extend(w3c::crypto_impl::get_external_references());
     refs.extend(w3c::performance_impl::get_external_references());
 
     // Node.js
@@ -64,6 +66,7 @@ impl Builtins {
         whatwg::text_encoding_impl::register_bindings(scope, bindings);
 
         // W3C
+        w3c::crypto_impl::register_bindings(scope, bindings);
         w3c::performance_impl::register_bindings(scope, bindings);
 
         // Node.js
@@ -95,6 +98,7 @@ impl Builtins {
         builtin!("./whatwg/text_encoding.js");
 
         // W3C
+        builtin!("./w3c/crypto.js");
         builtin!("./w3c/performance.js");
 
         // Node.js

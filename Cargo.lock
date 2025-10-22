@@ -671,6 +671,7 @@ version = "0.59.0"
 dependencies = [
  "filetime",
  "lazy_static",
+ "ring",
  "rustc-hash",
  "serde_json",
  "ureq",
