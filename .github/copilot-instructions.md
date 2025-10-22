@@ -25,7 +25,7 @@ jstime is a minimal and performant JavaScript runtime built on top of the V8 Jav
 
 - **Edition**: Rust 2024
 - **Formatting**: Code must pass `cargo fmt --all -- --check` (warnings treated as errors). Auto-format with `cargo fmt`.
-- **Linting**: Code must pass `cargo clippy -- -D warnings` (warnings treated as errors)
+- **Linting**: Code must pass `cargo clippy --all-targets -- -D warnings` (warnings treated as errors)
 - **Testing**: Run `cargo test` before committing
 - **Error Handling**: Use `Result<T, E>` for fallible operations; prefer descriptive error messages
 
@@ -166,7 +166,7 @@ For conformance tests, see [core/tests/CONFORMANCE_TESTS.md](../core/tests/CONFO
 cargo build          # Build the project
 cargo test           # Run tests
 cargo fmt            # Format code
-cargo clippy         # Lint code
+cargo clippy --all-targets  # Lint code (including tests)
 cargo run            # Run REPL
 cargo run -- file.js # Execute JavaScript file
 ```
@@ -187,7 +187,7 @@ All PRs must pass:
 - Build on stable, beta, and nightly Rust
 - All tests must pass
 - Code must be formatted (`cargo fmt --all -- --check`)
-- No clippy warnings (`cargo clippy -- -D warnings`)
+- No clippy warnings (`cargo clippy --all-targets -- -D warnings`)
 
 ## Module System
 

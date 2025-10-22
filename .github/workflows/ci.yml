@@ -26,16 +26,6 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-
-      - name: test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-
       - name: fmt
         uses: actions-rs/cargo@v1
         with:
@@ -46,4 +36,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --all-targets -- -D warnings
+
+      - name: test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
