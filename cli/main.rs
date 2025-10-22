@@ -26,7 +26,7 @@ fn main() {
 
     // Split at filename (first non-flag argument)
     let mut structopt_args = vec![all_args[0].clone()];
-    let mut script_args = Vec::new();
+    let mut script_args = Vec::with_capacity(4); // Pre-allocate for typical script args
     let mut found_filename = false;
 
     for (_i, arg) in all_args.iter().enumerate().skip(1) {
@@ -71,7 +71,9 @@ fn main() {
     );
 
     // Build process.argv - executable path and script arguments
-    let mut process_argv = Vec::new();
+    // Pre-allocate vector with estimated size (1 for executable + 1 for filename if present + script args)
+    let initial_capacity = 1 + if opt.filename.is_some() { 1 } else { 0 } + script_args.len();
+    let mut process_argv = Vec::with_capacity(initial_capacity);
 
     // First argument is always the executable
     process_argv.push(all_args[0].clone());
