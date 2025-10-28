@@ -1,10 +1,89 @@
-# Contributing to  jstime
+# Contributing to jstime
 
-First off, thank you so much for considering contributing to jstime. This is a scrappy project trying to make JavaScript runtimes fun. The scope and direction of the project is fairly limited at this time, but any contributions are greatly appreciated.
+Thank you for considering contributing to jstime! This guide will help you get started.
 
+## Quick Links
+
+* [Architecture Guide](./ARCHITECTURE.md) - Understand how jstime is structured
 * [Code of Conduct](#code-of-conduct)
+* [Getting Started](#getting-started)
+* [Development Workflow](#development-workflow)
 * [Pull Requests](#pull-requests)
-* [Developer's Certificate of Origin 1.1](#developers-certificate-of-origin)
+
+## Getting Started
+
+### Prerequisites
+
+- **Rust** (stable): Install from [rustup.rs](https://rustup.rs/)
+- **Git**: For cloning the repository
+
+### Setup
+
+```bash
+# Clone and build
+git clone https://github.com/jstime/jstime.git
+cd jstime
+cargo build
+
+# Run tests
+cargo test
+
+# Try the REPL
+cargo run
+```
+
+## Project Structure
+
+```
+jstime/
+├── core/           # Core runtime library (jstime_core)
+│   ├── src/
+│   │   ├── builtins/    # Built-in JavaScript APIs
+│   │   ├── event_loop.rs
+│   │   └── lib.rs
+│   └── tests/      # Integration tests
+├── cli/            # CLI tool
+├── docs/           # Documentation
+└── examples/       # Example scripts
+```
+
+## Development Workflow
+
+### Making Changes
+
+```bash
+# Make your changes, then:
+cargo fmt --all                        # Format code
+cargo clippy --all-targets -- -D warnings  # Check lints (including tests)
+cargo test                             # Run tests
+```
+
+### Adding Built-in APIs
+
+See [core/src/builtins/README.md](./core/src/builtins/README.md) for detailed instructions on adding new JavaScript APIs.
+
+**Quick overview:**
+1. Create `your_api_impl.rs` (Rust implementation)
+2. Create `your_api.js` (JavaScript polyfill)
+3. Register in `builtins/mod.rs`
+4. Write tests in `core/tests/`
+5. Update the appropriate documentation file:
+   - Web APIs: `docs/apis/web-apis.md`
+   - Text Encoding/Crypto: `docs/apis/encoding-crypto.md`
+   - System APIs: `docs/apis/system.md`
+   - Module System: `docs/apis/modules.md`
+   - Runtime features: `docs/runtime.md`
+   - Update `docs/README.md` if adding a new API category
+
+### Testing
+
+```bash
+cargo test                    # All tests
+cargo test test_name          # Specific test
+cargo test -- --nocapture     # Show output
+```
+
+See [core/tests/README.md](./core/tests/README.md) for testing patterns.
 
 ## [Code of Conduct](./CODE_OF_CONDUCT.md)
 

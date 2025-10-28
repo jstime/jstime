@@ -11,37 +11,25 @@ mod conformance_fetch {
 
     #[test]
     fn fetch_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof fetch;", "test");
+        let result = common::get_type_of("fetch");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn headers_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers;", "test");
+        let result = common::get_type_of("Headers");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn request_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Request;", "test");
+        let result = common::get_type_of("Request");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn response_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Response;", "test");
+        let result = common::get_type_of("Response");
         assert_eq!(result.unwrap(), "function");
     }
 
@@ -68,46 +56,31 @@ mod conformance_fetch {
 
     #[test]
     fn headers_has_append_method() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers.prototype.append;", "test");
+        let result = common::get_type_of("Headers.prototype.append");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn headers_has_delete_method() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers.prototype.delete;", "test");
+        let result = common::get_type_of("Headers.prototype.delete");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn headers_has_get_method() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers.prototype.get;", "test");
+        let result = common::get_type_of("Headers.prototype.get");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn headers_has_has_method() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers.prototype.has;", "test");
+        let result = common::get_type_of("Headers.prototype.has");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn headers_has_set_method() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof Headers.prototype.set;", "test");
+        let result = common::get_type_of("Headers.prototype.set");
         assert_eq!(result.unwrap(), "function");
     }
 

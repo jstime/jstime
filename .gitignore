@@ -1,2 +1,35 @@
+# Build artifacts
 target/
+*.o
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+
+# IDE and editor files
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test output files
+test-*-output.*
+test-demo-*
+*-new.txt
+test-append.*
+test-*.txt
+test-*/
+temp-test-*/
+*.test-tmp
+/tmp-test-*
+
+# Cargo files
+Cargo.lock.msrv
+**/*.rs.bk
+
+# Runtime artifacts
+jstime_repl_history
+.jstime_history

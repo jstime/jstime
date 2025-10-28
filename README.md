@@ -44,16 +44,25 @@ instructions on how to embed jstime in your rust application!
 
 jstime provides a minimal and performant JavaScript runtime with essential APIs.
 
-For detailed documentation on all supported features, see [FEATURES.md](./docs/FEATURES.md).
+For detailed documentation on all supported features, see [Documentation](./docs/README.md).
+
+**👉 Check out the [examples/](./examples/) directory for runnable code samples!**
 
 ### Quick Overview
 
 - **Console API**: `console.log()`, `console.error()`, etc.
 - **Timers**: `setTimeout()`, `setInterval()`, and clearing functions
 - **Fetch API**: Modern HTTP client with `fetch()`, `Headers`, `Request`, `Response`
+- **Streams API**: `ReadableStream`, `WritableStream`, `TransformStream` for streaming data processing
 - **URL API**: `URL` and `URLSearchParams` for URL manipulation
 - **Performance API**: High-resolution timing with `performance.now()`
 - **Microtask API**: `queueMicrotask()` for fine-grained async control
+- **Structured Clone API**: `structuredClone()` for deep cloning of complex objects
+- **Text Encoding API**: `TextEncoder` and `TextDecoder` for UTF-8 encoding/decoding
+- **Crypto API**: `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()` for cryptographic operations
+- **Process API**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()` for process information
+- **File System API**: Complete Node.js-compatible `fs/promises` with `readFile()`, `writeFile()`, `mkdir()`, `stat()`, and more
+- **WebAssembly**: Full WebAssembly support for running high-performance compiled modules
 - **ES Modules**: Full support for `import`/`export` with top-level await
 - **Modern JavaScript**: All ES2015+ features via V8 engine
 
@@ -62,10 +71,12 @@ For detailed documentation on all supported features, see [FEATURES.md](./docs/F
 jstime includes comprehensive test coverage including conformance tests for standard APIs:
 
 - **Console API** - WHATWG Console Standard compliance
-- **Fetch API** - WHATWG Fetch Standard compliance  
+- **Fetch API** - WHATWG Fetch Standard compliance
+- **Streams API** - WHATWG Streams Standard compliance
 - **Performance API** - W3C High Resolution Time compliance
 - **URL API** - WHATWG URL Standard compliance
 - **Timers API** - WHATWG HTML Standard timers compliance
+- **Structured Clone API** - HTML Standard structured cloning compliance
 
 Run all tests with:
 ```bash

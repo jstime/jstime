@@ -2,6 +2,7 @@ use jstime_core as jstime;
 use std::env;
 use std::process;
 use structopt::StructOpt;
+use structopt::clap;
 
 #[derive(StructOpt)]
 #[structopt(name = "jstime", rename_all = "kebab-case")]
@@ -20,7 +21,44 @@ struct Opt {
 }
 
 fn main() {
-    let opt = Opt::from_args();
+    // Parse arguments manually to support trailing script arguments
+    let all_args: Vec<String> = env::args().collect();
+
+    // Split at filename (first non-flag argument)
+    let mut structopt_args = vec![all_args[0].clone()];
+    let mut script_args = Vec::with_capacity(4); // Pre-allocate for typical script args
+    let mut found_filename = false;
+
+    for (_i, arg) in all_args.iter().enumerate().skip(1) {
+        if !found_filename && !arg.starts_with("--") && !arg.starts_with('-') {
+            // This is the filename
+            structopt_args.push(arg.clone());
+            found_filename = true;
+        } else if found_filename {
+            // These are script arguments
+            script_args.push(arg.clone());
+        } else {
+            // These are jstime options
+            structopt_args.push(arg.clone());
+        }
+    }
+
+    let opt = Opt::from_iter_safe(&structopt_args);
+    let opt = match opt {
+        Ok(o) => o,
+        Err(e) => {
+            // For help and version, print to stdout and exit with success
+            if e.kind == clap::ErrorKind::HelpDisplayed
+                || e.kind == clap::ErrorKind::VersionDisplayed
+            {
+                println!("{}", e);
+                process::exit(0);
+            }
+            // For other errors, print to stderr and exit with failure
+            eprintln!("{}", e);
+            process::exit(1);
+        }
+    };
 
     if opt.version {
         println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
@@ -32,7 +70,24 @@ fn main() {
             .map(|o| o.split(' ').map(|s| s.to_owned()).collect()),
     );
 
-    let options = jstime::Options::new(None);
+    // Build process.argv - executable path and script arguments
+    // Pre-allocate vector with estimated size (1 for executable + 1 for filename if present + script args)
+    let initial_capacity = 1 + if opt.filename.is_some() { 1 } else { 0 } + script_args.len();
+    let mut process_argv = Vec::with_capacity(initial_capacity);
+
+    // First argument is always the executable
+    process_argv.push(all_args[0].clone());
+
+    // Add the filename if provided
+    if let Some(ref filename) = opt.filename {
+        process_argv.push(filename.clone());
+    }
+
+    // Add any additional script arguments
+    process_argv.extend(script_args);
+
+    let mut options = jstime::Options::new(None);
+    options.process_argv = process_argv;
     // let options = jstime::Options::new(Some(include_bytes!(concat!(
     //     env!("OUT_DIR"),
     //     "/snapshot_data.blob"
@@ -55,17 +110,17 @@ fn main() {
 
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
+    use rustyline::Helper;
     use rustyline::highlight::Highlighter;
     use rustyline::hint::Hinter;
     use rustyline::validate::{ValidationContext, ValidationResult, Validator};
-    use rustyline::Helper;
     use rustyline::{
+        Context, Editor,
         completion::{Completer, Pair},
         error::ReadlineError,
         history::DefaultHistory,
-        Context, Editor,
     };
-    use std::sync::mpsc::{channel, RecvTimeoutError};
+    use std::sync::mpsc::{RecvTimeoutError, channel};
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;
@@ -367,32 +422,21 @@ fn repl(mut jstime: jstime::JSTime) {
         p
     });
 
-    // Use Arc<Mutex<Vec<String>>> to share history entries across threads
-    let history_entries = Arc::new(Mutex::new(Vec::new()));
+    // Wrap the editor in Arc<Mutex> to share it with the readline thread
+    let rl_shared = Arc::new(Mutex::new(rl));
+
+    // Track the last interrupt time for double Ctrl+C exit
+    let mut last_interrupt_time: Option<std::time::Instant> = None;
 
     loop {
         // Channel for this readline
         let (tx, rx) = channel();
-        let history_clone = Arc::clone(&history_entries);
+        let rl_clone = Arc::clone(&rl_shared);
 
         // Start readline in a separate thread
         thread::spawn(move || {
-            let mut rl_temp = Editor::<JsCompleter, DefaultHistory>::with_config(
-                rustyline::Config::builder()
-                    .completion_type(rustyline::CompletionType::List)
-                    .build(),
-            )
-            .unwrap();
-            rl_temp.set_helper(Some(JsCompleter));
-
-            // Load recent history into the temp editor
-            if let Ok(entries) = history_clone.lock() {
-                for entry in entries.iter() {
-                    let _ = rl_temp.add_history_entry(entry);
-                }
-            }
-
-            let result = rl_temp.readline(">> ");
+            let mut rl_guard = rl_clone.lock().unwrap();
+            let result = rl_guard.readline(">> ");
             let _ = tx.send(result);
         });
 
@@ -412,15 +456,13 @@ fn repl(mut jstime: jstime::JSTime) {
 
         match readline_result {
             Ok(line) => {
-                // Add to both the main editor and shared history
-                let _ = rl.add_history_entry(line.as_str());
-                if let Ok(mut entries) = history_entries.lock() {
-                    entries.push(line.clone());
-                    // Keep only last 1000 entries to avoid unbounded growth
-                    if entries.len() > 1000 {
-                        entries.remove(0);
-                    }
-                }
+                // Reset interrupt tracking on successful input
+                last_interrupt_time = None;
+
+                // Add to history
+                let mut rl_guard = rl_shared.lock().unwrap();
+                let _ = rl_guard.add_history_entry(line.as_str());
+                drop(rl_guard);
 
                 match jstime.run_script_no_event_loop(&line, "REPL") {
                     Ok(v) => println!("{v}"),
@@ -429,8 +471,19 @@ fn repl(mut jstime: jstime::JSTime) {
                 jstime.tick_event_loop();
             }
             Err(ReadlineError::Interrupted) => {
-                println!("Thanks for stopping by!");
-                break;
+                let now = std::time::Instant::now();
+
+                // Check if this is a consecutive Ctrl+C within 1 second
+                if let Some(last_time) = last_interrupt_time
+                    && now.duration_since(last_time).as_millis() < 1000
+                {
+                    println!("Thanks for stopping by!");
+                    break;
+                }
+
+                // First Ctrl+C or too much time has passed
+                println!("(To exit, press Ctrl+C again)");
+                last_interrupt_time = Some(now);
             }
             Err(ReadlineError::Eof) => {
                 println!("Eof'd");
@@ -444,6 +497,7 @@ fn repl(mut jstime: jstime::JSTime) {
     }
 
     if let Some(history_path) = history_path {
-        let _ = rl.save_history(&history_path);
+        let mut rl_guard = rl_shared.lock().unwrap();
+        let _ = rl_guard.save_history(&history_path);
     }
 }

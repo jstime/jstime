@@ -4,7 +4,7 @@ pub(crate) fn run<'s>(
     scope: &mut v8::PinScope<'s, '_>,
     js: &str,
     filepath: &str,
-) -> Result<v8::Local<'s, v8::Value>, v8::Local<'s, v8::Value>> {
+) -> Result<v8::Local<'s, v8::Value>, String> {
     v8::tc_scope!(let tc, scope);
 
     let filepath = v8::String::new(tc, filepath).unwrap();
@@ -19,12 +19,8 @@ pub(crate) fn run<'s>(
         Some(value) => Ok(value),
         None => {
             if tc.has_caught() {
-                // Try to get the stack trace first, fall back to exception
-                if let Some(stack_trace) = tc.stack_trace() {
-                    Err(stack_trace)
-                } else {
-                    Err(tc.exception().unwrap())
-                }
+                // Format the error with detailed information
+                Err(crate::error::format_exception(tc))
             } else {
                 panic!("Script execution failed without exception")
             }

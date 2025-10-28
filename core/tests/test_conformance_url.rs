@@ -11,19 +11,13 @@ mod conformance_url {
 
     #[test]
     fn url_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof URL;", "test");
+        let result = common::get_type_of("URL");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn urlsearchparams_constructor_exists() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof URLSearchParams;", "test");
+        let result = common::get_type_of("URLSearchParams");
         assert_eq!(result.unwrap(), "function");
     }
 

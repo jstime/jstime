@@ -1,4 +1,5 @@
 mod builtins;
+mod error;
 mod event_loop;
 mod isolate_state;
 mod js_loading;
@@ -8,16 +9,47 @@ mod script;
 pub(crate) use isolate_state::IsolateState;
 
 pub fn init(v8_flags: Option<Vec<String>>) {
-    if let Some(mut v8_flags) = v8_flags {
-        v8_flags.push("jstime".to_owned());
-        v8_flags.rotate_right(1);
+    // Initialize ICU data before V8 initialization
+    // This is required for locale-specific operations like toLocaleString()
+    static ICU_INIT: std::sync::Once = std::sync::Once::new();
+    ICU_INIT.call_once(|| {
+        let icu_data =
+            align_data::include_aligned!(align_data::Align16, "../third_party/icu/icudtl.dat");
+        // Ignore errors - ICU data initialization is best-effort
+        let _ = v8::icu::set_common_data_74(icu_data);
+        // Set default locale to en_US
+        v8::icu::set_default_locale("en_US");
+    });
 
-        v8::V8::set_flags_from_command_line(v8_flags);
+    let mut flags = v8_flags.unwrap_or_default();
+
+    // Add performance-oriented V8 flags if not already present
+    // Only add flags that don't conflict with user-provided flags
+    let perf_flags = [
+        "--turbofan", // Enable TurboFan optimizing compiler (usually on by default)
+        "--opt",      // Enable optimizations
+    ];
+
+    for flag in &perf_flags {
+        if !flags
+            .iter()
+            .any(|f| f.starts_with(flag) || f.starts_with(&format!("--no-{}", &flag[2..])))
+        {
+            flags.push(flag.to_string());
+        }
     }
 
-    let platform = v8::new_default_platform(0, false).make_shared();
-    v8::V8::initialize_platform(platform);
-    v8::V8::initialize();
+    flags.push("jstime".to_owned());
+    flags.rotate_right(1);
+
+    v8::V8::set_flags_from_command_line(flags);
+
+    static V8_INIT: std::sync::Once = std::sync::Once::new();
+    V8_INIT.call_once(|| {
+        let platform = v8::new_default_platform(0, false).make_shared();
+        v8::V8::initialize_platform(platform);
+        v8::V8::initialize();
+    });
 }
 
 /// Options for `JSTime::new`.
@@ -25,6 +57,7 @@ pub fn init(v8_flags: Option<Vec<String>>) {
 pub struct Options {
     // pub snapshot: Option<&'static [u8]>,
     // taking_snapshot: bool,
+    pub process_argv: Vec<String>,
 }
 
 impl Options {
@@ -32,6 +65,7 @@ impl Options {
         Options {
             // snapshot,
             // ..Options::default()
+            process_argv: Vec::new(),
         }
     }
 }
@@ -47,7 +81,8 @@ impl JSTime {
     /// Create a new JSTime instance from `options`.
     pub fn new(options: Options) -> JSTime {
         let create_params = v8::Isolate::create_params()
-            .external_references(builtins::get_external_references().into());
+            .external_references(builtins::get_external_references().into())
+            .heap_limits(0, 1024 * 1024 * 1024); // 1GB max heap size
         // if let Some(snapshot) = options.snapshot {
         // create_params = create_params.snapshot_blob(snapshot);
         // }
@@ -89,7 +124,12 @@ impl JSTime {
     //     }
     // }
 
-    fn create(_options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
+    fn create(options: Options, mut isolate: v8::OwnedIsolate) -> JSTime {
+        // Set up import.meta callback before creating context
+        isolate.set_host_initialize_import_meta_object_callback(
+            module::host_initialize_import_meta_object_callback,
+        );
+
         let global_context = {
             v8::scope!(let scope, &mut isolate);
             let context = v8::Context::new(scope, Default::default());
@@ -97,7 +137,7 @@ impl JSTime {
             v8::Global::new(isolate_ref, context)
         };
 
-        isolate.set_slot(IsolateState::new(global_context));
+        isolate.set_slot(IsolateState::new(global_context, options.process_argv));
 
         // If snapshot data was provided, the builtins already exist within it.
         if true {
@@ -137,9 +177,36 @@ impl JSTime {
             let cwd = cwd.into_os_string().into_string().unwrap();
             match loader.import(&mut scope, &cwd, filename) {
                 Ok(_) => Ok(()),
-                Err(e) => {
+                Err(exception) => {
+                    // Format the exception value directly
                     let isolate: &v8::Isolate = &scope;
-                    Err(e.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
+                    let exception_str = exception
+                        .to_string(&scope)
+                        .map(|s| s.to_rust_string_lossy(isolate))
+                        .unwrap_or_else(|| "Unknown error".to_string());
+
+                    // Try to get stack property for more details
+                    if let Ok(exception_obj) = v8::Local::<v8::Object>::try_from(exception) {
+                        let stack_key = v8::String::new(&scope, "stack").unwrap();
+                        if let Some(stack_val) = exception_obj.get(&scope, stack_key.into())
+                            && let Some(stack_str) = stack_val.to_string(&scope)
+                        {
+                            let stack = stack_str.to_rust_string_lossy(isolate);
+                            if !stack.is_empty() && stack != exception_str {
+                                return Err(stack);
+                            }
+                        }
+                    }
+
+                    // Remove "Error: " prefix if present (V8 adds this when creating Error objects)
+                    let exception_str =
+                        if let Some(stripped) = exception_str.strip_prefix("Error: ") {
+                            stripped.to_string()
+                        } else {
+                            exception_str
+                        };
+
+                    Err(exception_str)
                 }
             }
         };
@@ -178,10 +245,7 @@ impl JSTime {
                 let isolate: &v8::Isolate = &scope;
                 Ok(v.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
             }
-            Err(e) => {
-                let isolate: &v8::Isolate = &scope;
-                Err(e.to_string(&scope).unwrap().to_rust_string_lossy(isolate))
-            }
+            Err(e) => Err(e),
         }
     }
 

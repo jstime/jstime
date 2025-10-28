@@ -8,37 +8,25 @@ mod tests {
 
     #[test]
     fn test_settimeout() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof globalThis.setTimeout;", "jstime");
+        let result = common::get_type_of("globalThis.setTimeout");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn test_setinterval() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof globalThis.setInterval;", "jstime");
+        let result = common::get_type_of("globalThis.setInterval");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn test_cleartimeout() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof globalThis.clearTimeout;", "jstime");
+        let result = common::get_type_of("globalThis.clearTimeout");
         assert_eq!(result.unwrap(), "function");
     }
 
     #[test]
     fn test_clearinterval() {
-        let _setup_guard = common::setup();
-        let options = jstime::Options::default();
-        let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("typeof globalThis.clearInterval;", "jstime");
+        let result = common::get_type_of("globalThis.clearInterval");
         assert_eq!(result.unwrap(), "function");
     }
 

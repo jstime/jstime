@@ -28,21 +28,140 @@ mod api {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(err, "ReferenceError: a is not defined\n    at jstime:1:1");
+        // New format includes file:line, source code, caret indicator, and error message with stack
+        assert_eq!(
+            err,
+            "jstime:1\na\n^\n\nReferenceError: a is not defined\n    at jstime:1:1"
+        );
         let err = match jstime.run_script("}", "jstime") {
             Ok(_result) => panic!(),
             Err(e) => e,
         };
-        assert_eq!(err, "SyntaxError: Unexpected token \'}\'");
+        // Syntax errors now include file:line, source code, caret indicator, and error message
+        assert_eq!(err, "jstime:1\n}\n^\n\nSyntaxError: Unexpected token \'}\'");
     }
     #[test]
     fn import() {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let hello_path = "./tests/fixtures/hello-world.js";
+        let hello_path = "./tests/fixtures/modules/hello-world.js";
         let _result = jstime.import(hello_path);
         let result = jstime.run_script("globalThis.hello", "jstime");
         assert_eq!(result.unwrap(), "hello world");
+    }
+
+    #[test]
+    fn import_json_simple() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Create temporary test files
+        let temp_dir = std::env::temp_dir();
+        let json_file = temp_dir.join("test_simple.json");
+        let test_file = temp_dir.join("test_json_simple.js");
+
+        std::fs::write(&json_file, r#"{"message": "hello from json"}"#).unwrap();
+        std::fs::write(
+            &test_file,
+            format!(
+                "import data from '{}';\nglobalThis.jsonData = data;",
+                json_file.to_str().unwrap()
+            ),
+        )
+        .unwrap();
+
+        let result = jstime.import(test_file.to_str().unwrap());
+        assert!(result.is_ok(), "Failed to import JSON: {:?}", result);
+
+        let result = jstime.run_script("globalThis.jsonData.message", "jstime");
+        assert_eq!(result.unwrap(), "hello from json");
+
+        std::fs::remove_file(&test_file).ok();
+        std::fs::remove_file(&json_file).ok();
+    }
+
+    #[test]
+    fn import_json_complex() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Create temporary test files
+        let temp_dir = std::env::temp_dir();
+        let json_file = temp_dir.join("test_data.json");
+        let test_file = temp_dir.join("test_json_complex.js");
+
+        std::fs::write(
+            &json_file,
+            r#"{
+  "name": "jstime",
+  "version": "1.0.0",
+  "features": ["modules", "timers", "fetch"],
+  "nested": {
+    "key": "value",
+    "number": 42
+  }
+}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            &test_file,
+            format!(
+                "import data from '{}';\nglobalThis.jsonData = data;",
+                json_file.to_str().unwrap()
+            ),
+        )
+        .unwrap();
+
+        let result = jstime.import(test_file.to_str().unwrap());
+        assert!(result.is_ok(), "Failed to import JSON: {:?}", result);
+
+        let result = jstime.run_script("globalThis.jsonData.name", "jstime");
+        assert_eq!(result.unwrap(), "jstime");
+
+        let result = jstime.run_script("globalThis.jsonData.version", "jstime");
+        assert_eq!(result.unwrap(), "1.0.0");
+
+        let result = jstime.run_script("globalThis.jsonData.nested.number", "jstime");
+        assert_eq!(result.unwrap(), "42");
+
+        let result = jstime.run_script("Array.isArray(globalThis.jsonData.features)", "jstime");
+        assert_eq!(result.unwrap(), "true");
+
+        std::fs::remove_file(&test_file).ok();
+        std::fs::remove_file(&json_file).ok();
+    }
+
+    #[test]
+    fn import_json_default_export() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Test that JSON is imported as default export
+        let temp_dir = std::env::temp_dir();
+        let json_file = temp_dir.join("test_default.json");
+        let test_file = temp_dir.join("test_json_default.js");
+
+        std::fs::write(&json_file, r#"{"message": "hello from json"}"#).unwrap();
+        std::fs::write(
+            &test_file,
+            format!(
+                "import json from '{}';\nglobalThis.checkResult = json.message === 'hello from json';",
+                json_file.to_str().unwrap()
+            ),
+        )
+        .unwrap();
+
+        let result = jstime.import(test_file.to_str().unwrap());
+        assert!(result.is_ok(), "Failed to import JSON: {:?}", result);
+
+        let result = jstime.run_script("globalThis.checkResult", "jstime");
+        assert_eq!(result.unwrap(), "true");
+
+        std::fs::remove_file(&test_file).ok();
+        std::fs::remove_file(&json_file).ok();
     }
 }
