@@ -91,7 +91,7 @@ impl IsolateState {
         }
     }
 
-    // pub(crate) fn drop_context(&mut self) {
-    //     self.context.take();
-    // }
+    pub(crate) fn drop_context(&mut self) {
+        self.context.take();
+    }
 }
