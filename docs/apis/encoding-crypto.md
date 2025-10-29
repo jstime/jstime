@@ -285,13 +285,27 @@ console.log(base64); // "SGVsbG8="
 
 ## Web Cryptography API
 
-jstime implements a subset of the [W3C Web Cryptography API](https://w3c.github.io/webcrypto/), providing cryptographically secure operations for generating random values and hashing data.
+jstime implements a subset of the [W3C Web Cryptography API](https://w3c.github.io/webcrypto/), providing cryptographically secure operations for generating random values, hashing data, signing/verifying signatures, encrypting/decrypting data, and managing cryptographic keys.
+
+**📁 Example:** See [examples/crypto-advanced-demo.js](../../examples/crypto-advanced-demo.js) for a comprehensive demonstration of all crypto features.
 
 ### Supported APIs
 
+#### Random Number Generation
+
 - `crypto.getRandomValues(typedArray)` - Fill a TypedArray with cryptographically strong random values
 - `crypto.randomUUID()` - Generate a random UUID v4 string
+
+#### SubtleCrypto Operations
+
 - `crypto.subtle.digest(algorithm, data)` - Compute a hash digest
+- `crypto.subtle.sign(algorithm, key, data)` - Generate a digital signature
+- `crypto.subtle.verify(algorithm, key, signature, data)` - Verify a digital signature
+- `crypto.subtle.encrypt(algorithm, key, data)` - Encrypt data
+- `crypto.subtle.decrypt(algorithm, key, data)` - Decrypt data
+- `crypto.subtle.generateKey(algorithm, extractable, keyUsages)` - Generate a new cryptographic key
+- `crypto.subtle.importKey(format, keyData, algorithm, extractable, keyUsages)` - Import a key
+- `crypto.subtle.exportKey(format, key)` - Export a key
 
 ### crypto.getRandomValues()
 
@@ -499,17 +513,621 @@ While jstime's crypto API is based on the Web Cryptography API standard, Node.js
 | **API Standard** | W3C Web Cryptography API | Node.js-specific API |
 | **getRandomValues** | ✅ Supported | ❌ Use `crypto.randomBytes()` instead |
 | **randomUUID** | ✅ Supported | ✅ Supported (crypto.randomUUID()) |
-| **subtle.digest** | ✅ Supported | ✅ Supported |
-| **Hash algorithms** | SHA-256, SHA-384, SHA-512 | Many more (MD5, SHA-1, etc.) |
-| **Encryption** | ❌ Not yet supported | ✅ Supported |
-| **Key generation** | ❌ Not yet supported | ✅ Supported |
+| **subtle.digest** | ✅ Supported (SHA-256/384/512) | ✅ Supported (many algorithms) |
+| **subtle.sign/verify** | ✅ Supported (HMAC) | ✅ Supported (HMAC, RSA, ECDSA) |
+| **subtle.encrypt/decrypt** | ✅ Supported (AES-GCM) | ✅ Supported (many algorithms) |
+| **subtle.generateKey** | ✅ Supported (AES-GCM, HMAC) | ✅ Supported (many algorithms) |
+| **subtle.importKey/exportKey** | ✅ Supported (raw format) | ✅ Supported (many formats) |
+| **Key formats** | Raw only | JWK, PKCS#8, SPKI, raw |
+| **RSA** | ❌ Not yet supported | ✅ Supported |
+| **ECDSA** | ❌ Not yet supported | ✅ Supported |
+
+### crypto.subtle.sign()
+
+Generates a digital signature for the provided data using the specified algorithm and key. Returns a Promise that resolves to an ArrayBuffer containing the signature.
+
+**Parameters:**
+- `algorithm` (string or object) - The signing algorithm:
+  - `"HMAC"` - HMAC (Hash-based Message Authentication Code)
+  - Or an object with a `name` property: `{ name: "HMAC" }`
+- `key` (CryptoKey) - The key to use for signing (must have `sign` usage)
+- `data` (ArrayBuffer or ArrayBufferView) - The data to sign
+
+**Returns:** Promise<ArrayBuffer> - Resolves with the signature
+
+**Supported Algorithms:**
+- **HMAC** with SHA-256, SHA-384, or SHA-512
+
+#### Examples
+
+##### Basic HMAC Signing
+
+```javascript
+const encoder = new TextEncoder();
+
+// Generate an HMAC key
+const key = await crypto.subtle.generateKey(
+  {
+    name: 'HMAC',
+    hash: 'SHA-256',
+  },
+  false,
+  ['sign', 'verify']
+);
+
+// Sign some data
+const data = encoder.encode('Message to sign');
+const signature = await crypto.subtle.sign('HMAC', key, data);
+
+console.log('Signature length:', signature.byteLength); // 32 bytes for SHA-256
+```
+
+##### HMAC with Different Hash Algorithms
+
+```javascript
+// SHA-384 produces 48-byte signatures
+const key384 = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-384' },
+  false,
+  ['sign']
+);
+const sig384 = await crypto.subtle.sign('HMAC', key384, data);
+console.log(sig384.byteLength); // 48
+
+// SHA-512 produces 64-byte signatures
+const key512 = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-512' },
+  false,
+  ['sign']
+);
+const sig512 = await crypto.subtle.sign('HMAC', key512, data);
+console.log(sig512.byteLength); // 64
+```
+
+### crypto.subtle.verify()
+
+Verifies a digital signature using the specified algorithm and key. Returns a Promise that resolves to a boolean indicating whether the signature is valid.
+
+**Parameters:**
+- `algorithm` (string or object) - The verification algorithm (same as used for signing)
+- `key` (CryptoKey) - The key to use for verification (must have `verify` usage)
+- `signature` (ArrayBuffer or ArrayBufferView) - The signature to verify
+- `data` (ArrayBuffer or ArrayBufferView) - The original data
+
+**Returns:** Promise<boolean> - Resolves with `true` if valid, `false` otherwise
+
+#### Examples
+
+##### Basic Signature Verification
+
+```javascript
+const encoder = new TextEncoder();
+
+// Generate key and sign
+const key = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-256' },
+  false,
+  ['sign', 'verify']
+);
+
+const data = encoder.encode('Message to authenticate');
+const signature = await crypto.subtle.sign('HMAC', key, data);
+
+// Verify the signature
+const isValid = await crypto.subtle.verify('HMAC', key, signature, data);
+console.log('Signature valid:', isValid); // true
+
+// Verify with tampered data
+const tamperedData = encoder.encode('Modified message');
+const isInvalid = await crypto.subtle.verify('HMAC', key, signature, tamperedData);
+console.log('Tampered signature valid:', isInvalid); // false
+```
+
+##### Message Authentication Example
+
+```javascript
+// Sender: Sign a message
+const message = encoder.encode('Transfer $100 to Bob');
+const senderKey = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-256' },
+  true, // extractable for sharing
+  ['sign', 'verify']
+);
+
+const signature = await crypto.subtle.sign('HMAC', senderKey, message);
+
+// Send: message + signature
+
+// Receiver: Verify the message hasn't been tampered with
+const isAuthentic = await crypto.subtle.verify('HMAC', senderKey, signature, message);
+
+if (isAuthentic) {
+  console.log('Message is authentic');
+} else {
+  console.log('Message has been tampered with!');
+}
+```
+
+### crypto.subtle.encrypt()
+
+Encrypts data using the specified algorithm and key. Returns a Promise that resolves to an ArrayBuffer containing the encrypted data (ciphertext).
+
+**Parameters:**
+- `algorithm` (object) - The encryption algorithm and parameters:
+  - For AES-GCM: `{ name: "AES-GCM", iv: Uint8Array, additionalData?: Uint8Array }`
+- `key` (CryptoKey) - The key to use for encryption (must have `encrypt` usage)
+- `data` (ArrayBuffer or ArrayBufferView) - The data to encrypt (plaintext)
+
+**Returns:** Promise<ArrayBuffer> - Resolves with the encrypted data (includes authentication tag for AES-GCM)
+
+**Supported Algorithms:**
+- **AES-GCM** (256-bit) - Authenticated encryption with associated data
+
+#### AES-GCM Parameters
+
+- `iv` (Uint8Array) - Initialization vector (12 bytes recommended for AES-GCM)
+- `additionalData` (Uint8Array, optional) - Additional authenticated data (AAD) that is authenticated but not encrypted
+
+#### Examples
+
+##### Basic AES-GCM Encryption
+
+```javascript
+const encoder = new TextEncoder();
+
+// Generate an AES-GCM key
+const key = await crypto.subtle.generateKey(
+  {
+    name: 'AES-GCM',
+    length: 256, // 256-bit key
+  },
+  false,
+  ['encrypt', 'decrypt']
+);
+
+// Generate a random IV (initialization vector)
+const iv = crypto.getRandomValues(new Uint8Array(12));
+
+// Encrypt data
+const plaintext = encoder.encode('Secret message');
+const ciphertext = await crypto.subtle.encrypt(
+  {
+    name: 'AES-GCM',
+    iv: iv,
+  },
+  key,
+  plaintext
+);
+
+console.log('Ciphertext length:', ciphertext.byteLength);
+// Length = plaintext length + 16 bytes (authentication tag)
+```
+
+##### AES-GCM with Additional Authenticated Data
+
+```javascript
+const encoder = new TextEncoder();
+
+// Generate key
+const key = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  false,
+  ['encrypt', 'decrypt']
+);
+
+const iv = crypto.getRandomValues(new Uint8Array(12));
+
+// Additional data to authenticate (but not encrypt)
+const metadata = encoder.encode('user:alice,timestamp:1234567890');
+const sensitiveData = encoder.encode('Password: secret123');
+
+// Encrypt with AAD
+const ciphertext = await crypto.subtle.encrypt(
+  {
+    name: 'AES-GCM',
+    iv: iv,
+    additionalData: metadata, // Authenticated but not encrypted
+  },
+  key,
+  sensitiveData
+);
+
+// The metadata is authenticated - decryption will fail if it's modified
+```
+
+### crypto.subtle.decrypt()
+
+Decrypts data using the specified algorithm and key. Returns a Promise that resolves to an ArrayBuffer containing the decrypted data (plaintext).
+
+**Parameters:**
+- `algorithm` (object) - The decryption algorithm and parameters (must match encryption)
+- `key` (CryptoKey) - The key to use for decryption (must have `decrypt` usage)
+- `data` (ArrayBuffer or ArrayBufferView) - The encrypted data (ciphertext)
+
+**Returns:** Promise<ArrayBuffer> - Resolves with the decrypted data
+
+**Throws:**
+- `Error` - If decryption fails (wrong key, tampered data, or wrong AAD)
+
+#### Examples
+
+##### Basic AES-GCM Decryption
+
+```javascript
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// Setup: same key and IV as encryption
+const key = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  false,
+  ['encrypt', 'decrypt']
+);
+
+const iv = crypto.getRandomValues(new Uint8Array(12));
+
+// Encrypt
+const plaintext = encoder.encode('Secret message');
+const ciphertext = await crypto.subtle.encrypt(
+  { name: 'AES-GCM', iv: iv },
+  key,
+  plaintext
+);
+
+// Decrypt
+const decrypted = await crypto.subtle.decrypt(
+  { name: 'AES-GCM', iv: iv },
+  key,
+  ciphertext
+);
+
+const decryptedText = decoder.decode(decrypted);
+console.log(decryptedText); // "Secret message"
+```
+
+##### Handling Decryption Failures
+
+```javascript
+try {
+  // Try to decrypt with wrong IV
+  const wrongIv = crypto.getRandomValues(new Uint8Array(12));
+  await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: wrongIv },
+    key,
+    ciphertext
+  );
+} catch (e) {
+  console.log('Decryption failed:', e.message);
+  // This is expected - authentication failed
+}
+```
+
+##### Complete Encryption/Decryption Example
+
+```javascript
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// Generate key
+const key = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  false,
+  ['encrypt', 'decrypt']
+);
+
+// Encrypt
+const iv = crypto.getRandomValues(new Uint8Array(12));
+const message = 'Confidential data';
+const encrypted = await crypto.subtle.encrypt(
+  { name: 'AES-GCM', iv: iv },
+  key,
+  encoder.encode(message)
+);
+
+// Store/transmit: iv + encrypted
+
+// Decrypt
+const decrypted = await crypto.subtle.decrypt(
+  { name: 'AES-GCM', iv: iv },
+  key,
+  encrypted
+);
+
+console.log(decoder.decode(decrypted)); // "Confidential data"
+```
+
+### crypto.subtle.generateKey()
+
+Generates a new cryptographic key for the specified algorithm. Returns a Promise that resolves to a CryptoKey object.
+
+**Parameters:**
+- `algorithm` (object) - The key generation algorithm and parameters:
+  - For AES-GCM: `{ name: "AES-GCM", length: number }`
+  - For HMAC: `{ name: "HMAC", hash: string, length?: number }`
+- `extractable` (boolean) - Whether the key can be exported with `exportKey()`
+- `keyUsages` (Array<string>) - What the key can be used for:
+  - For AES-GCM: `["encrypt", "decrypt"]`
+  - For HMAC: `["sign", "verify"]`
+
+**Returns:** Promise<CryptoKey> - Resolves with the generated key
+
+#### Supported Algorithms
+
+| Algorithm | Parameters | Key Usages | Notes |
+|-----------|------------|------------|-------|
+| AES-GCM   | `length: 128, 192, or 256` | `encrypt`, `decrypt` | 256-bit recommended |
+| HMAC      | `hash: "SHA-256", "SHA-384", or "SHA-512"`, `length?: number` | `sign`, `verify` | Length defaults based on hash |
+
+#### Examples
+
+##### Generate AES-GCM Key
+
+```javascript
+// Generate a 256-bit AES-GCM key (recommended)
+const aesKey = await crypto.subtle.generateKey(
+  {
+    name: 'AES-GCM',
+    length: 256,
+  },
+  true, // extractable
+  ['encrypt', 'decrypt']
+);
+
+console.log('Key type:', aesKey.type); // "secret"
+console.log('Extractable:', aesKey.extractable); // true
+console.log('Algorithm:', aesKey.algorithm.name); // "AES-GCM"
+console.log('Usages:', aesKey.usages); // ["encrypt", "decrypt"]
+```
+
+##### Generate HMAC Key
+
+```javascript
+// Generate HMAC key for SHA-256
+const hmacKey = await crypto.subtle.generateKey(
+  {
+    name: 'HMAC',
+    hash: 'SHA-256',
+  },
+  false, // not extractable
+  ['sign', 'verify']
+);
+
+console.log('Key type:', hmacKey.type); // "secret"
+console.log('Hash:', hmacKey.algorithm.hash.name); // "SHA-256"
+```
+
+##### Generate Keys with Different Security Levels
+
+```javascript
+// Different AES key lengths
+const aes128 = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 128 },
+  true,
+  ['encrypt', 'decrypt']
+);
+
+const aes192 = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 192 },
+  true,
+  ['encrypt', 'decrypt']
+);
+
+const aes256 = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  true,
+  ['encrypt', 'decrypt']
+);
+
+// Different HMAC hash algorithms
+const hmacSha256 = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-256' },
+  false,
+  ['sign', 'verify']
+);
+
+const hmacSha512 = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-512' },
+  false,
+  ['sign', 'verify']
+);
+```
+
+### crypto.subtle.importKey()
+
+Imports a cryptographic key from external key data. Returns a Promise that resolves to a CryptoKey object.
+
+**Parameters:**
+- `format` (string) - The data format of the key:
+  - `"raw"` - Raw bytes (currently the only supported format)
+- `keyData` (ArrayBuffer or ArrayBufferView) - The key data in the specified format
+- `algorithm` (object) - The algorithm the key will be used with
+- `extractable` (boolean) - Whether the key can be exported
+- `keyUsages` (Array<string>) - What the key can be used for
+
+**Returns:** Promise<CryptoKey> - Resolves with the imported key
+
+#### Examples
+
+##### Import AES-GCM Key
+
+```javascript
+// Key data (32 bytes for AES-256)
+const keyData = new Uint8Array(32);
+crypto.getRandomValues(keyData);
+
+// Import the key
+const key = await crypto.subtle.importKey(
+  'raw',
+  keyData,
+  { name: 'AES-GCM' },
+  true,
+  ['encrypt', 'decrypt']
+);
+
+console.log('Imported key:', key.algorithm.name); // "AES-GCM"
+```
+
+##### Import HMAC Key
+
+```javascript
+// HMAC key data
+const hmacKeyData = new Uint8Array(32);
+crypto.getRandomValues(hmacKeyData);
+
+const hmacKey = await crypto.subtle.importKey(
+  'raw',
+  hmacKeyData,
+  {
+    name: 'HMAC',
+    hash: 'SHA-256',
+  },
+  false,
+  ['sign', 'verify']
+);
+```
+
+##### Import Key from Hex String
+
+```javascript
+// Convert hex string to bytes
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+const hexKey = 'a1b2c3d4e5f6...'; // 64 hex chars for 32 bytes
+const keyBytes = hexToBytes(hexKey);
+
+const key = await crypto.subtle.importKey(
+  'raw',
+  keyBytes,
+  { name: 'AES-GCM' },
+  true,
+  ['encrypt', 'decrypt']
+);
+```
+
+### crypto.subtle.exportKey()
+
+Exports a cryptographic key to an external format. Returns a Promise that resolves to an ArrayBuffer containing the key data.
+
+**Parameters:**
+- `format` (string) - The data format to export to:
+  - `"raw"` - Raw bytes (currently the only supported format)
+- `key` (CryptoKey) - The key to export (must be extractable)
+
+**Returns:** Promise<ArrayBuffer> - Resolves with the exported key data
+
+**Throws:**
+- `Error` - If the key is not extractable
+
+#### Examples
+
+##### Export and Re-import Key
+
+```javascript
+// Generate an extractable key
+const originalKey = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  true, // must be extractable
+  ['encrypt', 'decrypt']
+);
+
+// Export the key
+const exportedKey = await crypto.subtle.exportKey('raw', originalKey);
+console.log('Exported key length:', exportedKey.byteLength); // 32 bytes
+
+// Import it back
+const importedKey = await crypto.subtle.importKey(
+  'raw',
+  exportedKey,
+  { name: 'AES-GCM' },
+  true,
+  ['encrypt', 'decrypt']
+);
+```
+
+##### Convert Key to Hex String
+
+```javascript
+function bytesToHex(bytes) {
+  return Array.from(new Uint8Array(bytes))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+const key = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  true,
+  ['encrypt', 'decrypt']
+);
+
+const exported = await crypto.subtle.exportKey('raw', key);
+const hexKey = bytesToHex(exported);
+console.log('Key (hex):', hexKey);
+```
+
+##### Non-extractable Keys
+
+```javascript
+// Generate a non-extractable key
+const secureKey = await crypto.subtle.generateKey(
+  { name: 'HMAC', hash: 'SHA-256' },
+  false, // not extractable
+  ['sign', 'verify']
+);
+
+try {
+  await crypto.subtle.exportKey('raw', secureKey);
+} catch (e) {
+  console.log('Cannot export:', e.message);
+  // "Key is not extractable"
+}
+```
+
+### Use Cases
+
+The expanded Web Cryptography API is useful for:
+
+- **Message Authentication**: Use HMAC to verify message integrity and authenticity
+- **Data Encryption**: Encrypt sensitive data with AES-GCM for confidentiality and integrity
+- **Secure Communication**: Implement encrypted channels with authenticated encryption
+- **Key Management**: Generate, import, export, and manage cryptographic keys
+- **API Security**: Sign API requests and verify responses
+- **Session Management**: Create and verify secure session tokens
+- **File Encryption**: Encrypt files before storage or transmission
+- **Password Verification**: Hash and verify passwords (though use dedicated password hashing for production)
+
+### Security Best Practices
+
+1. **Use Strong Keys**: Always use 256-bit keys for AES-GCM
+2. **Never Reuse IVs**: Each encryption must use a unique IV with the same key
+3. **Use AAD When Possible**: Additional authenticated data adds another layer of security
+4. **Protect Keys**: Store keys securely and mark them as non-extractable when appropriate
+5. **Verify Signatures**: Always verify HMAC signatures before trusting data
+6. **Handle Errors**: Decryption failures indicate tampered or corrupted data
+7. **Use HTTPS**: Always transmit encrypted data over secure channels
+
+### Algorithm Support Matrix
+
+| Feature | AES-GCM | HMAC |
+|---------|---------|------|
+| **Key Lengths** | 128, 192, 256 bits | Flexible (defaults: 256, 384, 512 bits) |
+| **Hash Algorithms** | N/A | SHA-256, SHA-384, SHA-512 |
+| **Operations** | encrypt, decrypt | sign, verify |
+| **Additional Data** | Yes (AAD) | No |
+| **Authentication** | Built-in (authenticated encryption) | Full message |
+| **Key Import/Export** | ✅ Raw format | ✅ Raw format |
 
 ### Future Enhancements
 
 Potential additions being considered:
 
-- Additional SubtleCrypto methods (encrypt, decrypt, sign, verify)
-- Key generation and management
-- Additional hash algorithms
-- HMAC support
-- AES encryption/decryption
+- Additional key formats (JWK, PKCS#8, SPKI)
+- RSA encryption and signatures
+- ECDSA signatures
+- Key derivation (PBKDF2, HKDF)
+- Additional AES modes (CBC, CTR)
