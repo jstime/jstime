@@ -4,6 +4,115 @@
 //! error messages across all builtin implementations, as well as formatting
 //! exceptions with source information and stack traces.
 
+/// ANSI color codes for terminal output
+mod colors {
+    pub const RESET: &str = "\x1b[0m";
+    pub const RED: &str = "\x1b[31m";
+    pub const YELLOW: &str = "\x1b[33m";
+    pub const CYAN: &str = "\x1b[36m";
+    pub const GRAY: &str = "\x1b[90m";
+    pub const BOLD: &str = "\x1b[1m";
+}
+
+/// Check if we should use colors in output (environment variable control)
+fn should_use_colors() -> bool {
+    // Check NO_COLOR environment variable (standard for disabling colors)
+    if std::env::var("NO_COLOR").is_ok() {
+        return false;
+    }
+
+    // Check FORCE_COLOR environment variable
+    if std::env::var("FORCE_COLOR").is_ok() {
+        return true;
+    }
+
+    // Default to true for now; in the future, we could check if stdout is a TTY
+    true
+}
+
+/// Get helpful hint for common error types
+fn get_error_hint(exception_string: &str, source_line: Option<&str>) -> Option<String> {
+    // Check for common error patterns and provide hints
+
+    // ReferenceError: variable is not defined
+    if exception_string.contains("is not defined")
+        && let Some(var_name) = exception_string
+            .split("is not defined")
+            .next()
+            .and_then(|s| s.split(':').nth(1))
+            .map(|s| s.trim())
+    {
+        return Some(format!(
+            "💡 Hint: '{}' is not defined. Did you forget to declare it with 'const', 'let', or 'var'?",
+            var_name
+        ));
+    }
+
+    // TypeError: undefined/null errors
+    if exception_string.contains("Cannot read property")
+        || exception_string.contains("Cannot read properties of")
+    {
+        return Some("💡 Hint: You're trying to access a property on an undefined or null value. Check that the object exists before accessing its properties.".to_string());
+    }
+
+    // TypeError: not a function
+    if exception_string.contains("is not a function") {
+        return Some("💡 Hint: You're trying to call something that isn't a function. Check the type of the value you're calling.".to_string());
+    }
+
+    // SyntaxError: missing parenthesis
+    if exception_string.contains("missing )") || exception_string.contains("Unexpected token ')'") {
+        return Some(
+            "💡 Hint: Check for matching parentheses. Each opening '(' needs a closing ')'."
+                .to_string(),
+        );
+    }
+
+    // SyntaxError: missing bracket
+    if exception_string.contains("missing ]") || exception_string.contains("Unexpected token ']'") {
+        return Some(
+            "💡 Hint: Check for matching brackets. Each opening '[' needs a closing ']'."
+                .to_string(),
+        );
+    }
+
+    // SyntaxError: missing brace
+    if exception_string.contains("missing }") || exception_string.contains("Unexpected token '}'") {
+        return Some(
+            "💡 Hint: Check for matching braces. Each opening '{' needs a closing '}'.".to_string(),
+        );
+    }
+
+    // SyntaxError: unexpected token
+    if exception_string.contains("Unexpected token")
+        && let Some(source) = source_line
+    {
+        // Check for common syntax mistakes
+        if source.contains("= =") || source.contains("==") {
+            return Some(
+                "💡 Hint: Did you mean to use '===' for comparison or '=' for assignment?"
+                    .to_string(),
+            );
+        }
+        // Check if the line has an operator before a semicolon or at the end
+        let trimmed = source.trim_end_matches(|c: char| c.is_whitespace() || c == ';');
+        if trimmed.ends_with('+')
+            || trimmed.ends_with('-')
+            || trimmed.ends_with('*')
+            || trimmed.ends_with('/')
+        {
+            return Some("💡 Hint: The line has an operator without a right-hand side. Check if you're missing the second operand.".to_string());
+        }
+    }
+
+    // Async/Promise errors
+    if exception_string.contains("await is only valid in async") {
+        return Some("💡 Hint: You can only use 'await' inside an async function. Add 'async' before the function keyword.".to_string());
+    }
+
+    None
+}
+
 /// Throws a TypeError with the given message.
 ///
 /// # Examples
@@ -177,19 +286,80 @@ pub(crate) fn try_get_array_result<'s>(
     v8::Local::<v8::Array>::try_from(value).map_err(|_| "Value must be an array")
 }
 
+/// Format an exception value (from a promise rejection or similar) with enhanced formatting.
+/// This is used when we have the exception value but not an active TryCatch with message details.
+pub(crate) fn format_exception_value(
+    scope: &mut v8::PinScope,
+    exception: v8::Local<v8::Value>,
+) -> String {
+    let isolate: &v8::Isolate = scope;
+    let use_colors = should_use_colors();
+
+    let exception_str = exception
+        .to_string(scope)
+        .map(|s| s.to_rust_string_lossy(isolate))
+        .unwrap_or_else(|| "Unknown error".to_string());
+
+    // Try to get stack property for more details
+    if let Ok(exception_obj) = v8::Local::<v8::Object>::try_from(exception) {
+        let stack_key = v8::String::new(scope, "stack").unwrap();
+        if let Some(stack_val) = exception_obj.get(scope, stack_key.into())
+            && let Some(stack_str) = stack_val.to_string(scope)
+        {
+            let stack = stack_str.to_rust_string_lossy(isolate);
+            if !stack.is_empty() && stack != exception_str {
+                let mut output = String::new();
+
+                // Format stack with colors
+                if use_colors {
+                    output.push_str(colors::GRAY);
+                }
+                output.push_str(&stack);
+                if use_colors {
+                    output.push_str(colors::RESET);
+                }
+
+                // Add helpful hint if available
+                if let Some(hint) = get_error_hint(&exception_str, None) {
+                    output.push('\n');
+                    if use_colors {
+                        output.push_str(colors::YELLOW);
+                    }
+                    output.push_str(&hint);
+                    if use_colors {
+                        output.push_str(colors::RESET);
+                    }
+                }
+
+                return output;
+            }
+        }
+    }
+
+    // Remove "Error: " prefix if present (V8 adds this when creating Error objects)
+    if let Some(stripped) = exception_str.strip_prefix("Error: ") {
+        stripped.to_string()
+    } else {
+        exception_str
+    }
+}
+
 /// Format an exception with file name, line number, source code, and stack trace.
-/// This provides detailed error information similar to Node.js.
+/// This provides detailed error information similar to Node.js, with enhanced formatting
+/// including ANSI colors and helpful hints for common errors.
 ///
 /// Returns a formatted error string that includes:
-/// - File path and line number
+/// - File path and line number (in cyan)
 /// - Source code line with error
-/// - Caret (^^^) pointing to error location
-/// - Error message
-/// - Stack trace (when available)
+/// - Caret (^^^) pointing to error location (in red)
+/// - Error message (in red/bold)
+/// - Helpful hints for common errors
+/// - Stack trace (when available, in gray)
 pub(crate) fn format_exception(
     tc: &mut v8::PinnedRef<'_, v8::TryCatch<v8::HandleScope>>,
 ) -> String {
     let isolate: &v8::Isolate = tc;
+    let use_colors = should_use_colors();
 
     // Get the exception value
     let exception = match tc.exception() {
@@ -224,13 +394,23 @@ pub(crate) fn format_exception(
         let start_column = message.get_start_column();
         let end_column = message.get_end_column();
 
-        // Format the output similar to Node.js
-        if let (Some(file), Some(line)) = (resource_name, line_number) {
-            output.push_str(&format!("{}:{}\n", file, line));
+        // Format the output with colors
+        if let (Some(file), Some(line)) = (resource_name.as_ref(), line_number) {
+            if use_colors {
+                output.push_str(&format!(
+                    "{}{}:{}{}  \n",
+                    colors::CYAN,
+                    file,
+                    line,
+                    colors::RESET
+                ));
+            } else {
+                output.push_str(&format!("{}:{}\n", file, line));
+            }
 
             // Add source line if available
-            if let Some(source) = source_line {
-                output.push_str(&source);
+            if let Some(ref source) = source_line {
+                output.push_str(source);
                 output.push('\n');
 
                 // Add caret indicator
@@ -239,19 +419,47 @@ pub(crate) fn format_exception(
                     output.push(' ');
                 }
 
-                // Add carets
+                // Add carets in red
                 let caret_count = (end_column - start_column).max(1);
+
+                if use_colors {
+                    output.push_str(colors::RED);
+                }
 
                 for _ in 0..caret_count {
                     output.push('^');
                 }
+
+                if use_colors {
+                    output.push_str(colors::RESET);
+                }
+
                 output.push('\n');
             }
         }
 
-        // Add the error message
+        // Add the error message with color
         output.push('\n');
+        if use_colors {
+            output.push_str(colors::RED);
+            output.push_str(colors::BOLD);
+        }
         output.push_str(&exception_string);
+        if use_colors {
+            output.push_str(colors::RESET);
+        }
+
+        // Add helpful hint if available
+        if let Some(hint) = get_error_hint(&exception_string, source_line.as_deref()) {
+            output.push('\n');
+            if use_colors {
+                output.push_str(colors::YELLOW);
+            }
+            output.push_str(&hint);
+            if use_colors {
+                output.push_str(colors::RESET);
+            }
+        }
 
         // Try to get stack trace - check if the exception has a stack property
         if let Ok(exception_obj) = v8::Local::<v8::Object>::try_from(exception) {
@@ -275,7 +483,17 @@ pub(crate) fn format_exception(
                                 .map(|s| s.to_rust_string_lossy(isolate)),
                             message.get_line_number(tc),
                         ) {
-                            output.push_str(&format!("{}:{}\n", file, line));
+                            if use_colors {
+                                output.push_str(&format!(
+                                    "{}{}:{}{}  \n",
+                                    colors::CYAN,
+                                    file,
+                                    line,
+                                    colors::RESET
+                                ));
+                            } else {
+                                output.push_str(&format!("{}:{}\n", file, line));
+                            }
 
                             if let Some(source) = message
                                 .get_source_line(tc)
@@ -291,17 +509,40 @@ pub(crate) fn format_exception(
 
                                 let caret_count = (end_column - start_column).max(1);
 
+                                if use_colors {
+                                    output.push_str(colors::RED);
+                                }
+
                                 for _ in 0..caret_count {
                                     output.push('^');
                                 }
+
+                                if use_colors {
+                                    output.push_str(colors::RESET);
+                                }
+
                                 output.push('\n');
                             }
                             output.push('\n');
                         }
+
+                        // Format stack trace with colors
+                        if use_colors {
+                            output.push_str(colors::GRAY);
+                        }
                         output.push_str(&stack);
+                        if use_colors {
+                            output.push_str(colors::RESET);
+                        }
                     } else {
                         output.push('\n');
+                        if use_colors {
+                            output.push_str(colors::GRAY);
+                        }
                         output.push_str(&stack);
+                        if use_colors {
+                            output.push_str(colors::RESET);
+                        }
                     }
                 }
             }

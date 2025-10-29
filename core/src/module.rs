@@ -46,7 +46,12 @@ impl Loader {
                 match promise.state() {
                     v8::PromiseState::Pending => panic!(),
                     v8::PromiseState::Fulfilled => Ok(promise.result(tc)),
-                    v8::PromiseState::Rejected => Err(promise.result(tc)),
+                    v8::PromiseState::Rejected => {
+                        // Throw the rejected promise value as an exception so it can be
+                        // properly formatted with source location and stack trace
+                        tc.throw_exception(promise.result(tc));
+                        Err(promise.result(tc))
+                    }
                 }
             }
             None => {
