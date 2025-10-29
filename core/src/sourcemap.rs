@@ -38,7 +38,7 @@
 //! - Display the original source code instead of transpiled code
 
 /// Placeholder for source map data.
-/// 
+///
 /// In a full implementation, this would contain:
 /// - Parsed source map mappings
 /// - Original source content
@@ -56,13 +56,13 @@ impl SourceMap {
     }
 
     /// Parse a source map from JSON content.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `json` - The source map JSON string
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A Result containing the parsed source map or an error message.
     #[allow(dead_code)]
     pub(crate) fn parse(_json: &str) -> Result<Self, String> {
@@ -71,14 +71,14 @@ impl SourceMap {
     }
 
     /// Map a location in generated code to the original source.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `line` - Line number in generated code (0-based)
     /// * `column` - Column number in generated code (0-based)
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A tuple of (source_file, original_line, original_column) if found.
     #[allow(dead_code)]
     pub(crate) fn map_location(&self, _line: u32, _column: u32) -> Option<(String, u32, u32)> {
@@ -87,13 +87,13 @@ impl SourceMap {
     }
 
     /// Get the original source content for a source file.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `source_file` - The source file name
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// The original source content if available.
     #[allow(dead_code)]
     pub(crate) fn get_source_content(&self, _source_file: &str) -> Option<&str> {
@@ -103,49 +103,49 @@ impl SourceMap {
 }
 
 /// Detect if a JavaScript file has an inline source map.
-/// 
+///
 /// Inline source maps are typically at the end of the file:
 /// `//# sourceMappingURL=data:application/json;base64,...`
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `content` - The JavaScript file content
-/// 
+///
 /// # Returns
-/// 
+///
 /// The base64-encoded source map content if found.
 #[allow(dead_code)]
 pub(crate) fn detect_inline_sourcemap(content: &str) -> Option<&str> {
     // Look for inline source map comment
     let prefix = "//# sourceMappingURL=data:application/json;base64,";
-    
+
     for line in content.lines().rev().take(10) {
         let trimmed = line.trim();
         if let Some(data) = trimmed.strip_prefix(prefix) {
             return Some(data);
         }
     }
-    
+
     None
 }
 
 /// Detect if a JavaScript file references an external source map.
-/// 
+///
 /// External source map references look like:
 /// `//# sourceMappingURL=bundle.js.map`
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `content` - The JavaScript file content
-/// 
+///
 /// # Returns
-/// 
+///
 /// The source map file name if found.
 #[allow(dead_code)]
 pub(crate) fn detect_external_sourcemap(content: &str) -> Option<&str> {
     // Look for external source map reference
     let prefix = "//# sourceMappingURL=";
-    
+
     for line in content.lines().rev().take(10) {
         let trimmed = line.trim();
         if let Some(url) = trimmed.strip_prefix(prefix) {
@@ -155,7 +155,7 @@ pub(crate) fn detect_external_sourcemap(content: &str) -> Option<&str> {
             }
         }
     }
-    
+
     None
 }
 
@@ -169,7 +169,7 @@ mod tests {
 console.log("test");
 //# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozfQ==
         "#;
-        
+
         let result = detect_inline_sourcemap(js);
         assert_eq!(result, Some("eyJ2ZXJzaW9uIjozfQ=="));
     }
@@ -180,7 +180,7 @@ console.log("test");
 console.log("test");
 //# sourceMappingURL=bundle.js.map
         "#;
-        
+
         let result = detect_external_sourcemap(js);
         assert_eq!(result, Some("bundle.js.map"));
     }
@@ -190,7 +190,7 @@ console.log("test");
         let js = r#"
 console.log("test");
         "#;
-        
+
         assert_eq!(detect_inline_sourcemap(js), None);
         assert_eq!(detect_external_sourcemap(js), None);
     }
