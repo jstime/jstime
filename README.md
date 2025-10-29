@@ -84,33 +84,3 @@ cargo test
 ```
 
 For more details on conformance testing, see [core/tests/CONFORMANCE_TESTS.md](./core/tests/CONFORMANCE_TESTS.md).
-
-## Contributing
-
-Interested in contributing? We'd love to have you! ❤️
-
-Check out these resources:
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Get started with development
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Learn how jstime is built
-- **[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)** - Community standards
-
-We welcome contributions of all kinds: bug fixes, features, documentation, examples, and more!
-
-## Project Team
-
-For information about the governance of the jstime project, see [GOVERNANCE.md](./GOVERNANCE.md).
-
-### Chair
-
-* [MylesBorins](https://github.com/MylesBorins) - **Myles Borins** (he/him)
-
-### Collaborators
-
-* [bengl](https://github.com/bengl) - **Bryan English** (he/him)
-* [bdougie](https://github.com/bdougie) - **Brian Douglas**
-* [codebytere](https://github.com/codebytere) - **Shelley Vohr**
-* [devsnek](https://github.com/devsnek) - **Gus Caplan**
-* [EstebanBorai](https://github.com/EstebanBorai) - **Esteban Borai**
-* [jalafel](https://github.com/jalafel) - **Jess Tran**
-* [solumos](https://github.com/solumos) - **Tom Hadley**
-
