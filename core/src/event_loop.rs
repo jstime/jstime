@@ -27,13 +27,6 @@ pub(crate) enum PendingTimer {
     },
 }
 
-struct FetchResponse {
-    body: String,
-    status: u16,
-    status_text: String,
-    headers: Vec<(String, String)>,
-}
-
 pub(crate) struct EventLoop {
     timers: BTreeMap<TimerId, Timer>,
     timer_queue: BTreeMap<Instant, Vec<TimerId>>,
@@ -227,12 +220,14 @@ impl EventLoop {
                         body_data,
                         offset: 0,
                     };
-                    
+
                     {
                         let isolate: &mut v8::Isolate = scope;
                         let state = crate::IsolateState::get(isolate);
                         let streaming_fetches = state.borrow().streaming_fetches.clone();
-                        streaming_fetches.borrow_mut().insert(stream_id, streaming_fetch);
+                        streaming_fetches
+                            .borrow_mut()
+                            .insert(stream_id, streaming_fetch);
                     }
 
                     // Create response object
@@ -268,8 +263,7 @@ impl EventLoop {
                         cache_borrow.status_text = Some(v8::Global::new(scope, key));
                         key
                     };
-                    let status_text_value =
-                        v8::String::new(scope, &status_text).unwrap();
+                    let status_text_value = v8::String::new(scope, &status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
 
                     // Set headers
@@ -384,93 +378,6 @@ impl EventLoop {
                     Ok(body_data) => Ok((status, status_text, response_headers, body_data)),
                     Err(e) => Err(format!("Failed to read response body: {}", e)),
                 }
-            }
-            Err(err) => Err(format!("Network error: {}", err)),
-        }
-    }
-
-    /// Execute an HTTP request using ureq
-    fn execute_fetch(
-        agent: &ureq::Agent,
-        url: &str,
-        method: &str,
-        headers: &[(String, String)],
-        body: Option<&str>,
-    ) -> Result<FetchResponse, String> {
-        // Build and execute the request based on method
-        let response = match method {
-            "GET" => {
-                let mut req = agent.get(url);
-                for (key, value) in headers {
-                    req = req.header(key, value);
-                }
-                req.call()
-            }
-            "HEAD" => {
-                let mut req = agent.head(url);
-                for (key, value) in headers {
-                    req = req.header(key, value);
-                }
-                req.call()
-            }
-            "DELETE" => {
-                let mut req = agent.delete(url);
-                for (key, value) in headers {
-                    req = req.header(key, value);
-                }
-                req.call()
-            }
-            "POST" => {
-                let mut req = agent.post(url);
-                for (key, value) in headers {
-                    req = req.header(key, value);
-                }
-                req.send(body.unwrap_or(""))
-            }
-            "PUT" => {
-                let mut req = agent.put(url);
-                for (key, value) in headers {
-                    req = req.header(key, value);
-                }
-                req.send(body.unwrap_or(""))
-            }
-            "PATCH" => {
-                let mut req = agent.patch(url);
-                for (key, value) in headers {
-                    req = req.header(key, value);
-                }
-                req.send(body.unwrap_or(""))
-            }
-            _ => return Err(format!("Unsupported HTTP method: {}", method)),
-        };
-
-        match response {
-            Ok(mut response) => {
-                let status_code = response.status();
-                let status = status_code.as_u16();
-                let status_text = status_code
-                    .canonical_reason()
-                    .unwrap_or("Unknown")
-                    .to_string();
-
-                // Get headers - ureq 3.x uses http crate's HeaderMap
-                let headers_map = response.headers();
-                let mut response_headers = Vec::with_capacity(headers_map.len());
-                for (name, value) in headers_map {
-                    if let Ok(value_str) = value.to_str() {
-                        response_headers.push((name.as_str().to_string(), value_str.to_string()));
-                    }
-                }
-
-                // Read body
-                let body = response.body_mut().read_to_string().unwrap_or_default();
-
-                Ok(FetchResponse {
-                    body,
-                    status,
-                    status_text,
-                    headers: response_headers,
-                })
             }
             Err(err) => Err(format!("Network error: {}", err)),
         }

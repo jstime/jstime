@@ -129,46 +129,50 @@ fn fetch_read_chunk(
     let state = crate::IsolateState::get(isolate);
     let streaming_fetches = state.borrow().streaming_fetches.clone();
     let mut fetches_borrow = streaming_fetches.borrow_mut();
-    
+
     if let Some(mut streaming_fetch) = fetches_borrow.remove(&stream_id) {
         drop(fetches_borrow);
-        
+
         // Read a chunk from the buffered body data
         const CHUNK_SIZE: usize = 65536; // 64KB chunks
-        
+
         let remaining = streaming_fetch.body_data.len() - streaming_fetch.offset;
-        
+
         if remaining == 0 {
             // End of stream - don't put it back
             let obj = v8::Object::new(scope);
-            
+
             let done_key = v8::String::new(scope, "done").unwrap();
             let done_value = v8::Boolean::new(scope, true);
             obj.set(scope, done_key.into(), done_value.into());
-            
+
             let value_key = v8::String::new(scope, "value").unwrap();
             let value_value = v8::undefined(scope);
             obj.set(scope, value_key.into(), value_value.into());
-            
+
             let _ = resolver.resolve(scope, obj.into());
         } else {
             // We have data
             let bytes_to_read = std::cmp::min(CHUNK_SIZE, remaining);
-            let chunk_data = streaming_fetch.body_data[streaming_fetch.offset..streaming_fetch.offset + bytes_to_read].to_vec();
+            let chunk_data = streaming_fetch.body_data
+                [streaming_fetch.offset..streaming_fetch.offset + bytes_to_read]
+                .to_vec();
             streaming_fetch.offset += bytes_to_read;
-            
+
             // Put the streaming fetch back
             let state = crate::IsolateState::get(isolate);
             let streaming_fetches = state.borrow().streaming_fetches.clone();
-            streaming_fetches.borrow_mut().insert(stream_id, streaming_fetch);
-            
+            streaming_fetches
+                .borrow_mut()
+                .insert(stream_id, streaming_fetch);
+
             // Return the chunk
             let obj = v8::Object::new(scope);
-            
+
             let done_key = v8::String::new(scope, "done").unwrap();
             let done_value = v8::Boolean::new(scope, false);
             obj.set(scope, done_key.into(), done_value.into());
-            
+
             let value_key = v8::String::new(scope, "value").unwrap();
             // Create Uint8Array with the data
             let backing_store = v8::ArrayBuffer::new_backing_store_from_vec(chunk_data);
@@ -176,7 +180,7 @@ fn fetch_read_chunk(
             let array_buffer = v8::ArrayBuffer::with_backing_store(scope, &backing_store);
             let uint8_array = v8::Uint8Array::new(scope, array_buffer, 0, bytes_to_read).unwrap();
             obj.set(scope, value_key.into(), uint8_array.into());
-            
+
             let _ = resolver.resolve(scope, obj.into());
         }
     } else {
@@ -185,6 +189,6 @@ fn fetch_read_chunk(
         let error = v8::Exception::error(scope, error_msg);
         let _ = resolver.reject(scope, error);
     }
-    
+
     rv.set(promise.into());
 }
