@@ -64,6 +64,7 @@ impl Loader {
     }
 }
 
+#[inline]
 fn resolve<'a>(
     scope: &mut v8::PinScope<'a, '_>,
     referrer: &str,
@@ -191,6 +192,7 @@ fn resolve_builtin_module<'a>(
     module
 }
 
+#[inline]
 fn normalize_path(referrer_path: &str, requested: &str) -> String {
     let req_path = Path::new(requested);
     if req_path.is_absolute() {
