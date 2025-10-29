@@ -7,6 +7,52 @@ fn setup() -> jstime::JSTime {
     jstime::JSTime::new(options)
 }
 
+fn bench_startup(c: &mut Criterion) {
+    let mut group = c.benchmark_group("startup");
+
+    // Initialize V8 once before benchmarking
+    jstime::init(None);
+
+    // Benchmark creating a new JSTime instance (with snapshot)
+    group.bench_function("new_instance_with_snapshot", |b| {
+        b.iter(|| {
+            let options = Options::default();
+            black_box(jstime::JSTime::new(options))
+        })
+    });
+
+    // Benchmark creating an instance without snapshot (using None)
+    group.bench_function("new_instance_without_snapshot", |b| {
+        b.iter(|| {
+            let options = Options::new(None);
+            black_box(jstime::JSTime::new(options))
+        })
+    });
+
+    // Benchmark creating an instance and running a simple script
+    group.bench_function("new_instance_and_hello_world", |b| {
+        b.iter(|| {
+            let options = Options::default();
+            let mut js = jstime::JSTime::new(options);
+            black_box(js.run_script("'hello world'", "bench.js"))
+        })
+    });
+
+    // Benchmark cold start with builtin usage
+    group.bench_function("new_instance_with_builtins", |b| {
+        b.iter(|| {
+            let options = Options::default();
+            let mut js = jstime::JSTime::new(options);
+            black_box(js.run_script(
+                "console.log('test'); performance.now(); new URL('https://example.com')",
+                "bench.js",
+            ))
+        })
+    });
+
+    group.finish();
+}
+
 fn bench_script_execution(c: &mut Criterion) {
     let mut group = c.benchmark_group("script_execution");
 
@@ -304,6 +350,7 @@ fn bench_event_operations(c: &mut Criterion) {
 
 criterion_group!(
     benches,
+    bench_startup,
     bench_script_execution,
     bench_console_api,
     bench_json_operations,

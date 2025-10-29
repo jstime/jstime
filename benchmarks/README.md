@@ -40,6 +40,7 @@ Each benchmark includes:
 cargo bench
 
 # Run specific benchmark group
+cargo bench startup              # Startup and initialization benchmarks
 cargo bench script_execution
 cargo bench json_operations
 cargo bench performance_api
@@ -49,6 +50,7 @@ cargo bench -- --verbose
 ```
 
 The Rust benchmark suite uses [Criterion.rs](https://github.com/bheisler/criterion.rs) and tests:
+- **Startup** - JSTime instance creation with and without snapshots
 - Script execution (arithmetic, strings, arrays, objects, functions)
 - Console API
 - JSON operations
@@ -57,6 +59,17 @@ The Rust benchmark suite uses [Criterion.rs](https://github.com/bheisler/criteri
 - URL operations
 - Crypto operations
 - Event operations
+
+### Startup Benchmarks
+
+The startup benchmarks measure the performance impact of V8 snapshots:
+
+- `new_instance_with_snapshot` - Creating a JSTime instance with V8 snapshot (default)
+- `new_instance_without_snapshot` - Creating a JSTime instance without snapshot (for comparison)
+- `new_instance_and_hello_world` - Cold start with minimal script execution
+- `new_instance_with_builtins` - Cold start with builtin API usage
+
+V8 snapshots significantly improve startup time by pre-compiling all built-in APIs (console, fetch, URL, crypto, etc.) into a binary blob that's loaded at initialization time instead of being compiled from JavaScript source.
 
 ### Benchmark Results Location
 
@@ -81,6 +94,23 @@ To compare performance before and after changes:
    ```
 
 Criterion will show performance differences between the two runs.
+
+### Comparing Snapshot Performance
+
+To measure the impact of snapshots:
+
+1. Create a baseline with snapshots (current implementation):
+   ```bash
+   cargo bench startup -- --save-baseline with-snapshots
+   ```
+
+2. To test without snapshots, temporarily modify `cli/main.rs` to use `Options::new(None)`:
+   ```bash
+   # Modify code to disable snapshots
+   cargo bench startup -- --baseline with-snapshots
+   ```
+
+This will show the performance improvement from V8 snapshots.
 
 ## Tips for Accurate Benchmarking
 
@@ -127,6 +157,7 @@ fn bench_my_feature(c: &mut Criterion) {
 // Add to criterion_group! at the bottom:
 criterion_group!(
     benches,
+    bench_startup,
     bench_script_execution,
     // ... other benchmarks ...
     bench_my_feature  // Add your new function here
