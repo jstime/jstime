@@ -17,10 +17,11 @@ jstime implements a two-level caching strategy:
 
 ## Example
 
-Run the example:
-```bash
-cargo run --example module-cache-demo
-```
+The module caching feature is automatically enabled and transparent to users.
+You can observe its benefits by:
 
-This will create multiple JSTime instances and demonstrate how the source code cache
-improves performance by avoiding repeated file reads.
+1. Running an application with many modules
+2. Creating multiple JSTime instances that import the same modules
+3. Observing that file I/O is minimized after the first read
+
+See `core/tests/test_module_cache.rs` for concrete examples of how the caching works.
