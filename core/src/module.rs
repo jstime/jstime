@@ -213,13 +213,15 @@ fn module_resolve_callback<'a>(
 
     let isolate: &mut v8::Isolate = scope;
     let state = IsolateState::get(isolate);
+
+    // Clone referrer_path only once and reuse it
     let referrer_path = state
         .borrow()
         .module_map
         .hash_to_absolute_path
         .get(&hash)
-        .unwrap()
-        .to_owned();
+        .cloned()
+        .unwrap();
 
     let isolate: &v8::Isolate = scope;
     let requested_rel_path = specifier.to_rust_string_lossy(isolate);
