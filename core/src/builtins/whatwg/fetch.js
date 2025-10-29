@@ -86,6 +86,7 @@
   class Response {
     constructor(body, init = {}) {
       this._body = body;
+      this._streamId = init.streamId;
       this.status = init.status || 200;
       this.statusText = init.statusText || '';
       this.headers = new Headers(init.headers || {});
@@ -102,15 +103,35 @@
         return this._bodyStream;
       }
       
-      // Create a ReadableStream from the body
-      this._bodyStream = new globalThis.ReadableStream({
-        start: (controller) => {
-          if (this._body !== null && this._body !== undefined) {
-            controller.enqueue(String(this._body));
+      // If we have a stream ID, create a streaming ReadableStream
+      if (this._streamId !== undefined && this._streamId !== null) {
+        const streamId = this._streamId;
+        this._bodyStream = new globalThis.ReadableStream({
+          async pull(controller) {
+            try {
+              const result = await bindings.fetchReadChunk(streamId);
+              if (result.done) {
+                controller.close();
+              } else {
+                controller.enqueue(result.value);
+              }
+            } catch (error) {
+              controller.error(error);
+            }
           }
-          controller.close();
-        }
-      });
+        });
+      } else {
+        // Fallback: Create a ReadableStream from the body string
+        this._bodyStream = new globalThis.ReadableStream({
+          start: (controller) => {
+            if (this._body !== null && this._body !== undefined) {
+              const encoder = new TextEncoder();
+              controller.enqueue(encoder.encode(String(this._body)));
+            }
+            controller.close();
+          }
+        });
+      }
       
       return this._bodyStream;
     }
@@ -119,12 +140,30 @@
       return this._bodyUsed;
     }
 
-    text() {
+    async text() {
       if (this._bodyUsed) {
         return Promise.reject(new TypeError('Body has already been consumed'));
       }
       this._bodyUsed = true;
-      return Promise.resolve(String(this._body || ''));
+      
+      // If we have a stream ID, read from the stream
+      if (this._streamId !== undefined && this._streamId !== null) {
+        const reader = this.body.getReader();
+        const chunks = [];
+        const decoder = new TextDecoder();
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(decoder.decode(value, { stream: true }));
+        }
+        chunks.push(decoder.decode()); // Final decode without stream flag
+        
+        return chunks.join('');
+      }
+      
+      // Fallback for non-streaming responses
+      return String(this._body || '');
     }
 
     json() {
@@ -139,7 +178,8 @@
         status: this.status,
         statusText: this.statusText,
         headers: this.headers,
-        url: this.url
+        url: this.url,
+        streamId: this._streamId
       });
     }
   }
@@ -205,12 +245,13 @@
       headersArray,
       request.body || null
     ).then(responseData => {
-      // Parse response
-      return new Response(responseData.body, {
+      // Parse response - now includes streamId for streaming
+      return new Response(null, {
         status: responseData.status,
         statusText: responseData.statusText,
         headers: responseData.headers,
-        url: request.url
+        url: request.url,
+        streamId: responseData.streamId
       });
     });
   }

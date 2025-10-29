@@ -9,6 +9,13 @@ pub(crate) struct FetchRequest {
     pub(crate) resolver: v8::Global<v8::PromiseResolver>,
 }
 
+/// Stores an active streaming fetch response
+/// We store a boxed reader which implements Read
+pub(crate) struct StreamingFetch {
+    pub(crate) stream_id: u64,
+    pub(crate) reader: Box<dyn std::io::Read>,
+}
+
 pub(crate) struct StringCache {
     pub(crate) body: Option<v8::Global<v8::String>>,
     pub(crate) status: Option<v8::Global<v8::String>>,
@@ -38,6 +45,8 @@ pub(crate) struct IsolateState {
     pub(crate) string_cache: Rc<RefCell<StringCache>>,
     pub(crate) http_agent: ureq::Agent,
     pub(crate) process_argv: Vec<String>,
+    pub(crate) next_stream_id: Rc<RefCell<u64>>,
+    pub(crate) streaming_fetches: Rc<RefCell<rustc_hash::FxHashMap<u64, StreamingFetch>>>,
 }
 
 impl IsolateState {
@@ -50,6 +59,8 @@ impl IsolateState {
         let next_timer_id = Rc::new(RefCell::new(1u64));
         let pending_fetches = Rc::new(RefCell::new(Vec::new()));
         let string_cache = Rc::new(RefCell::new(StringCache::new()));
+        let next_stream_id = Rc::new(RefCell::new(1u64));
+        let streaming_fetches = Rc::new(RefCell::new(rustc_hash::FxHashMap::default()));
 
         // Create an HTTP agent for connection pooling
         // Configure to not treat HTTP status codes as errors (fetch API expects this)
@@ -74,6 +85,8 @@ impl IsolateState {
             string_cache,
             http_agent,
             process_argv,
+            next_stream_id,
+            streaming_fetches,
         }))
     }
 

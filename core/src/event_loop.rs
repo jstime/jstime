@@ -192,14 +192,15 @@ impl EventLoop {
         let fetches: Vec<crate::isolate_state::FetchRequest> = fetches_borrow.drain(..).collect();
         drop(fetches_borrow);
 
-        // Get the HTTP agent from isolate state
+        // Get the HTTP agent and next_stream_id from isolate state
         let isolate: &mut v8::Isolate = scope;
         let state = crate::IsolateState::get(isolate);
         let agent = state.borrow().http_agent.clone();
+        let next_stream_id_ref = state.borrow().next_stream_id.clone();
 
         for fetch_request in fetches {
-            // Execute the HTTP request in a blocking manner
-            let result = Self::execute_fetch(
+            // Execute the HTTP request and get the response (but don't read body yet)
+            let result = Self::execute_fetch_streaming(
                 &agent,
                 &fetch_request.url,
                 &fetch_request.method,
@@ -211,7 +212,28 @@ impl EventLoop {
             let resolver = v8::Local::new(scope, &fetch_request.resolver);
 
             match result {
-                Ok(response_data) => {
+                Ok((status, status_text, response_headers, body_reader)) => {
+                    // Allocate a stream ID for this fetch
+                    let stream_id = {
+                        let mut next_id = next_stream_id_ref.borrow_mut();
+                        let id = *next_id;
+                        *next_id += 1;
+                        id
+                    };
+
+                    // Store the body reader for streaming
+                    let streaming_fetch = crate::isolate_state::StreamingFetch {
+                        stream_id,
+                        reader: body_reader,
+                    };
+                    
+                    {
+                        let isolate: &mut v8::Isolate = scope;
+                        let state = crate::IsolateState::get(isolate);
+                        let streaming_fetches = state.borrow().streaming_fetches.clone();
+                        streaming_fetches.borrow_mut().insert(stream_id, streaming_fetch);
+                    }
+
                     // Create response object
                     let obj = v8::Object::new(scope);
 
@@ -221,16 +243,10 @@ impl EventLoop {
                     let cache = state.borrow().string_cache.clone();
                     let mut cache_borrow = cache.borrow_mut();
 
-                    // Set body
-                    let body_key = if let Some(ref cached) = cache_borrow.body {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "body").unwrap();
-                        cache_borrow.body = Some(v8::Global::new(scope, key));
-                        key
-                    };
-                    let body_value = v8::String::new(scope, &response_data.body).unwrap();
-                    obj.set(scope, body_key.into(), body_value.into());
+                    // Set streamId
+                    let stream_id_key = v8::String::new(scope, "streamId").unwrap();
+                    let stream_id_value = v8::Number::new(scope, stream_id as f64);
+                    obj.set(scope, stream_id_key.into(), stream_id_value.into());
 
                     // Set status
                     let status_key = if let Some(ref cached) = cache_borrow.status {
@@ -240,7 +256,7 @@ impl EventLoop {
                         cache_borrow.status = Some(v8::Global::new(scope, key));
                         key
                     };
-                    let status_value = v8::Integer::new(scope, response_data.status as i32);
+                    let status_value = v8::Integer::new(scope, status as i32);
                     obj.set(scope, status_key.into(), status_value.into());
 
                     // Set statusText
@@ -252,7 +268,7 @@ impl EventLoop {
                         key
                     };
                     let status_text_value =
-                        v8::String::new(scope, &response_data.status_text).unwrap();
+                        v8::String::new(scope, &status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
 
                     // Set headers
@@ -265,9 +281,9 @@ impl EventLoop {
                     };
 
                     drop(cache_borrow);
-                    let headers_len = response_data.headers.len() as i32;
+                    let headers_len = response_headers.len() as i32;
                     let headers_array = v8::Array::new(scope, headers_len);
-                    for (i, (key, value)) in response_data.headers.iter().enumerate() {
+                    for (i, (key, value)) in response_headers.iter().enumerate() {
                         let entry = v8::Array::new(scope, 2);
                         let key_str = v8::String::new(scope, key).unwrap();
                         let value_str = v8::String::new(scope, value).unwrap();
@@ -285,6 +301,89 @@ impl EventLoop {
                     let _ = resolver.reject(scope, error);
                 }
             }
+        }
+    }
+
+    /// Execute an HTTP request using ureq (streaming version)
+    /// Returns (status, status_text, headers, body_reader)
+    fn execute_fetch_streaming(
+        agent: &ureq::Agent,
+        url: &str,
+        method: &str,
+        headers: &[(String, String)],
+        body: Option<&str>,
+    ) -> Result<(u16, String, Vec<(String, String)>, ureq::BodyReader), String> {
+        // Build and execute the request based on method
+        let response = match method {
+            "GET" => {
+                let mut req = agent.get(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.call()
+            }
+            "HEAD" => {
+                let mut req = agent.head(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.call()
+            }
+            "DELETE" => {
+                let mut req = agent.delete(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.call()
+            }
+            "POST" => {
+                let mut req = agent.post(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.send(body.unwrap_or(""))
+            }
+            "PUT" => {
+                let mut req = agent.put(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.send(body.unwrap_or(""))
+            }
+            "PATCH" => {
+                let mut req = agent.patch(url);
+                for (key, value) in headers {
+                    req = req.header(key, value);
+                }
+                req.send(body.unwrap_or(""))
+            }
+            _ => return Err(format!("Unsupported HTTP method: {}", method)),
+        };
+
+        match response {
+            Ok(mut response) => {
+                let status_code = response.status();
+                let status = status_code.as_u16();
+                let status_text = status_code
+                    .canonical_reason()
+                    .unwrap_or("Unknown")
+                    .to_string();
+
+                // Get headers - ureq 3.x uses http crate's HeaderMap
+                let headers_map = response.headers();
+                let mut response_headers = Vec::with_capacity(headers_map.len());
+                for (name, value) in headers_map {
+                    if let Ok(value_str) = value.to_str() {
+                        response_headers.push((name.as_str().to_string(), value_str.to_string()));
+                    }
+                }
+
+                // Take ownership of the body reader
+                let body_reader = response.into_body_reader();
+
+                Ok((status, status_text, response_headers, body_reader))
+            }
+            Err(err) => Err(format!("Network error: {}", err)),
         }
     }
 
