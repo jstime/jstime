@@ -1,6 +1,21 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+/// Macro to get or create a cached V8 string key
+/// Usage: get_cached_string!(cache, scope, field_name, "string_literal")
+#[macro_export]
+macro_rules! get_cached_string {
+    ($cache:expr, $scope:expr, $field:ident, $str:expr) => {
+        if let Some(ref cached) = $cache.$field {
+            v8::Local::new($scope, cached)
+        } else {
+            let key = v8::String::new($scope, $str).unwrap();
+            $cache.$field = Some(v8::Global::new($scope, key));
+            key
+        }
+    };
+}
+
 pub(crate) struct FetchRequest {
     pub(crate) url: String,
     pub(crate) method: String,
@@ -10,21 +25,51 @@ pub(crate) struct FetchRequest {
 }
 
 pub(crate) struct StringCache {
+    // Fetch API keys
     pub(crate) body: Option<v8::Global<v8::String>>,
     pub(crate) status: Option<v8::Global<v8::String>>,
     pub(crate) status_text: Option<v8::Global<v8::String>>,
     pub(crate) headers: Option<v8::Global<v8::String>>,
+    
+    // fs API stat keys
+    pub(crate) is_file: Option<v8::Global<v8::String>>,
+    pub(crate) is_directory: Option<v8::Global<v8::String>>,
+    pub(crate) is_symbolic_link: Option<v8::Global<v8::String>>,
+    pub(crate) size: Option<v8::Global<v8::String>>,
+    pub(crate) mtime_ms: Option<v8::Global<v8::String>>,
+    
+    // fs API options keys
+    pub(crate) recursive: Option<v8::Global<v8::String>>,
+    
+    // Common error keys
+    pub(crate) stack: Option<v8::Global<v8::String>>,
 }
 
 impl StringCache {
     pub(crate) fn new() -> Self {
         Self {
+            // Fetch API keys
             body: None,
             status: None,
             status_text: None,
             headers: None,
+            
+            // fs API stat keys
+            is_file: None,
+            is_directory: None,
+            is_symbolic_link: None,
+            size: None,
+            mtime_ms: None,
+            
+            // fs API options keys
+            recursive: None,
+            
+            // Common error keys
+            stack: None,
         }
     }
+    
+
 }
 
 pub(crate) struct IsolateState {

@@ -215,54 +215,30 @@ impl EventLoop {
                     // Create response object
                     let obj = v8::Object::new(scope);
 
-                    // Get or create cached string keys
+                    // Get cached string keys
                     let isolate: &mut v8::Isolate = scope;
                     let state = crate::IsolateState::get(isolate);
                     let cache = state.borrow().string_cache.clone();
                     let mut cache_borrow = cache.borrow_mut();
 
-                    // Set body
-                    let body_key = if let Some(ref cached) = cache_borrow.body {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "body").unwrap();
-                        cache_borrow.body = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set body - using cached key
+                    let body_key = crate::get_cached_string!(cache_borrow, scope, body, "body");
                     let body_value = v8::String::new(scope, &response_data.body).unwrap();
                     obj.set(scope, body_key.into(), body_value.into());
 
-                    // Set status
-                    let status_key = if let Some(ref cached) = cache_borrow.status {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "status").unwrap();
-                        cache_borrow.status = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set status - using cached key
+                    let status_key = crate::get_cached_string!(cache_borrow, scope, status, "status");
                     let status_value = v8::Integer::new(scope, response_data.status as i32);
                     obj.set(scope, status_key.into(), status_value.into());
 
-                    // Set statusText
-                    let status_text_key = if let Some(ref cached) = cache_borrow.status_text {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "statusText").unwrap();
-                        cache_borrow.status_text = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set statusText - using cached key
+                    let status_text_key = crate::get_cached_string!(cache_borrow, scope, status_text, "statusText");
                     let status_text_value =
                         v8::String::new(scope, &response_data.status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
 
-                    // Set headers
-                    let headers_key = if let Some(ref cached) = cache_borrow.headers {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "headers").unwrap();
-                        cache_borrow.headers = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set headers - using cached key
+                    let headers_key = crate::get_cached_string!(cache_borrow, scope, headers, "headers");
 
                     drop(cache_borrow);
                     let headers_len = response_data.headers.len() as i32;

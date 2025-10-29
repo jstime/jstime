@@ -372,9 +372,13 @@ fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
             let Some(options) = options_arg.to_object(scope) else {
                 return;
             };
-            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
-                return;
-            };
+            // Get cached "recursive" key
+            let isolate: &mut v8::Isolate = scope;
+            let state = crate::IsolateState::get(isolate);
+            let cache = state.borrow().string_cache.clone();
+            let mut cache_borrow = cache.borrow_mut();
+            let recursive_key = crate::get_cached_string!(cache_borrow, scope, recursive, "recursive");
+            drop(cache_borrow);
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -418,9 +422,13 @@ fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
             let Some(options) = options_arg.to_object(scope) else {
                 return;
             };
-            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
-                return;
-            };
+            // Get cached "recursive" key
+            let isolate: &mut v8::Isolate = scope;
+            let state = crate::IsolateState::get(isolate);
+            let cache = state.borrow().string_cache.clone();
+            let mut cache_borrow = cache.borrow_mut();
+            let recursive_key = crate::get_cached_string!(cache_borrow, scope, recursive, "recursive");
+            drop(cache_borrow);
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -533,40 +541,37 @@ fn stat(
         Ok(metadata) => {
             let stats = v8::Object::new(scope);
 
+            // Get cached string keys
+            let isolate: &mut v8::Isolate = scope;
+            let state = crate::IsolateState::get(isolate);
+            let cache = state.borrow().string_cache.clone();
+            let mut cache_borrow = cache.borrow_mut();
+
             let is_file = v8::Boolean::new(scope, metadata.is_file());
-            let Some(is_file_key) = v8::String::new(scope, "isFile") else {
-                return;
-            };
+            let is_file_key = crate::get_cached_string!(cache_borrow, scope, is_file, "isFile");
             stats.set(scope, is_file_key.into(), is_file.into());
 
             let is_dir = v8::Boolean::new(scope, metadata.is_dir());
-            let Some(is_dir_key) = v8::String::new(scope, "isDirectory") else {
-                return;
-            };
+            let is_dir_key = crate::get_cached_string!(cache_borrow, scope, is_directory, "isDirectory");
             stats.set(scope, is_dir_key.into(), is_dir.into());
 
             let is_symlink = v8::Boolean::new(scope, metadata.is_symlink());
-            let Some(is_symlink_key) = v8::String::new(scope, "isSymbolicLink") else {
-                return;
-            };
+            let is_symlink_key = crate::get_cached_string!(cache_borrow, scope, is_symbolic_link, "isSymbolicLink");
             stats.set(scope, is_symlink_key.into(), is_symlink.into());
 
             let size = v8::Number::new(scope, metadata.len() as f64);
-            let Some(size_key) = v8::String::new(scope, "size") else {
-                return;
-            };
+            let size_key = crate::get_cached_string!(cache_borrow, scope, size, "size");
             stats.set(scope, size_key.into(), size.into());
 
             if let Ok(modified) = metadata.modified()
                 && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
             {
                 let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                let Some(mtime_key) = v8::String::new(scope, "mtimeMs") else {
-                    return;
-                };
+                let mtime_key = crate::get_cached_string!(cache_borrow, scope, mtime_ms, "mtimeMs");
                 stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
+            drop(cache_borrow);
             retval.set(stats.into());
         }
         Err(e) => {
@@ -610,9 +615,13 @@ fn rm(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8
             let Some(options) = options_arg.to_object(scope) else {
                 return;
             };
-            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
-                return;
-            };
+            // Get cached "recursive" key
+            let isolate: &mut v8::Isolate = scope;
+            let state = crate::IsolateState::get(isolate);
+            let cache = state.borrow().string_cache.clone();
+            let mut cache_borrow = cache.borrow_mut();
+            let recursive_key = crate::get_cached_string!(cache_borrow, scope, recursive, "recursive");
+            drop(cache_borrow);
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -906,40 +915,37 @@ fn lstat(
         Ok(metadata) => {
             let stats = v8::Object::new(scope);
 
+            // Get cached string keys
+            let isolate: &mut v8::Isolate = scope;
+            let state = crate::IsolateState::get(isolate);
+            let cache = state.borrow().string_cache.clone();
+            let mut cache_borrow = cache.borrow_mut();
+
             let is_file = v8::Boolean::new(scope, metadata.is_file());
-            let Some(is_file_key) = v8::String::new(scope, "isFile") else {
-                return;
-            };
+            let is_file_key = crate::get_cached_string!(cache_borrow, scope, is_file, "isFile");
             stats.set(scope, is_file_key.into(), is_file.into());
 
             let is_dir = v8::Boolean::new(scope, metadata.is_dir());
-            let Some(is_dir_key) = v8::String::new(scope, "isDirectory") else {
-                return;
-            };
+            let is_dir_key = crate::get_cached_string!(cache_borrow, scope, is_directory, "isDirectory");
             stats.set(scope, is_dir_key.into(), is_dir.into());
 
             let is_symlink = v8::Boolean::new(scope, metadata.is_symlink());
-            let Some(is_symlink_key) = v8::String::new(scope, "isSymbolicLink") else {
-                return;
-            };
+            let is_symlink_key = crate::get_cached_string!(cache_borrow, scope, is_symbolic_link, "isSymbolicLink");
             stats.set(scope, is_symlink_key.into(), is_symlink.into());
 
             let size = v8::Number::new(scope, metadata.len() as f64);
-            let Some(size_key) = v8::String::new(scope, "size") else {
-                return;
-            };
+            let size_key = crate::get_cached_string!(cache_borrow, scope, size, "size");
             stats.set(scope, size_key.into(), size.into());
 
             if let Ok(modified) = metadata.modified()
                 && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
             {
                 let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                let Some(mtime_key) = v8::String::new(scope, "mtimeMs") else {
-                    return;
-                };
+                let mtime_key = crate::get_cached_string!(cache_borrow, scope, mtime_ms, "mtimeMs");
                 stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
+            drop(cache_borrow);
             retval.set(stats.into());
         }
         Err(e) => {
