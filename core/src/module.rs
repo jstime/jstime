@@ -1,6 +1,52 @@
 use crate::IsolateState;
+use lazy_static::lazy_static;
 use rustc_hash::FxHashMap;
 use std::path::Path;
+use std::sync::RwLock;
+
+// Global source code cache shared across all JSTime instances
+// Maps absolute file path to source code content
+//
+// This cache improves:
+// - Startup time: Avoids repeated file I/O for commonly imported modules
+// - Memory efficiency: Source code is shared across JSTime instances
+//
+// Note: The cache does not automatically invalidate when files change.
+// This is acceptable for most use cases where modules don't change during runtime.
+// For development scenarios where file changes are expected, consider restarting
+// the application or using the clear_source_cache() function.
+lazy_static! {
+    static ref SOURCE_CACHE: RwLock<FxHashMap<String, String>> = RwLock::new(FxHashMap::default());
+}
+
+/// Clear the global source code cache.
+/// This is useful in testing or development scenarios where modules may change.
+#[allow(dead_code)]
+pub(crate) fn clear_source_cache() {
+    SOURCE_CACHE.write().unwrap().clear();
+}
+
+/// Read source code from file, using cache if available
+fn read_source_cached(path: &str) -> std::io::Result<String> {
+    // Try to read from cache first
+    {
+        let cache = SOURCE_CACHE.read().unwrap();
+        if let Some(source) = cache.get(path) {
+            return Ok(source.clone());
+        }
+    }
+
+    // Not in cache, read from file
+    let source = std::fs::read_to_string(path)?;
+
+    // Store in cache
+    {
+        let mut cache = SOURCE_CACHE.write().unwrap();
+        cache.insert(path.to_string(), source.clone());
+    }
+
+    Ok(source)
+}
 
 pub(crate) struct ModuleMap {
     hash_to_absolute_path: FxHashMap<std::num::NonZeroI32, String>,
@@ -96,12 +142,12 @@ fn resolve<'a>(
 
     let js_src = if is_json {
         // For JSON files, read the content and wrap it in a module that exports it as default
-        let json_content = std::fs::read_to_string(&requested_abs_path)
+        let json_content = read_source_cached(&requested_abs_path)
             .expect("Something went wrong reading the JSON file");
         // Create a synthetic module that exports the JSON as the default export
         format!("export default {};", json_content)
     } else {
-        std::fs::read_to_string(&requested_abs_path).expect("Something went wrong reading the file")
+        read_source_cached(&requested_abs_path).expect("Something went wrong reading the file")
     };
 
     let code = v8::String::new(scope, &js_src).unwrap();
