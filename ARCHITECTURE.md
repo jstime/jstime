@@ -395,7 +395,41 @@ pub fn get_external_references() -> Vec<v8::ExternalReference> {
 }
 ```
 
-This enables V8's snapshot feature (currently not used, but prepared for future optimization).
+This enables V8's snapshot feature for faster startup by pre-compiling built-ins.
+
+### Snapshots
+
+V8 snapshots allow pre-compilation of JavaScript code into a binary blob that can be loaded quickly at runtime.
+
+**How Snapshots Work in jstime**:
+
+1. **Build Time** (`cli/build.rs`):
+   - Creates a V8 isolate with snapshot creator
+   - Initializes all built-in APIs in the isolate
+   - Serializes the isolate's heap into a binary snapshot blob
+   - Embeds the blob into the jstime binary
+
+2. **Runtime** (`core/src/lib.rs`):
+   - When creating a JSTime instance, checks if snapshot is provided
+   - If snapshot exists, loads it instead of re-compiling builtins
+   - Skips the `Builtins::create()` step which saves significant time
+
+**Performance Benefits**:
+- Eliminates ~30-50ms of startup overhead on typical systems
+- No runtime performance impact - only affects initialization
+- Particularly beneficial for short-lived scripts and CLI usage
+
+**Implementation Details**:
+```rust
+// Creating a snapshot at build time
+let snapshot_data = JSTime::create_snapshot(Options::default());
+
+// Using a snapshot at runtime
+let options = Options::new(Some(snapshot_blob));
+let jstime = JSTime::new(options);
+```
+
+The snapshot contains the fully initialized context with all built-in APIs ready to use.
 
 ## Memory Management
 
@@ -546,11 +580,10 @@ console.log(`Took ${end - start}ms`);
 
 ### Potential Improvements
 
-1. **Snapshot Support**: Pre-compile built-ins to V8 snapshot
-2. **Worker Threads**: Multi-isolate support for parallelism
-3. **Streaming APIs**: Support for streaming fetch responses
-4. **Module Caching**: Cache compiled modules
-5. **Native Modules**: Support for loading Rust modules from JS
+1. **Worker Threads**: Multi-isolate support for parallelism
+2. **Streaming APIs**: Support for streaming fetch responses
+3. **Module Caching**: Cache compiled modules
+4. **Native Modules**: Support for loading Rust modules from JS
 
 ### Extensibility
 

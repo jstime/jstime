@@ -86,12 +86,11 @@ fn main() {
     // Add any additional script arguments
     process_argv.extend(script_args);
 
-    let mut options = jstime::Options::new(None);
+    let mut options = jstime::Options::new(Some(include_bytes!(concat!(
+        env!("OUT_DIR"),
+        "/snapshot_data.blob"
+    ))));
     options.process_argv = process_argv;
-    // let options = jstime::Options::new(Some(include_bytes!(concat!(
-    //     env!("OUT_DIR"),
-    //     "/snapshot_data.blob"
-    // ))));
 
     let mut jstime = jstime::JSTime::new(options);
 

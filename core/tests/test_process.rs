@@ -5,8 +5,10 @@ mod common;
 #[test]
 fn test_process_exists() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string(), "test.js".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string(), "test.js".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
     let result = jstime.run_script("typeof process", "test");
@@ -16,8 +18,10 @@ fn test_process_exists() {
 #[test]
 fn test_process_env() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -38,8 +42,10 @@ fn test_process_env() {
 #[test]
 fn test_process_env_is_object() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -50,12 +56,14 @@ fn test_process_env_is_object() {
 #[test]
 fn test_process_argv() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec![
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec![
             "jstime".to_string(),
             "test.js".to_string(),
             "arg1".to_string(),
-        ],
+        ];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -78,8 +86,10 @@ fn test_process_argv() {
 #[test]
 fn test_process_cwd() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -97,8 +107,10 @@ fn test_process_cwd() {
 #[test]
 fn test_process_exit_function_exists() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -109,8 +121,10 @@ fn test_process_exit_function_exists() {
 #[test]
 fn test_process_argv_empty() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec![],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec![];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -121,8 +135,10 @@ fn test_process_argv_empty() {
 #[test]
 fn test_process_env_multiple_vars() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -148,8 +164,10 @@ fn test_process_env_multiple_vars() {
 #[test]
 fn test_process_cwd_matches_rust() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -164,8 +182,10 @@ fn test_process_cwd_matches_rust() {
 #[test]
 fn test_process_env_special_chars() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -186,8 +206,10 @@ fn test_process_env_special_chars() {
 #[test]
 fn test_process_stdout_exists() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -201,8 +223,10 @@ fn test_process_stdout_exists() {
 #[test]
 fn test_process_stderr_exists() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -216,8 +240,10 @@ fn test_process_stderr_exists() {
 #[test]
 fn test_process_stdin_exists() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -231,8 +257,10 @@ fn test_process_stdin_exists() {
 #[test]
 fn test_process_stdout_write_string() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -244,8 +272,10 @@ fn test_process_stdout_write_string() {
 #[test]
 fn test_process_stderr_write_string() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -257,8 +287,10 @@ fn test_process_stderr_write_string() {
 #[test]
 fn test_process_stdout_write_returns_true() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -269,8 +301,10 @@ fn test_process_stdout_write_returns_true() {
 #[test]
 fn test_process_stdout_istty() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
@@ -281,8 +315,10 @@ fn test_process_stdout_istty() {
 #[test]
 fn test_process_stdin_istty() {
     let _setup_guard = common::setup();
-    let options = jstime::Options {
-        process_argv: vec!["jstime".to_string()],
+    let options = {
+        let mut options = jstime::Options::default();
+        options.process_argv = vec!["jstime".to_string()];
+        options
     };
     let mut jstime = jstime::JSTime::new(options);
 
