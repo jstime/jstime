@@ -561,6 +561,7 @@ fetch(url)
 ### Bottlenecks
 
 1. **String Conversions**: UTF-8 ↔ V8 string conversion overhead
+   - **Mitigation**: Implemented string caching for frequently used keys via `StringCache` in `IsolateState`. The `get_cached_string!` macro provides lazy initialization of V8 string handles that are reused across multiple calls. This optimization targets hot paths in fetch API, fs API, and error handling.
 2. **FFI Calls**: Crossing Rust/V8 boundary has cost
 3. **Event Loop**: Waking and sleeping has overhead
 4. **Module Loading**: File I/O and compilation time
