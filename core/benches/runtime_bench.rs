@@ -63,7 +63,7 @@ fn bench_script_execution(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("1 + 1"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -77,7 +77,7 @@ fn bench_script_execution(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -91,7 +91,7 @@ fn bench_script_execution(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -105,7 +105,7 @@ fn bench_script_execution(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -119,7 +119,7 @@ fn bench_script_execution(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -133,7 +133,7 @@ fn bench_console_api(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("console.log('hello', 'world')"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -146,7 +146,7 @@ fn bench_console_api(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -165,7 +165,7 @@ fn bench_json_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -180,7 +180,7 @@ fn bench_json_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -193,7 +193,7 @@ fn bench_json_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -207,7 +207,7 @@ fn bench_performance_api(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("performance.now()"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -220,7 +220,7 @@ fn bench_performance_api(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -234,7 +234,7 @@ fn bench_base64_operations(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("btoa('Hello, World!')"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -242,7 +242,7 @@ fn bench_base64_operations(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("atob('SGVsbG8sIFdvcmxkIQ==')"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -255,7 +255,7 @@ fn bench_base64_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -274,7 +274,7 @@ fn bench_url_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -289,7 +289,7 @@ fn bench_url_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -303,7 +303,7 @@ fn bench_crypto_operations(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("crypto.randomUUID()"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -316,7 +316,7 @@ fn bench_crypto_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -330,7 +330,7 @@ fn bench_event_operations(c: &mut Criterion) {
         b.iter_batched(
             setup,
             |mut js| js.run_script(black_box("new Event('test')"), "bench.js"),
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
@@ -343,7 +343,7 @@ fn bench_event_operations(c: &mut Criterion) {
                     "bench.js",
                 )
             },
-            criterion::BatchSize::SmallInput,
+            criterion::BatchSize::PerIteration,
         )
     });
 
