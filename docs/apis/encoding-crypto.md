@@ -993,12 +993,13 @@ const hmacKey = await crypto.subtle.importKey(
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
   }
   return bytes;
 }
 
-const hexKey = 'a1b2c3d4e5f6...'; // 64 hex chars for 32 bytes
+// 64 hex characters = 32 bytes for AES-256
+const hexKey = 'a1b2c3d4e5f617283940abcdef567890fedcba0987654321a1b2c3d4e5f61728';
 const keyBytes = hexToBytes(hexKey);
 
 const key = await crypto.subtle.importKey(
