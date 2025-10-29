@@ -13,7 +13,8 @@ fn bench_startup(c: &mut Criterion) {
     // Initialize V8 once before benchmarking
     jstime::init(None);
 
-    // Benchmark creating a new JSTime instance (with snapshot)
+    // Benchmark creating a new JSTime instance with snapshot (default behavior)
+    // The CLI embeds a snapshot blob at build time, which is loaded by default
     group.bench_function("new_instance_with_snapshot", |b| {
         b.iter(|| {
             let options = Options::default();
@@ -21,7 +22,8 @@ fn bench_startup(c: &mut Criterion) {
         })
     });
 
-    // Benchmark creating an instance without snapshot (using None)
+    // Benchmark creating an instance without snapshot (for comparison)
+    // This forces re-compilation of all built-ins from JavaScript source
     group.bench_function("new_instance_without_snapshot", |b| {
         b.iter(|| {
             let options = Options::new(None);
