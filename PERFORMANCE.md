@@ -95,6 +95,55 @@ jstime --v8-options="--max-old-space-size=4096" script.js
 1. **Connection Pooling**: Upgraded to ureq 3.1 and implemented Agent-based connection pooling for reusing HTTP connections across multiple fetch requests
 2. **Status Code Handling**: Configured the HTTP agent to not treat HTTP status codes as errors, aligning with the Fetch API specification
 3. **Improved Response Handling**: Updated to ureq 3.x API for better performance and reduced memory overhead
+4. **Header Vector Pre-allocation**: Pre-allocate headers vector with capacity hint to reduce reallocations
+
+### Module System Optimizations
+1. **Path Caching**: Optimized module resolution to use `.cloned()` instead of `.unwrap().to_owned()` for better performance
+2. **Fast Hash Maps**: Using FxHashMap for module map lookups with non-cryptographic hashing
+
+## Performance Testing
+
+### JavaScript Benchmarks
+
+Run the JavaScript benchmark suite to measure runtime performance:
+
+```bash
+cargo build --release
+./target/release/jstime benchmarks/js_benchmarks.js
+```
+
+The JavaScript benchmark suite tests:
+- Core operations (arithmetic, strings, arrays, objects, functions)
+- Built-in APIs (console, JSON, performance, base64, URL, crypto, events)
+- Real-world patterns (JSON serialization, event dispatch, recursive algorithms)
+
+Each benchmark includes warmup iterations and reports both total and per-iteration timing.
+
+### Rust Benchmarks
+
+Run comprehensive Rust-level benchmarks using Criterion:
+
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run specific benchmark suite
+cargo bench script_execution
+cargo bench json_operations
+
+# Compare against baseline
+cargo bench -- --save-baseline main
+# Make changes, then:
+cargo bench -- --baseline main
+```
+
+The Criterion benchmark suite provides:
+- Statistical analysis (mean, median, std deviation)
+- Outlier detection
+- HTML reports with graphs (`target/criterion/report/index.html`)
+- Performance regression detection
+
+See `benchmarks/README.md` for detailed benchmark documentation.
 
 ## Future Optimization Opportunities
 
@@ -103,3 +152,5 @@ jstime --v8-options="--max-old-space-size=4096" script.js
 3. **JIT Warmup**: Consider adding warmup patterns for hot code paths
 4. **Memory Pooling**: Implement object pooling for frequently allocated objects
 5. **Native Modules**: Add support for native Rust modules for performance-critical operations
+6. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
+7. **String Interning**: Consider interning frequently used strings beyond current cache
