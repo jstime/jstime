@@ -5,8 +5,7 @@ use std::process::Command;
 
 #[test]
 fn help() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("-h")
         .assert()
         .stdout(predicate::str::contains("jstime [OPTIONS] [filename]"))
@@ -16,8 +15,7 @@ fn help() {
 
 #[test]
 fn entry_no_deps() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/queue-microtask.js")
         .assert()
         .stdout("0\n1\n2\n3\n4\n5\n")
@@ -27,8 +25,7 @@ fn entry_no_deps() {
 
 #[test]
 fn entry_with_deps() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/module.mjs")
         .assert()
         .stdout("This should only be logged once.\nhello world exactly 1 time\n")
@@ -38,8 +35,7 @@ fn entry_with_deps() {
 
 #[test]
 fn call_to_function_that_does_not_exist() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/function-does-not-exist.js")
         .assert()
         .stderr(predicate::str::contains(
@@ -51,8 +47,7 @@ fn call_to_function_that_does_not_exist() {
 
 #[test]
 fn throw() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/throw.js")
         .assert()
         .stderr(predicate::str::contains("Error: oh no"))
@@ -62,8 +57,7 @@ fn throw() {
 
 #[test]
 fn invalid_code() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/invalid-code.js")
         .assert()
         .stderr(predicate::str::contains(
@@ -75,8 +69,7 @@ fn invalid_code() {
 
 #[test]
 fn console() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/console-printer.js")
         .assert()
         .stdout(
@@ -92,8 +85,7 @@ first second %s
 
 #[test]
 fn top_level_await() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/top-level-await.js")
         .assert()
         .stdout("0\n1\n2\n")
@@ -103,8 +95,7 @@ fn top_level_await() {
 
 #[test]
 fn module_graph_execution_order() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/module-graph-exec-order/root.mjs")
         .assert()
         .stdout(
@@ -133,8 +124,7 @@ end root
 
 #[test]
 fn timers() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/timers.js")
         .assert()
         .stdout(
@@ -152,8 +142,7 @@ Interval 2
 
 #[test]
 fn fetch_api() {
-    Command::cargo_bin("jstime")
-        .unwrap()
+    Command::new(assert_cmd::cargo::cargo_bin!("jstime"))
         .arg("./tests/fixtures/fetch-api.js")
         .assert()
         .stdout(predicate::str::contains("All fetch API tests passed!"))
