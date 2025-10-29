@@ -8,7 +8,6 @@
 mod colors {
     pub const RESET: &str = "\x1b[0m";
     pub const RED: &str = "\x1b[31m";
-    pub const YELLOW: &str = "\x1b[33m";
     pub const CYAN: &str = "\x1b[36m";
     pub const GRAY: &str = "\x1b[90m";
     pub const BOLD: &str = "\x1b[1m";
@@ -28,89 +27,6 @@ fn should_use_colors() -> bool {
 
     // Default to true for now; in the future, we could check if stdout is a TTY
     true
-}
-
-/// Get helpful hint for common error types
-fn get_error_hint(exception_string: &str, source_line: Option<&str>) -> Option<String> {
-    // Check for common error patterns and provide hints
-
-    // ReferenceError: variable is not defined
-    if exception_string.contains("is not defined")
-        && let Some(var_name) = exception_string
-            .split("is not defined")
-            .next()
-            .and_then(|s| s.split(':').nth(1))
-            .map(|s| s.trim())
-    {
-        return Some(format!(
-            "💡 Hint: '{}' is not defined. Did you forget to declare it with 'const', 'let', or 'var'?",
-            var_name
-        ));
-    }
-
-    // TypeError: undefined/null errors
-    if exception_string.contains("Cannot read property")
-        || exception_string.contains("Cannot read properties of")
-    {
-        return Some("💡 Hint: You're trying to access a property on an undefined or null value. Check that the object exists before accessing its properties.".to_string());
-    }
-
-    // TypeError: not a function
-    if exception_string.contains("is not a function") {
-        return Some("💡 Hint: You're trying to call something that isn't a function. Check the type of the value you're calling.".to_string());
-    }
-
-    // SyntaxError: missing parenthesis
-    if exception_string.contains("missing )") || exception_string.contains("Unexpected token ')'") {
-        return Some(
-            "💡 Hint: Check for matching parentheses. Each opening '(' needs a closing ')'."
-                .to_string(),
-        );
-    }
-
-    // SyntaxError: missing bracket
-    if exception_string.contains("missing ]") || exception_string.contains("Unexpected token ']'") {
-        return Some(
-            "💡 Hint: Check for matching brackets. Each opening '[' needs a closing ']'."
-                .to_string(),
-        );
-    }
-
-    // SyntaxError: missing brace
-    if exception_string.contains("missing }") || exception_string.contains("Unexpected token '}'") {
-        return Some(
-            "💡 Hint: Check for matching braces. Each opening '{' needs a closing '}'.".to_string(),
-        );
-    }
-
-    // SyntaxError: unexpected token
-    if exception_string.contains("Unexpected token")
-        && let Some(source) = source_line
-    {
-        // Check for common syntax mistakes
-        if source.contains("= =") || source.contains("==") {
-            return Some(
-                "💡 Hint: Did you mean to use '===' for comparison or '=' for assignment?"
-                    .to_string(),
-            );
-        }
-        // Check if the line has an operator before a semicolon or at the end
-        let trimmed = source.trim_end_matches(|c: char| c.is_whitespace() || c == ';');
-        if trimmed.ends_with('+')
-            || trimmed.ends_with('-')
-            || trimmed.ends_with('*')
-            || trimmed.ends_with('/')
-        {
-            return Some("💡 Hint: The line has an operator without a right-hand side. Check if you're missing the second operand.".to_string());
-        }
-    }
-
-    // Async/Promise errors
-    if exception_string.contains("await is only valid in async") {
-        return Some("💡 Hint: You can only use 'await' inside an async function. Add 'async' before the function keyword.".to_string());
-    }
-
-    None
 }
 
 /// Throws a TypeError with the given message.
@@ -319,18 +235,6 @@ pub(crate) fn format_exception_value(
                     output.push_str(colors::RESET);
                 }
 
-                // Add helpful hint if available
-                if let Some(hint) = get_error_hint(&exception_str, None) {
-                    output.push('\n');
-                    if use_colors {
-                        output.push_str(colors::YELLOW);
-                    }
-                    output.push_str(&hint);
-                    if use_colors {
-                        output.push_str(colors::RESET);
-                    }
-                }
-
                 return output;
             }
         }
@@ -346,14 +250,13 @@ pub(crate) fn format_exception_value(
 
 /// Format an exception with file name, line number, source code, and stack trace.
 /// This provides detailed error information similar to Node.js, with enhanced formatting
-/// including ANSI colors and helpful hints for common errors.
+/// including ANSI colors.
 ///
 /// Returns a formatted error string that includes:
 /// - File path and line number (in cyan)
 /// - Source code line with error
 /// - Caret (^^^) pointing to error location (in red)
 /// - Error message (in red/bold)
-/// - Helpful hints for common errors
 /// - Stack trace (when available, in gray)
 pub(crate) fn format_exception(
     tc: &mut v8::PinnedRef<'_, v8::TryCatch<v8::HandleScope>>,
@@ -447,18 +350,6 @@ pub(crate) fn format_exception(
         output.push_str(&exception_string);
         if use_colors {
             output.push_str(colors::RESET);
-        }
-
-        // Add helpful hint if available
-        if let Some(hint) = get_error_hint(&exception_string, source_line.as_deref()) {
-            output.push('\n');
-            if use_colors {
-                output.push_str(colors::YELLOW);
-            }
-            output.push_str(&hint);
-            if use_colors {
-                output.push_str(colors::RESET);
-            }
         }
 
         // Try to get stack trace - check if the exception has a stack property

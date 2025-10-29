@@ -1,6 +1,6 @@
 # Error Handling and Debugging
 
-jstime provides enhanced error messages with helpful hints and color-coded output to make debugging easier.
+jstime provides enhanced error messages with color-coded output to make debugging easier.
 
 ## Enhanced Error Formatting
 
@@ -9,7 +9,6 @@ Errors in jstime include:
 - **Source code line** where the error occurred
 - **Error indicator** (^^^) pointing to the exact location (in red)
 - **Error message** with type and description (in red/bold)
-- **Helpful hints** for common errors (in yellow)
 - **Stack trace** showing the call stack (in gray)
 
 ### Example Error Output
@@ -29,7 +28,6 @@ console.log(undefinedVar);
 
 ReferenceError: undefinedVar is not defined
     at example.js:2:13
-💡 Hint: 'undefinedVar' is not defined. Did you forget to declare it with 'const', 'let', or 'var'?
 ```
 
 ## Color Control
@@ -48,16 +46,16 @@ NO_COLOR=1 jstime script.js
 FORCE_COLOR=1 jstime script.js
 ```
 
-## Error Hints
+## Common Error Types
 
-jstime provides helpful hints for common JavaScript errors:
+jstime supports all standard JavaScript error types with detailed formatting:
 
 ### ReferenceError: Variable Not Defined
 
 ```javascript
 console.log(myVar);
 // ReferenceError: myVar is not defined
-// 💡 Hint: 'myVar' is not defined. Did you forget to declare it with 'const', 'let', or 'var'?
+//     at script.js:1:13
 ```
 
 ### TypeError: Cannot Read Properties
@@ -66,7 +64,7 @@ console.log(myVar);
 const obj = null;
 console.log(obj.property);
 // TypeError: Cannot read properties of null (reading 'property')
-// 💡 Hint: You're trying to access a property on an undefined or null value. Check that the object exists before accessing its properties.
+//     at script.js:2:17
 ```
 
 ### TypeError: Not a Function
@@ -75,7 +73,7 @@ console.log(obj.property);
 const notAFunction = 5;
 notAFunction();
 // TypeError: notAFunction is not a function
-// 💡 Hint: You're trying to call something that isn't a function. Check the type of the value you're calling.
+//     at script.js:2:1
 ```
 
 ### SyntaxError: Missing Operand
@@ -83,7 +81,6 @@ notAFunction();
 ```javascript
 const result = 10 +;
 // SyntaxError: Unexpected token ';'
-// 💡 Hint: The line has an operator without a right-hand side. Check if you're missing the second operand.
 ```
 
 ### SyntaxError: Mismatched Parentheses/Brackets/Braces
@@ -91,7 +88,6 @@ const result = 10 +;
 ```javascript
 const arr = [1, 2, 3;
 // SyntaxError: Unexpected token ';'
-// 💡 Hint: Check for matching brackets. Each opening '[' needs a closing ']'.
 ```
 
 ### Async/Await Errors
@@ -101,7 +97,6 @@ function regularFunction() {
     await fetch('https://example.com');
 }
 // SyntaxError: await is only valid in async function
-// 💡 Hint: You can only use 'await' inside an async function. Add 'async' before the function keyword.
 ```
 
 ## Stack Traces
@@ -141,7 +136,6 @@ undefinedVar
 
 ReferenceError: undefinedVar is not defined
     at REPL:1:1
-💡 Hint: 'undefinedVar' is not defined. Did you forget to declare it with 'const', 'let', or 'var'?
 ```
 
 ## Source Maps (Future Feature)
@@ -158,31 +152,7 @@ The infrastructure is in place in `core/src/sourcemap.rs` for future implementat
 
 ## Best Practices
 
-### 1. Read the Hints
-
-Pay attention to the helpful hints provided with errors. They often suggest the fix:
-
-```javascript
-// ❌ Bad
-console.log(result);  // ReferenceError
-
-// ✅ Good - follow the hint
-const result = 42;
-console.log(result);
-```
-
-### 2. Check the Stack Trace
-
-The stack trace shows where the error originated:
-
-```
-Error: File not found
-    at readConfig (config.js:15:11)  ← Error thrown here
-    at main (app.js:5:3)              ← Called from here
-    at app.js:10:1                    ← Called from here
-```
-
-### 3. Use the REPL for Quick Testing
+### 1. Use the REPL for Quick Testing
 
 Test small code snippets in the REPL to understand errors:
 
@@ -196,15 +166,24 @@ x +
   ^
 
 SyntaxError: Unexpected token
-💡 Hint: The line has an operator without a right-hand side...
 ```
 
-### 4. Enable Colors for Better Readability
+### 2. Check the Stack Trace
+
+The stack trace shows where the error originated:
+
+```
+Error: File not found
+    at readConfig (config.js:15:11)  ← Error thrown here
+    at main (app.js:5:3)              ← Called from here
+    at app.js:10:1                    ← Called from here
+```
+
+### 3. Enable Colors for Better Readability
 
 Colored output makes it easier to spot important information:
 - **Cyan** = File location
 - **Red** = Error and indicators
-- **Yellow** = Helpful hints
 - **Gray** = Stack traces
 
 ## Error Types
