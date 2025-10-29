@@ -5,6 +5,7 @@ mod isolate_state;
 mod js_loading;
 mod module;
 mod script;
+mod sourcemap;
 
 pub(crate) use isolate_state::IsolateState;
 
