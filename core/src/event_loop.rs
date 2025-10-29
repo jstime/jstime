@@ -212,7 +212,7 @@ impl EventLoop {
             let resolver = v8::Local::new(scope, &fetch_request.resolver);
 
             match result {
-                Ok((status, status_text, response_headers, body_reader)) => {
+                Ok((status, status_text, response_headers, body_data)) => {
                     // Allocate a stream ID for this fetch
                     let stream_id = {
                         let mut next_id = next_stream_id_ref.borrow_mut();
@@ -221,10 +221,11 @@ impl EventLoop {
                         id
                     };
 
-                    // Store the body reader for streaming
+                    // Store the body data for streaming
                     let streaming_fetch = crate::isolate_state::StreamingFetch {
                         stream_id,
-                        reader: body_reader,
+                        body_data,
+                        offset: 0,
                     };
                     
                     {
@@ -305,14 +306,14 @@ impl EventLoop {
     }
 
     /// Execute an HTTP request using ureq (streaming version)
-    /// Returns (status, status_text, headers, body_reader)
+    /// Returns (status, status_text, headers, body_data)
     fn execute_fetch_streaming(
         agent: &ureq::Agent,
         url: &str,
         method: &str,
         headers: &[(String, String)],
         body: Option<&str>,
-    ) -> Result<(u16, String, Vec<(String, String)>, ureq::BodyReader), String> {
+    ) -> Result<(u16, String, Vec<(String, String)>, Vec<u8>), String> {
         // Build and execute the request based on method
         let response = match method {
             "GET" => {
@@ -378,10 +379,11 @@ impl EventLoop {
                     }
                 }
 
-                // Take ownership of the body reader
-                let body_reader = response.into_body_reader();
-
-                Ok((status, status_text, response_headers, body_reader))
+                // Read the body into a vector
+                match response.body_mut().read_to_vec() {
+                    Ok(body_data) => Ok((status, status_text, response_headers, body_data)),
+                    Err(e) => Err(format!("Failed to read response body: {}", e)),
+                }
             }
             Err(err) => Err(format!("Network error: {}", err)),
         }

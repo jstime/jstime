@@ -33,3 +33,4 @@ Cargo.lock.msrv
 # Runtime artifacts
 jstime_repl_history
 .jstime_history
+/test_streaming.js

@@ -9,11 +9,11 @@ pub(crate) struct FetchRequest {
     pub(crate) resolver: v8::Global<v8::PromiseResolver>,
 }
 
-/// Stores an active streaming fetch response
-/// We store a boxed reader which implements Read
+/// Stores response body data for streaming
 pub(crate) struct StreamingFetch {
     pub(crate) stream_id: u64,
-    pub(crate) reader: Box<dyn std::io::Read>,
+    pub(crate) body_data: Vec<u8>,
+    pub(crate) offset: usize,
 }
 
 pub(crate) struct StringCache {
