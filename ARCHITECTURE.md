@@ -299,6 +299,42 @@ import data from './data.json';
 - Parsed and wrapped as ES module with default export
 - Full JSON compatibility
 
+### Module Caching
+
+jstime implements a two-level module caching strategy to optimize performance:
+
+**1. Per-Isolate Module Cache**:
+- Each JSTime instance (V8 isolate) maintains a `ModuleMap`
+- Caches compiled V8 Module objects by absolute path
+- Ensures modules are only instantiated and evaluated once per isolate
+- Maintains module state consistency across imports
+
+**2. Global Source Code Cache**:
+- Shared across all JSTime instances (process-wide)
+- Caches raw source code in memory after first file read
+- Implemented using `lazy_static` with `RwLock` for thread safety
+- Uses `FxHashMap` for fast lookups with file path keys
+
+**Benefits**:
+- **Startup Performance**: Eliminates repeated file I/O for commonly imported modules
+- **Memory Efficiency**: Source code shared across multiple JSTime instances
+- **Scalability**: Supports applications with many modules and multiple runtime instances
+
+**Behavior**:
+- Source code is cached on first read and persists for the process lifetime
+- No automatic cache invalidation on file changes (suitable for production)
+- Use `clear_source_cache()` in development/testing scenarios if needed
+- Module evaluation state is per-isolate, not shared globally
+
+**Example**:
+```
+First Instance:
+  import './module.js' → Read from disk → Cache source → Compile → Execute
+
+Second Instance:
+  import './module.js' → Read from cache (fast!) → Compile → Execute
+```
+
 ## Event Loop
 
 ### Design
@@ -557,13 +593,15 @@ fetch(url)
 2. **String Handling**: Minimize conversions between Rust and V8
 3. **Memory Pooling**: Reuse allocations where possible
 4. **Lazy Initialization**: Initialize features only when used
+5. **Module Source Caching**: Global cache eliminates repeated file I/O
+6. **Module Compilation Caching**: Per-isolate cache avoids re-compilation
 
 ### Bottlenecks
 
 1. **String Conversions**: UTF-8 ↔ V8 string conversion overhead
 2. **FFI Calls**: Crossing Rust/V8 boundary has cost
 3. **Event Loop**: Waking and sleeping has overhead
-4. **Module Loading**: File I/O and compilation time
+4. **Module Compilation**: V8 compilation time (mitigated by caching)
 
 ### Measurement
 
@@ -582,8 +620,8 @@ console.log(`Took ${end - start}ms`);
 
 1. **Worker Threads**: Multi-isolate support for parallelism
 2. **Streaming APIs**: Support for streaming fetch responses
-3. **Module Caching**: Cache compiled modules
-4. **Native Modules**: Support for loading Rust modules from JS
+3. **Native Modules**: Support for loading Rust modules from JS
+4. **File-based Cache Invalidation**: Add automatic cache invalidation based on file modification times
 
 ### Extensibility
 
