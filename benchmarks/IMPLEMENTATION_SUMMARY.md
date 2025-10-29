@@ -42,13 +42,15 @@ cargo build --release
 ./target/release/jstime benchmarks/js_benchmarks.js
 ```
 
-**Sample Results (debug build):**
+**Sample Results (debug build on GitHub Actions Ubuntu runner):**
 - Arithmetic: ~1.6µs per iteration (1M ops)
 - String concatenation (100 chars): ~1.7µs per iteration
 - Array operations (1K elements): ~50-55µs per iteration
 - JSON parse: ~0.37µs per iteration
 - URL parsing: ~6.1µs per iteration
 - Event dispatch: ~7.2µs per iteration
+
+*Note: Release builds are significantly faster (typically 10-100x) due to Rust optimizations. Performance will vary based on hardware - these results are from a GitHub Actions runner.*
 
 ### 3. Documentation
 
@@ -61,8 +63,10 @@ cargo build --release
 ### Module System Optimizations
 
 1. **Path Resolution Caching** (`core/src/module.rs`):
-   - Changed `.unwrap().to_owned()` to `.cloned()` for more efficient string cloning
-   - Avoids unnecessary allocation when cloning from HashMap
+   - Changed HashMap lookup pattern from `.get(&hash).unwrap().to_owned()` to `.get(&hash).cloned().unwrap()`
+   - The `.cloned()` method is more efficient because it clones the value while still borrowed from the HashMap
+   - The original pattern unnecessarily cloned the reference before converting to owned
+   - Reduces allocation overhead during module resolution
 
 2. **Inline Hints** (`core/src/module.rs`):
    - Added `#[inline]` to `resolve()` function - called for every module import
@@ -150,7 +154,9 @@ See `benchmarks/performance-ci-example.md` for a complete GitHub Actions workflo
 - Runs benchmarks on every PR
 - Compares against main branch baseline
 - Uploads results as artifacts
-- Can fail builds on significant regressions
+- Includes a placeholder for adding regression thresholds
+
+*Note: The template provides the structure for performance CI but does not implement automatic failure on regressions. Teams can customize it to add threshold-based checks as needed.*
 
 ## Conclusion
 
