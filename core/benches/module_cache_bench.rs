@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use jstime_core as jstime;
 use std::fs;
 use std::path::PathBuf;
@@ -40,9 +40,6 @@ fn bench_module_loading_with_runtime_creation(c: &mut Criterion) {
     // Initialize V8 once at the start
     jstime::init(None);
     let (shared, module_a, module_b) = setup_test_modules();
-
-    // Clear any existing cache to get baseline
-    jstime::module::clear_source_cache();
 
     c.bench_function("module_loading_with_runtime_creation", |b| {
         b.iter(|| {
