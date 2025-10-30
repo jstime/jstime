@@ -2,6 +2,40 @@
 
 This directory contains performance benchmarks for jstime.
 
+## Cross-Runtime Comparison Tests
+
+**New!** Compare jstime with other JavaScript runtimes (Node.js, Deno, Bun).
+
+### Quick Start
+
+```bash
+./benchmarks/cross-runtime/run-tests.sh
+```
+
+This test suite:
+- **Auto-detects** available runtimes (jstime, node, deno, bun)
+- **Compliance tests**: Verifies API compatibility across runtimes
+- **Performance benchmarks**: Compares execution speed
+- **Graceful handling**: Works with whatever runtimes are installed
+
+See [cross-runtime/README.md](./cross-runtime/README.md) for detailed documentation.
+
+### Sample Output
+
+```
+=== Cross-Runtime Test Suite ===
+Available runtimes: jstime node
+
+Compliance Test Results:
+  jstime    : 7/7 passed ✓
+  node      : 7/7 passed ✓
+
+Performance Comparison:
+  arithmetic:          jstime:0.979ms★ node:2.562ms
+  json:                jstime:53.275ms★ node:89.902ms
+  ...
+```
+
 ## JavaScript Benchmarks
 
 ### Running JS Benchmarks
