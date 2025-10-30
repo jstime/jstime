@@ -463,12 +463,35 @@ Fetch requests are asynchronous and return promises:
 3. The fetch request is queued in `pending_fetches`
 4. The event loop processes the request
 5. The HTTP request is executed using `ureq`
-6. The promise is resolved with the response data
+6. The promise is resolved with response metadata and a stream ID
+7. The response body is delivered in chunks through the ReadableStream API
+
+### Streaming Support
+
+Streaming fetch responses are fully supported:
+
+- **Response.body**: Returns a `ReadableStream` that delivers response data in chunks
+- **Chunked Delivery**: Response bodies are read fully on the Rust side but delivered in 64KB chunks to JavaScript
+- **Memory Efficiency**: JavaScript can process large responses incrementally without loading everything at once
+- **Standard API**: Compatible with the WHATWG Streams specification
+
+Example of streaming usage:
+
+```javascript
+const response = await fetch('https://api.example.com/large-file');
+const reader = response.body.getReader();
+
+while (true) {
+  const {done, value} = await reader.read();
+  if (done) break;
+  
+  // Process chunk (value is a Uint8Array)
+  console.log('Received chunk of', value.length, 'bytes');
+}
+```
 
 ### Limitations
 
-- No streaming support (entire response body is loaded into memory)
-- Limited to basic fetch options (no advanced features like credentials, cache control)
 - Network access depends on the environment
 
 ## Streams API

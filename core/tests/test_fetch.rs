@@ -192,4 +192,119 @@ mod tests {
         );
         assert_eq!(result.unwrap(), "false");
     }
+
+    #[test]
+    fn response_body_is_readable_stream() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        let result = jstime.run_script(
+            "const resp = new Response('test'); \
+             resp.body instanceof ReadableStream;",
+            "jstime",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn response_body_stream_readable() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Queue the stream reading
+        jstime
+            .run_script(
+                "globalThis.result = null; \
+                 const resp = new Response('Hello Stream'); \
+                 const reader = resp.body.getReader(); \
+                 reader.read().then(chunk => { \
+                   globalThis.result = chunk; \
+                 });",
+                "jstime",
+            )
+            .unwrap();
+
+        // Check the result
+        let done_result = jstime.run_script("globalThis.result.done;", "jstime");
+        assert_eq!(done_result.unwrap(), "false");
+
+        let has_value =
+            jstime.run_script("globalThis.result.value instanceof Uint8Array;", "jstime");
+        assert_eq!(has_value.unwrap(), "true");
+    }
+
+    #[test]
+    fn response_body_stream_closes() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Queue the stream reading
+        jstime
+            .run_script(
+                "globalThis.chunks = []; \
+                 const resp = new Response('test'); \
+                 const reader = resp.body.getReader(); \
+                 async function readAll() { \
+                   while (true) { \
+                     const {done, value} = await reader.read(); \
+                     if (done) break; \
+                     globalThis.chunks.push(value); \
+                   } \
+                 } \
+                 readAll();",
+                "jstime",
+            )
+            .unwrap();
+
+        // Check we got at least one chunk
+        let chunk_count = jstime.run_script("globalThis.chunks.length;", "jstime");
+        assert!(chunk_count.unwrap().parse::<i32>().unwrap() > 0);
+    }
+
+    #[test]
+    fn response_text_with_streaming() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Queue the promise
+        jstime
+            .run_script(
+                "globalThis.result = null; \
+                 const resp = new Response('streaming text'); \
+                 resp.text().then(t => { globalThis.result = t; });",
+                "jstime",
+            )
+            .unwrap();
+
+        // Check the result
+        let result = jstime.run_script("globalThis.result;", "jstime");
+        assert_eq!(result.unwrap(), "streaming text");
+    }
+
+    #[test]
+    fn response_large_content() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Test with content larger than chunk size (64KB)
+        jstime
+            .run_script(
+                "globalThis.result = null; \
+                 const largeContent = 'A'.repeat(100000); \
+                 const resp = new Response(largeContent); \
+                 resp.text().then(t => { \
+                   globalThis.result = (t.length === 100000 && t[0] === 'A'); \
+                 });",
+                "jstime",
+            )
+            .unwrap();
+
+        // Check the result
+        let result = jstime.run_script("globalThis.result;", "jstime");
+        assert_eq!(result.unwrap(), "true");
+    }
 }

@@ -7,6 +7,9 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct TimerId(pub(crate) u64);
 
+/// Type alias for fetch response data: (status, status_text, headers, body_data)
+type FetchResponseData = (u16, String, Vec<(String, String)>, Vec<u8>);
+
 struct Timer {
     callback: v8::Global<v8::Function>,
     fire_at: Instant,
@@ -25,13 +28,6 @@ pub(crate) enum PendingTimer {
         callback: v8::Global<v8::Function>,
         interval_ms: u64,
     },
-}
-
-struct FetchResponse {
-    body: String,
-    status: u16,
-    status_text: String,
-    headers: Vec<(String, String)>,
 }
 
 pub(crate) struct EventLoop {
@@ -192,14 +188,15 @@ impl EventLoop {
         let fetches: Vec<crate::isolate_state::FetchRequest> = fetches_borrow.drain(..).collect();
         drop(fetches_borrow);
 
-        // Get the HTTP agent from isolate state
+        // Get the HTTP agent and next_stream_id from isolate state
         let isolate: &mut v8::Isolate = scope;
         let state = crate::IsolateState::get(isolate);
         let agent = state.borrow().http_agent.clone();
+        let next_stream_id_ref = state.borrow().next_stream_id.clone();
 
         for fetch_request in fetches {
-            // Execute the HTTP request in a blocking manner
-            let result = Self::execute_fetch(
+            // Execute the HTTP request and get the response (but don't read body yet)
+            let result = Self::execute_fetch_streaming(
                 &agent,
                 &fetch_request.url,
                 &fetch_request.method,
@@ -211,7 +208,31 @@ impl EventLoop {
             let resolver = v8::Local::new(scope, &fetch_request.resolver);
 
             match result {
-                Ok(response_data) => {
+                Ok((status, status_text, response_headers, body_data)) => {
+                    // Allocate a stream ID for this fetch
+                    let stream_id = {
+                        let mut next_id = next_stream_id_ref.borrow_mut();
+                        let id = *next_id;
+                        *next_id += 1;
+                        id
+                    };
+
+                    // Store the body data for streaming
+                    let streaming_fetch = crate::isolate_state::StreamingFetch {
+                        stream_id,
+                        body_data,
+                        offset: 0,
+                    };
+
+                    {
+                        let isolate: &mut v8::Isolate = scope;
+                        let state = crate::IsolateState::get(isolate);
+                        let streaming_fetches = state.borrow().streaming_fetches.clone();
+                        streaming_fetches
+                            .borrow_mut()
+                            .insert(stream_id, streaming_fetch);
+                    }
+
                     // Create response object
                     let obj = v8::Object::new(scope);
 
@@ -221,16 +242,10 @@ impl EventLoop {
                     let cache = state.borrow().string_cache.clone();
                     let mut cache_borrow = cache.borrow_mut();
 
-                    // Set body
-                    let body_key = if let Some(ref cached) = cache_borrow.body {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "body").unwrap();
-                        cache_borrow.body = Some(v8::Global::new(scope, key));
-                        key
-                    };
-                    let body_value = v8::String::new(scope, &response_data.body).unwrap();
-                    obj.set(scope, body_key.into(), body_value.into());
+                    // Set streamId
+                    let stream_id_key = v8::String::new(scope, "streamId").unwrap();
+                    let stream_id_value = v8::Number::new(scope, stream_id as f64);
+                    obj.set(scope, stream_id_key.into(), stream_id_value.into());
 
                     // Set status
                     let status_key = if let Some(ref cached) = cache_borrow.status {
@@ -240,7 +255,7 @@ impl EventLoop {
                         cache_borrow.status = Some(v8::Global::new(scope, key));
                         key
                     };
-                    let status_value = v8::Integer::new(scope, response_data.status as i32);
+                    let status_value = v8::Integer::new(scope, status as i32);
                     obj.set(scope, status_key.into(), status_value.into());
 
                     // Set statusText
@@ -251,8 +266,7 @@ impl EventLoop {
                         cache_borrow.status_text = Some(v8::Global::new(scope, key));
                         key
                     };
-                    let status_text_value =
-                        v8::String::new(scope, &response_data.status_text).unwrap();
+                    let status_text_value = v8::String::new(scope, &status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
 
                     // Set headers
@@ -265,9 +279,9 @@ impl EventLoop {
                     };
 
                     drop(cache_borrow);
-                    let headers_len = response_data.headers.len() as i32;
+                    let headers_len = response_headers.len() as i32;
                     let headers_array = v8::Array::new(scope, headers_len);
-                    for (i, (key, value)) in response_data.headers.iter().enumerate() {
+                    for (i, (key, value)) in response_headers.iter().enumerate() {
                         let entry = v8::Array::new(scope, 2);
                         let key_str = v8::String::new(scope, key).unwrap();
                         let value_str = v8::String::new(scope, value).unwrap();
@@ -288,14 +302,15 @@ impl EventLoop {
         }
     }
 
-    /// Execute an HTTP request using ureq
-    fn execute_fetch(
+    /// Execute an HTTP request using ureq (streaming version)
+    /// Returns (status, status_text, headers, body_data)
+    fn execute_fetch_streaming(
         agent: &ureq::Agent,
         url: &str,
         method: &str,
         headers: &[(String, String)],
         body: Option<&str>,
-    ) -> Result<FetchResponse, String> {
+    ) -> Result<FetchResponseData, String> {
         // Build and execute the request based on method
         let response = match method {
             "GET" => {
@@ -361,15 +376,11 @@ impl EventLoop {
                     }
                 }
 
-                // Read body
-                let body = response.body_mut().read_to_string().unwrap_or_default();
-
-                Ok(FetchResponse {
-                    body,
-                    status,
-                    status_text,
-                    headers: response_headers,
-                })
+                // Read the body into a vector
+                match response.body_mut().read_to_vec() {
+                    Ok(body_data) => Ok((status, status_text, response_headers, body_data)),
+                    Err(e) => Err(format!("Failed to read response body: {}", e)),
+                }
             }
             Err(err) => Err(format!("Network error: {}", err)),
         }
