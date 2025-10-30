@@ -391,9 +391,9 @@ fn bench_error_handling(c: &mut Criterion) {
             |mut js| {
                 js.run_script(
                     black_box(
-                        "function inner() { throw new Error('inner'); }
-                         function outer() { try { inner(); } catch(e) { return e.stack; } }
-                         for(let i = 0; i < 5; i++) outer();"
+                        r#"function inner() { throw new Error('inner'); }
+                        function outer() { try { inner(); } catch(e) { return e.stack; } }
+                        for(let i = 0; i < 5; i++) outer();"#,
                     ),
                     "bench.js",
                 )
