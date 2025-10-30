@@ -7,6 +7,9 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct TimerId(pub(crate) u64);
 
+/// Type alias for fetch response data: (status, status_text, headers, body_data)
+type FetchResponseData = (u16, String, Vec<(String, String)>, Vec<u8>);
+
 struct Timer {
     callback: v8::Global<v8::Function>,
     fire_at: Instant,
@@ -307,7 +310,7 @@ impl EventLoop {
         method: &str,
         headers: &[(String, String)],
         body: Option<&str>,
-    ) -> Result<(u16, String, Vec<(String, String)>, Vec<u8>), String> {
+    ) -> Result<FetchResponseData, String> {
         // Build and execute the request based on method
         let response = match method {
             "GET" => {

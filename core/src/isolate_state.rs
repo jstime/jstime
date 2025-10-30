@@ -10,6 +10,7 @@ pub(crate) struct FetchRequest {
 }
 
 /// Stores response body data for streaming
+#[allow(dead_code)]
 pub(crate) struct StreamingFetch {
     pub(crate) stream_id: u64,
     pub(crate) body_data: Vec<u8>,
@@ -17,7 +18,6 @@ pub(crate) struct StreamingFetch {
 }
 
 pub(crate) struct StringCache {
-    pub(crate) body: Option<v8::Global<v8::String>>,
     pub(crate) status: Option<v8::Global<v8::String>>,
     pub(crate) status_text: Option<v8::Global<v8::String>>,
     pub(crate) headers: Option<v8::Global<v8::String>>,
@@ -26,7 +26,6 @@ pub(crate) struct StringCache {
 impl StringCache {
     pub(crate) fn new() -> Self {
         Self {
-            body: None,
             status: None,
             status_text: None,
             headers: None,
