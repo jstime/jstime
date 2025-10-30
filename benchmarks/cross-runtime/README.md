@@ -26,6 +26,7 @@ The test runner will:
 
 ### Requirements
 
+- **Bash 4.0+**: Required to run the test script (uses associative arrays for tracking results)
 - **jstime**: Built automatically if not found at `target/release/jstime`
 - **Node.js**: Optional, will be used if available
 - **Deno**: Optional, will be used if available
@@ -91,9 +92,9 @@ Available runtimes: jstime node deno
 === Compliance Tests ===
 
 Running test-console...
-  jstime    : Console API: 5 passed, 0 failed
-  node      : Console API: 5 passed, 0 failed
-  deno      : Console API: 5 passed, 0 failed
+  jstime    : 5 passed ✓
+  node      : 5 passed ✓
+  deno      : 5 passed ✓
 
 ...
 
@@ -206,6 +207,25 @@ cargo build --release
 
 ## Troubleshooting
 
+### "This script requires bash to run"
+
+The test runner script requires Bash 4.0 or higher. If you get this error:
+```bash
+# Make sure to run with bash explicitly
+bash benchmarks/cross-runtime/run-tests.sh
+
+# Or make the script executable and run directly
+chmod +x benchmarks/cross-runtime/run-tests.sh
+./benchmarks/cross-runtime/run-tests.sh
+```
+
+On macOS, the default bash may be outdated. Install a newer version:
+```bash
+brew install bash
+# Then run with the newer bash (check the actual path with: which bash)
+$(brew --prefix)/bin/bash benchmarks/cross-runtime/run-tests.sh
+```
+
 ### "No JavaScript runtimes found"
 
 Install at least one runtime:
@@ -243,7 +263,7 @@ You can integrate these tests into your CI pipeline:
 - name: Run cross-runtime tests
   run: |
     cargo build --release
-    ./benchmarks/cross-runtime/run-tests.sh
+    bash ./benchmarks/cross-runtime/run-tests.sh
 ```
 
 The test runner exits with code 0 on success and non-zero on failure.
