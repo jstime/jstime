@@ -208,20 +208,30 @@ pub(crate) fn format_exception_value(
     scope: &mut v8::PinScope,
     exception: v8::Local<v8::Value>,
 ) -> String {
-    let isolate: &v8::Isolate = scope;
     let use_colors = should_use_colors();
 
-    let exception_str = exception
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(isolate))
-        .unwrap_or_else(|| "Unknown error".to_string());
+    let exception_str = {
+        let isolate: &v8::Isolate = scope;
+        exception
+            .to_string(scope)
+            .map(|s| s.to_rust_string_lossy(isolate))
+            .unwrap_or_else(|| "Unknown error".to_string())
+    };
 
     // Try to get stack property for more details
     if let Ok(exception_obj) = v8::Local::<v8::Object>::try_from(exception) {
-        let stack_key = v8::String::new(scope, "stack").unwrap();
+        // Use cached "stack" string
+        let isolate_mut: &mut v8::Isolate = scope;
+        let state = crate::IsolateState::get(isolate_mut);
+        let cache = state.borrow().string_cache.clone();
+        let mut cache_borrow = cache.borrow_mut();
+        let stack_key = crate::get_or_create_cached_string!(scope, cache_borrow, stack, "stack");
+        drop(cache_borrow);
+
         if let Some(stack_val) = exception_obj.get(scope, stack_key.into())
             && let Some(stack_str) = stack_val.to_string(scope)
         {
+            let isolate: &v8::Isolate = scope;
             let stack = stack_str.to_rust_string_lossy(isolate);
             if !stack.is_empty() && stack != exception_str {
                 let mut output = String::new();
@@ -261,7 +271,6 @@ pub(crate) fn format_exception_value(
 pub(crate) fn format_exception(
     tc: &mut v8::PinnedRef<'_, v8::TryCatch<v8::HandleScope>>,
 ) -> String {
-    let isolate: &v8::Isolate = tc;
     let use_colors = should_use_colors();
 
     // Get the exception value
@@ -271,27 +280,37 @@ pub(crate) fn format_exception(
     };
 
     // Get the error message from the exception
-    let exception_string = exception
-        .to_string(tc)
-        .map(|s| s.to_rust_string_lossy(isolate))
-        .unwrap_or_else(|| "Unknown error".to_string());
+    let exception_string = {
+        let isolate: &v8::Isolate = tc;
+        exception
+            .to_string(tc)
+            .map(|s| s.to_rust_string_lossy(isolate))
+            .unwrap_or_else(|| "Unknown error".to_string())
+    };
 
     // Try to get the Message object for detailed error information
     if let Some(message) = tc.message() {
         let mut output = String::new();
 
         // Get file name and line number
-        let resource_name = message
-            .get_script_resource_name(tc)
-            .and_then(|v| v.to_string(tc))
-            .map(|s| s.to_rust_string_lossy(isolate));
-
-        let line_number = message.get_line_number(tc);
+        let (resource_name, line_number) = {
+            let isolate: &v8::Isolate = tc;
+            (
+                message
+                    .get_script_resource_name(tc)
+                    .and_then(|v| v.to_string(tc))
+                    .map(|s| s.to_rust_string_lossy(isolate)),
+                message.get_line_number(tc),
+            )
+        };
 
         // Get source line if available
-        let source_line = message
-            .get_source_line(tc)
-            .map(|s| s.to_string(tc).unwrap().to_rust_string_lossy(isolate));
+        let source_line = {
+            let isolate: &v8::Isolate = tc;
+            message
+                .get_source_line(tc)
+                .map(|s| s.to_string(tc).unwrap().to_rust_string_lossy(isolate))
+        };
 
         // Get column information
         let start_column = message.get_start_column();
@@ -354,10 +373,18 @@ pub(crate) fn format_exception(
 
         // Try to get stack trace - check if the exception has a stack property
         if let Ok(exception_obj) = v8::Local::<v8::Object>::try_from(exception) {
-            let stack_key = v8::String::new(tc, "stack").unwrap();
+            // Use cached "stack" string
+            let isolate_mut: &mut v8::Isolate = tc;
+            let state = crate::IsolateState::get(isolate_mut);
+            let cache = state.borrow().string_cache.clone();
+            let mut cache_borrow = cache.borrow_mut();
+            let stack_key = crate::get_or_create_cached_string!(tc, cache_borrow, stack, "stack");
+            drop(cache_borrow);
+
             if let Some(stack_val) = exception_obj.get(tc, stack_key.into())
                 && let Some(stack_str) = stack_val.to_string(tc)
             {
+                let isolate: &v8::Isolate = tc;
                 let stack = stack_str.to_rust_string_lossy(isolate);
                 // Only add stack if it's different from the exception string
                 // and contains actual stack information
@@ -367,13 +394,18 @@ pub(crate) fn format_exception(
                     // otherwise append it
                     if stack.starts_with(&exception_string) || stack.contains(&exception_string) {
                         output = String::new();
-                        if let (Some(file), Some(line)) = (
-                            message
-                                .get_script_resource_name(tc)
-                                .and_then(|v| v.to_string(tc))
-                                .map(|s| s.to_rust_string_lossy(isolate)),
-                            message.get_line_number(tc),
-                        ) {
+                        let (file_opt, line_opt) = {
+                            let isolate: &v8::Isolate = tc;
+                            (
+                                message
+                                    .get_script_resource_name(tc)
+                                    .and_then(|v| v.to_string(tc))
+                                    .map(|s| s.to_rust_string_lossy(isolate)),
+                                message.get_line_number(tc),
+                            )
+                        };
+
+                        if let (Some(file), Some(line)) = (file_opt, line_opt) {
                             if use_colors {
                                 output.push_str(&format!(
                                     "{}{}:{}{}  \n",
@@ -386,10 +418,14 @@ pub(crate) fn format_exception(
                                 output.push_str(&format!("{}:{}\n", file, line));
                             }
 
-                            if let Some(source) = message
-                                .get_source_line(tc)
-                                .map(|s| s.to_string(tc).unwrap().to_rust_string_lossy(isolate))
-                            {
+                            let source_opt = {
+                                let isolate: &v8::Isolate = tc;
+                                message
+                                    .get_source_line(tc)
+                                    .map(|s| s.to_string(tc).unwrap().to_rust_string_lossy(isolate))
+                            };
+
+                            if let Some(source) = source_opt {
                                 output.push_str(&source);
                                 output.push('\n');
 
