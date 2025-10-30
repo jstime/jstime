@@ -1,5 +1,6 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use jstime_core::{self as jstime, Options};
+use std::hint::black_box;
 
 fn setup() -> jstime::JSTime {
     jstime::init(None);
