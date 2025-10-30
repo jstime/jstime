@@ -101,6 +101,6 @@ console.log(`Time: ${(end4 - start4).toFixed(3)}ms\n`);
 console.log('=== Summary ===');
 console.log('Run this example with --warmup flag to see potential improvements:');
 console.log('  jstime --warmup 10 examples/warmup-demo.js');
-console.log('\nWarmup allows V8\'s JIT compiler to optimize the code before');
+console.log("\nWarmup allows V8's JIT compiler to optimize the code before");
 console.log('the actual execution, which can improve performance for');
 console.log('compute-intensive operations.');
