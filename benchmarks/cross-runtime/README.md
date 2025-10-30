@@ -26,7 +26,7 @@ The test runner will:
 
 ### Requirements
 
-- **Bash 4.0+**: Required to run the test script (uses associative arrays)
+- **Bash 4.0+**: Required to run the test script (uses associative arrays for tracking results)
 - **jstime**: Built automatically if not found at `target/release/jstime`
 - **Node.js**: Optional, will be used if available
 - **Deno**: Optional, will be used if available
@@ -222,8 +222,8 @@ chmod +x benchmarks/cross-runtime/run-tests.sh
 On macOS, the default bash may be outdated. Install a newer version:
 ```bash
 brew install bash
-# Then run with the newer bash
-/usr/local/bin/bash benchmarks/cross-runtime/run-tests.sh
+# Then run with the newer bash (check the actual path with: which bash)
+$(brew --prefix)/bin/bash benchmarks/cross-runtime/run-tests.sh
 ```
 
 ### "No JavaScript runtimes found"
