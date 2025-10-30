@@ -124,6 +124,32 @@ jstime examples/performance-demo.js
 
 ---
 
+### JIT Warmup
+
+**File:** `warmup-demo.js`
+
+Demonstrates JIT warmup for optimizing performance-critical code:
+- Prime number calculations
+- Fibonacci with memoization
+- Complex array operations
+- String manipulation
+- Comparing performance with and without warmup
+
+**To run:**
+```bash
+# Without warmup
+jstime examples/warmup-demo.js
+
+# With 10 warmup iterations
+jstime --warmup 10 examples/warmup-demo.js
+```
+
+The `--warmup` flag runs the script multiple times before the actual execution, allowing V8's TurboFan JIT compiler to optimize hot code paths. This is particularly useful for benchmarking and performance-critical scripts.
+
+**See also:** [JIT Warmup documentation](../PERFORMANCE.md#jit-warmup)
+
+---
+
 ### Event and EventTarget
 
 **File:** `events-demo.js`
@@ -258,6 +284,7 @@ jstime examples/json-import-example.js
 - [Console API](console-demo.js) - Logging and debugging
 - [Timers](timers-demo.js) - setTimeout, setInterval
 - [Performance](performance-demo.js) - High-resolution timing
+- [JIT Warmup](warmup-demo.js) - Performance optimization with warmup
 - [Events](events-demo.js) - Event and EventTarget
 
 ### Web APIs
