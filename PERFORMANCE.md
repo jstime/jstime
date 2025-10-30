@@ -51,12 +51,12 @@ See `benchmarks/README.md` for detailed benchmark instructions.
    - Fetch request headers
 
 2. **String Caching**: Frequently used V8 string keys are cached in `IsolateState` to avoid repeated UTF-8 ↔ V8 string conversions. This optimization significantly reduces overhead in hot paths. Cached strings include:
-   - **Fetch API keys**: "body", "status", "statusText", "headers"
+   - **Fetch API keys**: "status", "statusText", "headers" (note: "body" removed due to streaming implementation)
    - **fs API stat keys**: "isFile", "isDirectory", "isSymbolicLink", "size", "mtimeMs"
    - **fs API options keys**: "recursive"
    - **Error handling keys**: "stack"
    
-   The `get_cached_string!` macro provides a clean interface for lazy initialization of cached strings. Each key is created once on first use and reused for all subsequent operations, eliminating redundant string allocations and conversions.
+   The `get_cached_string!` macro provides a clean interface for lazy initialization of cached strings. Each key is created once on first use and reused for all subsequent operations, eliminating redundant string allocations and conversions. This optimization integrates seamlessly with recent performance improvements including module caching and streaming responses.
 
 ### Hash Map Performance
 - Replaced `std::collections::HashMap` with `rustc_hash::FxHashMap` in the module map for faster lookups
