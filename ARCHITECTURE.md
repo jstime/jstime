@@ -590,15 +590,16 @@ fetch(url)
 ### Optimizations
 
 1. **V8 JIT Compilation**: TurboFan optimizes hot code paths
-2. **String Handling**: Minimize conversions between Rust and V8
+2. **String Handling**: Comprehensive string caching minimizes UTF-8 ↔ V8 conversions
 3. **Memory Pooling**: Reuse allocations where possible
 4. **Lazy Initialization**: Initialize features only when used
 5. **Module Source Caching**: Global cache eliminates repeated file I/O
 6. **Module Compilation Caching**: Per-isolate cache avoids re-compilation
+7. **String Caching**: 40+ frequently used string literals cached per isolate to eliminate repeated allocations
 
 ### Bottlenecks
 
-1. **String Conversions**: UTF-8 ↔ V8 string conversion overhead
+1. **String Conversions**: UTF-8 ↔ V8 string conversion overhead (mitigated by comprehensive caching)
 2. **FFI Calls**: Crossing Rust/V8 boundary has cost
 3. **Event Loop**: Waking and sleeping has overhead
 4. **Module Compilation**: V8 compilation time (mitigated by caching)
