@@ -351,6 +351,60 @@ fn bench_event_operations(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_error_handling(c: &mut Criterion) {
+    let mut group = c.benchmark_group("error_handling");
+
+    // Single error with stack trace access (uses cached "stack" string)
+    group.bench_function("error_with_stack", |b| {
+        b.iter_batched(
+            setup,
+            |mut js| {
+                js.run_script(
+                    black_box("try { throw new Error('test'); } catch(e) { e.stack; }"),
+                    "bench.js",
+                )
+            },
+            criterion::BatchSize::PerIteration,
+        )
+    });
+
+    // Multiple errors to demonstrate caching benefit
+    group.bench_function("multiple_errors_with_stack", |b| {
+        b.iter_batched(
+            setup,
+            |mut js| {
+                js.run_script(
+                    black_box(
+                        "for(let i = 0; i < 10; i++) { try { throw new Error('test'); } catch(e) { e.stack; } }"
+                    ),
+                    "bench.js",
+                )
+            },
+            criterion::BatchSize::PerIteration,
+        )
+    });
+
+    // Nested error handling
+    group.bench_function("nested_error_handling", |b| {
+        b.iter_batched(
+            setup,
+            |mut js| {
+                js.run_script(
+                    black_box(
+                        "function inner() { throw new Error('inner'); }
+                         function outer() { try { inner(); } catch(e) { return e.stack; } }
+                         for(let i = 0; i < 5; i++) outer();"
+                    ),
+                    "bench.js",
+                )
+            },
+            criterion::BatchSize::PerIteration,
+        )
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_startup,
@@ -361,6 +415,7 @@ criterion_group!(
     bench_base64_operations,
     bench_url_operations,
     bench_crypto_operations,
-    bench_event_operations
+    bench_event_operations,
+    bench_error_handling
 );
 criterion_main!(benches);
