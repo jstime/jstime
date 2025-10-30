@@ -220,3 +220,149 @@ fn test_crypto_subtle_digest_empty_data() {
     let result = jstime.import("./tests/fixtures/crypto/test_digest_empty.js");
     assert!(result.is_ok());
 }
+
+// New API tests
+
+#[test]
+fn test_crypto_subtle_sign_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.sign", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_verify_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.verify", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_encrypt_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.encrypt", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_decrypt_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.decrypt", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_generate_key_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.generateKey", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_import_key_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.importKey", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_export_key_exists() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.run_script("typeof crypto.subtle.exportKey", "test");
+    assert_eq!(result.unwrap(), "function");
+}
+
+#[test]
+fn test_crypto_subtle_generate_key_aes_gcm() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_generate_key_aes.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_generate_key_hmac() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_generate_key_hmac.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_hmac_sign_verify() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_hmac_sign_verify.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_aes_gcm_encrypt_decrypt() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_aes_gcm_encrypt_decrypt.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_key_import_export() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_key_import_export.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_hmac_sha384() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_hmac_sha384.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_hmac_sha512() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_hmac_sha512.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_export_non_extractable_key_fails() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_export_non_extractable.js");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_crypto_subtle_aes_gcm_with_additional_data() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_aes_gcm_with_aad.js");
+    assert!(result.is_ok());
+}
