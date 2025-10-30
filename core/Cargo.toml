@@ -29,3 +29,7 @@ harness = false
 
 [package.metadata.release]
 tag = false
+
+[[bench]]
+name = "module_cache_bench"
+harness = false
