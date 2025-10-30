@@ -1,6 +1,7 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use jstime_core as jstime;
 use std::fs;
+use std::hint::black_box;
 use std::path::PathBuf;
 
 fn setup_test_modules() -> (PathBuf, PathBuf, PathBuf) {
