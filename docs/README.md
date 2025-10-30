@@ -42,6 +42,14 @@ jstime's feature documentation is organized into the following categories:
   - ES Modules - import/export, top-level await
   - WebAssembly - High-performance compiled modules
 
+### Debugging & Error Handling
+
+- **[Error Handling and Debugging](apis/error-handling.md)** - Enhanced error messages and debugging
+  - Color-coded error output
+  - Helpful hints for common errors
+  - Stack traces with source locations
+  - Source map support (planned)
+
 ## Quick Feature Overview
 
 ### JavaScript Language Support
@@ -90,6 +98,7 @@ Each API has example code in the [examples/](../examples/) directory:
 - [events-demo.js](../examples/events-demo.js) - Event handling examples
 - [structured-clone-demo.mjs](../examples/structured-clone-demo.mjs) - Structured clone examples
 - [text-encoding-demo.js](../examples/text-encoding-demo.js) - Text encoding examples
+- [error-handling-demo.js](../examples/error-handling-demo.js) - Error handling and debugging examples
 - [fs-demo.js](../examples/fs-demo.js) - File system basic examples
 - [fs-complete-demo.js](../examples/fs-complete-demo.js) - File system complete API examples
 - [webassembly-demo.js](../examples/webassembly-demo.js) - WebAssembly examples
