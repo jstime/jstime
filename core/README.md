@@ -59,6 +59,36 @@ fn main() {
 }
 ```
 
+### Performance: JIT Warmup
+
+For performance-critical code or benchmarking, enable JIT warmup to allow V8's TurboFan compiler to optimize the code:
+
+```rust
+use jstime_core as jstime;
+
+fn main() {
+    jstime::init(None);
+    
+    // Create runtime with 10 warmup iterations
+    let options = jstime::Options::default()
+        .with_warmup(10);
+    let mut runtime = jstime::JSTime::new(options);
+    
+    // Script will be executed 10 times for warmup, then once for actual execution
+    match runtime.run_script("/* compute-intensive code */", "bench.js") {
+        Ok(result) => println!("Result: {}", result),
+        Err(error) => eprintln!("Error: {}", error),
+    }
+}
+```
+
+The warmup runs execute the script multiple times before the actual execution, allowing V8's JIT compiler to profile and optimize hot code paths. This is particularly useful for:
+- Benchmarking JavaScript code
+- Performance-critical scripts that will be executed multiple times
+- Testing optimized execution paths
+
+**Note**: Use warmup judiciously - it adds upfront cost. Default is 0 (no warmup) for optimal startup time.
+
 ## Built-in APIs
 
 jstime_core provides these JavaScript APIs:

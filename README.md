@@ -35,6 +35,16 @@ hello world
 
 ```
 
+### Performance: JIT Warmup
+
+For benchmarking or performance-critical scripts, use the `--warmup` flag to allow V8's JIT compiler to optimize the code:
+
+```bash
+$ jstime --warmup 10 benchmark.js
+```
+
+This runs the script 10 times before the actual execution, allowing TurboFan to profile and optimize hot code paths.
+
 ## Embed it!
 
 Check out the [README.md for jstime-core](./core/README.md) for
