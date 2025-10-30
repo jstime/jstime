@@ -59,6 +59,10 @@ pub struct Options {
     pub snapshot: Option<&'static [u8]>,
     taking_snapshot: bool,
     pub process_argv: Vec<String>,
+    /// Number of warmup iterations to run before actual execution.
+    /// This allows V8's TurboFan JIT compiler to optimize the code.
+    /// Default is 0 (no warmup).
+    pub warmup_iterations: usize,
 }
 
 impl Options {
@@ -67,11 +71,17 @@ impl Options {
             snapshot,
             taking_snapshot: false,
             process_argv: Vec::new(),
+            warmup_iterations: 0,
         }
     }
 
     pub fn with_process_argv(mut self, argv: Vec<String>) -> Self {
         self.process_argv = argv;
+        self
+    }
+
+    pub fn with_warmup(mut self, iterations: usize) -> Self {
+        self.warmup_iterations = iterations;
         self
     }
 }
@@ -81,6 +91,7 @@ impl Options {
 pub struct JSTime {
     isolate: Option<v8::OwnedIsolate>,
     taking_snapshot: bool,
+    warmup_iterations: usize,
 }
 
 impl JSTime {
@@ -174,6 +185,7 @@ impl JSTime {
         JSTime {
             isolate: Some(isolate),
             taking_snapshot: options.taking_snapshot,
+            warmup_iterations: options.warmup_iterations,
         }
     }
 
@@ -188,6 +200,11 @@ impl JSTime {
 
     /// Import a module by filename.
     pub fn import(&mut self, filename: &str) -> Result<(), String> {
+        // Perform JIT warmup if configured
+        if self.warmup_iterations > 0 {
+            self.warmup_import(filename)?;
+        }
+
         let result = {
             let context = IsolateState::get(self.isolate()).borrow().context();
             v8::scope!(let scope, self.isolate());
@@ -221,16 +238,63 @@ impl JSTime {
         result
     }
 
+    /// Warm up the JIT compiler by importing the module multiple times.
+    /// This allows V8's TurboFan compiler to optimize the module code.
+    fn warmup_import(&mut self, filename: &str) -> Result<(), String> {
+        for _ in 0..self.warmup_iterations {
+            let context = IsolateState::get(self.isolate()).borrow().context();
+            v8::scope!(let scope, self.isolate());
+            let context_local = v8::Local::new(scope, context);
+            let mut scope = v8::ContextScope::new(scope, context_local);
+            v8::tc_scope!(let tc, &mut scope);
+            let loader = module::Loader::new();
+            let mut cwd = std::env::current_dir().unwrap();
+            cwd.push("jstime");
+            let cwd = cwd.into_os_string().into_string().unwrap();
+            // Import but ignore result during warmup
+            match loader.import(tc, &cwd, filename) {
+                Ok(_) => {}
+                Err(exception) => {
+                    if tc.has_caught() {
+                        return Err(crate::error::format_exception(tc));
+                    } else {
+                        return Err(crate::error::format_exception_value(tc, exception));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Run a script and get a string representation of the result.
     /// This version runs the event loop after execution, which is suitable for file execution.
     /// For REPL usage, use `run_script_no_event_loop` instead.
     pub fn run_script(&mut self, source: &str, filename: &str) -> Result<String, String> {
+        // Perform JIT warmup if configured
+        if self.warmup_iterations > 0 {
+            self.warmup_script(source, filename)?;
+        }
+
         let result = self.run_script_no_event_loop(source, filename);
 
         // Run the event loop to process any pending timers
         self.run_event_loop();
 
         result
+    }
+
+    /// Warm up the JIT compiler by running the script multiple times.
+    /// This allows V8's TurboFan compiler to optimize the code before the actual execution.
+    fn warmup_script(&mut self, source: &str, filename: &str) -> Result<(), String> {
+        for _ in 0..self.warmup_iterations {
+            let context = IsolateState::get(self.isolate()).borrow().context();
+            v8::scope!(let scope, self.isolate());
+            let context_local = v8::Local::new(scope, context);
+            let mut scope = v8::ContextScope::new(scope, context_local);
+            // Run script but ignore the result during warmup
+            script::run(&mut scope, source, filename)?;
+        }
+        Ok(())
     }
 
     /// Run a script and get a string representation of the result without running the event loop.
