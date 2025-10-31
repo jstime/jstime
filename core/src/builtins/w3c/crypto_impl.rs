@@ -130,6 +130,7 @@ fn crypto_get_random_values(
         crate::error::throw_error(scope, "Failed to generate random values");
         return;
     }
+    drop(state_ref);
 
     // Return the same array
     rv.set(array);
@@ -157,7 +158,7 @@ fn crypto_random_uuid(
     // Set variant to RFC 4122
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
-    // Format as UUID string - optimized version using a single format call
+    // Format as UUID string
     let uuid = format!(
         "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
         bytes[0],
