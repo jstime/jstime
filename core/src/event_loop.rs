@@ -83,46 +83,46 @@ impl EventLoop {
         pending.extend(pending_borrow.drain(..));
         drop(pending_borrow);
 
-        for pending_timer in pending.iter() {
+        for pending_timer in pending.drain(..) {
             match pending_timer {
                 PendingTimer::Timeout {
                     id,
                     callback,
                     delay_ms,
                 } => {
-                    let fire_at = Instant::now() + Duration::from_millis(*delay_ms);
+                    let fire_at = Instant::now() + Duration::from_millis(delay_ms);
                     self.timers.insert(
-                        *id,
+                        id,
                         Timer {
-                            callback: callback.clone(),
+                            callback,
                             fire_at,
                             interval: None,
                         },
                     );
-                    self.timer_queue.entry(fire_at).or_default().push(*id);
+                    self.timer_queue.entry(fire_at).or_default().push(id);
                 }
                 PendingTimer::Interval {
                     id,
                     callback,
                     interval_ms,
                 } => {
-                    let interval = Duration::from_millis(*interval_ms);
+                    let interval = Duration::from_millis(interval_ms);
                     let fire_at = Instant::now() + interval;
                     self.timers.insert(
-                        *id,
+                        id,
                         Timer {
-                            callback: callback.clone(),
+                            callback,
                             fire_at,
                             interval: Some(interval),
                         },
                     );
-                    self.timer_queue.entry(fire_at).or_default().push(*id);
+                    self.timer_queue.entry(fire_at).or_default().push(id);
                 }
             }
         }
 
-        // Return the vector to the pool
-        pending.clear();
+        // Return the vector to the pool (already cleared by drain)
+
         self.pending_timer_vec_pool.put(pending);
     }
 
@@ -138,11 +138,11 @@ impl EventLoop {
         to_clear.extend(to_clear_borrow.drain(..));
         drop(to_clear_borrow);
 
-        for id in to_clear.iter() {
-            if let Some(timer) = self.timers.remove(id) {
+        for id in to_clear.drain(..) {
+            if let Some(timer) = self.timers.remove(&id) {
                 // Remove from timer queue
                 if let Some(timers) = self.timer_queue.get_mut(&timer.fire_at) {
-                    timers.retain(|&tid| tid != *id);
+                    timers.retain(|&tid| tid != id);
                     if timers.is_empty() {
                         self.timer_queue.remove(&timer.fire_at);
                     }
@@ -150,8 +150,7 @@ impl EventLoop {
             }
         }
 
-        // Return the vector to the pool
-        to_clear.clear();
+        // Return the vector to the pool (already cleared by drain)
         self.timer_id_vec_pool.put(to_clear);
     }
 
@@ -227,8 +226,8 @@ impl EventLoop {
         let next_stream_id_ref = state.borrow().next_stream_id.clone();
         let header_pool = state.borrow().header_vec_pool.clone();
 
-        // Process each fetch request (consuming the vector)
-        while let Some(fetch_request) = fetches.pop() {
+        // Process each fetch request (consuming the vector with drain to maintain order)
+        for fetch_request in fetches.drain(..) {
             // Execute the HTTP request and get the response (but don't read body yet)
             let result = Self::execute_fetch_streaming(
                 &agent,
@@ -338,8 +337,7 @@ impl EventLoop {
             }
         }
 
-        // Return the fetch request vector to the pool
-        fetches.clear();
+        // Return the fetch request vector to the pool (already cleared by drain)
         self.fetch_request_vec_pool.put(fetches);
     }
 
@@ -456,22 +454,21 @@ impl EventLoop {
             // Collect and execute ready timers
             let mut ready_timers = self.collect_ready_timers();
 
-            for (timer_id, callback, is_interval) in ready_timers.iter() {
-                let callback_local = v8::Local::new(scope, callback);
+            for (timer_id, callback, is_interval) in ready_timers.drain(..) {
+                let callback_local = v8::Local::new(scope, &callback);
                 let recv = v8::undefined(scope).into();
                 let _ = callback_local.call(scope, recv, &[]);
 
-                if *is_interval {
+                if is_interval {
                     // Reschedule interval timers
-                    self.reschedule_interval(*timer_id);
+                    self.reschedule_interval(timer_id);
                 } else {
                     // Remove one-shot timers
-                    self.timers.remove(timer_id);
+                    self.timers.remove(&timer_id);
                 }
             }
 
-            // Return the vector to the pool
-            ready_timers.clear();
+            // Return the vector to the pool (already cleared by drain)
             self.ready_timer_vec_pool.put(ready_timers);
 
             // Clear any timers that were marked for clearing during callbacks
@@ -500,22 +497,21 @@ impl EventLoop {
         // Collect and execute ready timers (without sleeping)
         let mut ready_timers = self.collect_ready_timers();
 
-        for (timer_id, callback, is_interval) in ready_timers.iter() {
-            let callback_local = v8::Local::new(scope, callback);
+        for (timer_id, callback, is_interval) in ready_timers.drain(..) {
+            let callback_local = v8::Local::new(scope, &callback);
             let recv = v8::undefined(scope).into();
             let _ = callback_local.call(scope, recv, &[]);
 
-            if *is_interval {
+            if is_interval {
                 // Reschedule interval timers
-                self.reschedule_interval(*timer_id);
+                self.reschedule_interval(timer_id);
             } else {
                 // Remove one-shot timers
-                self.timers.remove(timer_id);
+                self.timers.remove(&timer_id);
             }
         }
 
-        // Return the vector to the pool
-        ready_timers.clear();
+        // Return the vector to the pool (already cleared by drain)
         self.ready_timer_vec_pool.put(ready_timers);
 
         // Clear any timers that were marked for clearing during callbacks
