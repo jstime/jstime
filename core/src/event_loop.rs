@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -61,7 +62,7 @@ impl EventLoop {
         if pending_borrow.is_empty() {
             return;
         }
-        let pending: Vec<PendingTimer> = pending_borrow.drain(..).collect();
+        let pending: SmallVec<[PendingTimer; 8]> = pending_borrow.drain(..).collect();
         drop(pending_borrow);
 
         for pending_timer in pending {
@@ -110,7 +111,7 @@ impl EventLoop {
         if to_clear_borrow.is_empty() {
             return;
         }
-        let to_clear: Vec<TimerId> = to_clear_borrow.drain(..).collect();
+        let to_clear: SmallVec<[TimerId; 8]> = to_clear_borrow.drain(..).collect();
         drop(to_clear_borrow);
 
         for id in to_clear {
@@ -139,12 +140,12 @@ impl EventLoop {
     /// Process timers that are ready to fire
     /// Returns the callbacks that should be executed
     #[inline]
-    fn collect_ready_timers(&mut self) -> Vec<(TimerId, v8::Global<v8::Function>, bool)> {
+    fn collect_ready_timers(&mut self) -> SmallVec<[(TimerId, v8::Global<v8::Function>, bool); 8]> {
         let now = Instant::now();
-        let mut ready_callbacks = Vec::with_capacity(8);
+        let mut ready_callbacks = SmallVec::new();
 
         // Collect all timers that should fire
-        let ready_times: Vec<Instant> = self
+        let ready_times: SmallVec<[Instant; 8]> = self
             .timer_queue
             .keys()
             .copied()
@@ -185,7 +186,8 @@ impl EventLoop {
         if fetches_borrow.is_empty() {
             return;
         }
-        let fetches: Vec<crate::isolate_state::FetchRequest> = fetches_borrow.drain(..).collect();
+        let fetches: SmallVec<[crate::isolate_state::FetchRequest; 4]> =
+            fetches_borrow.drain(..).collect();
         drop(fetches_borrow);
 
         // Get the HTTP agent, next_stream_id, and header pool from isolate state

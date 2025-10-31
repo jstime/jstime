@@ -814,6 +814,7 @@ dependencies = [
  "ring",
  "rustc-hash",
  "serde_json",
+ "smallvec",
  "ureq",
  "url",
  "urlencoding",

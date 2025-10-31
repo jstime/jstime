@@ -99,7 +99,7 @@ impl JSTime {
     /// Create a new JSTime instance from `options`.
     pub fn new(options: Options) -> JSTime {
         let mut create_params = v8::Isolate::create_params()
-            .external_references(builtins::get_external_references().into())
+            .external_references(builtins::get_external_references().into_vec().into())
             .heap_limits(0, 1024 * 1024 * 1024); // 1GB max heap size
         if let Some(snapshot) = options.snapshot {
             create_params = create_params.snapshot_blob(snapshot.into());
@@ -117,7 +117,7 @@ impl JSTime {
 
         let external_refs = builtins::get_external_references();
         let external_refs_cow: std::borrow::Cow<'static, [v8::ExternalReference]> =
-            std::borrow::Cow::Owned(external_refs);
+            std::borrow::Cow::Owned(external_refs.into_vec());
         let mut isolate = v8::Isolate::snapshot_creator(Some(external_refs_cow), None);
 
         // Set up import.meta callback before creating context

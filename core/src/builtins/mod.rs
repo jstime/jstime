@@ -1,3 +1,5 @@
+use smallvec::SmallVec;
+
 // WHATWG Standards
 mod whatwg {
     pub(crate) mod base64_impl;
@@ -24,12 +26,12 @@ mod node {
     pub(crate) mod process_impl;
 }
 
-pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
+pub(crate) fn get_external_references() -> SmallVec<[v8::ExternalReference; 79]> {
     // Pre-allocate with exact capacity to avoid reallocation
     // Total: 2 (base64) + 1 (console) + 6 (event) + 1 (queue_microtask) + 25 (url) + 3 (timers)
     //        + 1 (fetch) + 3 (streams) + 1 (structured_clone) + 3 (text_encoding)
     //        + 3 (crypto) + 2 (performance) + 21 (fs) + 7 (process) = 79
-    let mut refs = Vec::with_capacity(79);
+    let mut refs = SmallVec::new();
 
     // WHATWG
     refs.extend(whatwg::base64_impl::get_external_references());
