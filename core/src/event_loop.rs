@@ -1,4 +1,3 @@
-use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -10,6 +9,9 @@ pub(crate) struct TimerId(pub(crate) u64);
 
 /// Type alias for fetch response data: (status, status_text, headers, body_data)
 type FetchResponseData = (u16, String, Vec<(String, String)>, Vec<u8>);
+
+/// Type alias for ready timer callback tuple
+pub(crate) type ReadyTimerCallback = (TimerId, v8::Global<v8::Function>, bool);
 
 struct Timer {
     callback: v8::Global<v8::Function>,
@@ -37,14 +39,24 @@ pub(crate) struct EventLoop {
     timers_to_clear: Rc<RefCell<Vec<TimerId>>>,
     timers_to_add: Rc<RefCell<Vec<PendingTimer>>>,
     pending_fetches: Rc<RefCell<Vec<crate::isolate_state::FetchRequest>>>,
+    // Object pools for frequently allocated vectors
+    timer_id_vec_pool: Rc<crate::pool::Pool<Vec<TimerId>>>,
+    pending_timer_vec_pool: Rc<crate::pool::Pool<Vec<PendingTimer>>>,
+    fetch_request_vec_pool: Rc<crate::pool::Pool<Vec<crate::isolate_state::FetchRequest>>>,
+    ready_timer_vec_pool: Rc<crate::pool::Pool<Vec<ReadyTimerCallback>>>,
 }
 
 impl EventLoop {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         timers_to_clear: Rc<RefCell<Vec<TimerId>>>,
         timers_to_add: Rc<RefCell<Vec<PendingTimer>>>,
         _next_timer_id: Rc<RefCell<u64>>,
         pending_fetches: Rc<RefCell<Vec<crate::isolate_state::FetchRequest>>>,
+        timer_id_vec_pool: Rc<crate::pool::Pool<Vec<TimerId>>>,
+        pending_timer_vec_pool: Rc<crate::pool::Pool<Vec<PendingTimer>>>,
+        fetch_request_vec_pool: Rc<crate::pool::Pool<Vec<crate::isolate_state::FetchRequest>>>,
+        ready_timer_vec_pool: Rc<crate::pool::Pool<Vec<ReadyTimerCallback>>>,
     ) -> Self {
         Self {
             timers: BTreeMap::new(),
@@ -52,6 +64,10 @@ impl EventLoop {
             timers_to_clear,
             timers_to_add,
             pending_fetches,
+            timer_id_vec_pool,
+            pending_timer_vec_pool,
+            fetch_request_vec_pool,
+            ready_timer_vec_pool,
         }
     }
 
@@ -62,10 +78,12 @@ impl EventLoop {
         if pending_borrow.is_empty() {
             return;
         }
-        let pending: SmallVec<[PendingTimer; 8]> = pending_borrow.drain(..).collect();
+        // Get a pooled vector (empty: from drain() or Vec::new) and populate it
+        let mut pending = self.pending_timer_vec_pool.get(Vec::new);
+        pending.extend(pending_borrow.drain(..));
         drop(pending_borrow);
 
-        for pending_timer in pending {
+        for pending_timer in pending.drain(..) {
             match pending_timer {
                 PendingTimer::Timeout {
                     id,
@@ -102,6 +120,9 @@ impl EventLoop {
                 }
             }
         }
+
+        // Return the vector to the pool (already cleared by drain)
+        self.pending_timer_vec_pool.put(pending);
     }
 
     /// Actually clear the marked timers
@@ -111,10 +132,12 @@ impl EventLoop {
         if to_clear_borrow.is_empty() {
             return;
         }
-        let to_clear: SmallVec<[TimerId; 8]> = to_clear_borrow.drain(..).collect();
+        // Get a pooled vector (empty: from drain() or Vec::new) and populate it
+        let mut to_clear = self.timer_id_vec_pool.get(Vec::new);
+        to_clear.extend(to_clear_borrow.drain(..));
         drop(to_clear_borrow);
 
-        for id in to_clear {
+        for id in to_clear.drain(..) {
             if let Some(timer) = self.timers.remove(&id) {
                 // Remove from timer queue
                 if let Some(timers) = self.timer_queue.get_mut(&timer.fire_at) {
@@ -125,6 +148,9 @@ impl EventLoop {
                 }
             }
         }
+
+        // Return the vector to the pool (already cleared by drain)
+        self.timer_id_vec_pool.put(to_clear);
     }
 
     /// Check if there are any pending timers or fetch requests
@@ -140,12 +166,13 @@ impl EventLoop {
     /// Process timers that are ready to fire
     /// Returns the callbacks that should be executed
     #[inline]
-    fn collect_ready_timers(&mut self) -> SmallVec<[(TimerId, v8::Global<v8::Function>, bool); 8]> {
+    fn collect_ready_timers(&mut self) -> Vec<ReadyTimerCallback> {
         let now = Instant::now();
-        let mut ready_callbacks = SmallVec::new();
+        // Get a pooled vector for ready callbacks (empty: from drain() or Vec::new)
+        let mut ready_callbacks = self.ready_timer_vec_pool.get(Vec::new);
 
         // Collect all timers that should fire
-        let ready_times: SmallVec<[Instant; 8]> = self
+        let ready_times: Vec<Instant> = self
             .timer_queue
             .keys()
             .copied()
@@ -186,8 +213,9 @@ impl EventLoop {
         if fetches_borrow.is_empty() {
             return;
         }
-        let fetches: SmallVec<[crate::isolate_state::FetchRequest; 4]> =
-            fetches_borrow.drain(..).collect();
+        // Get a pooled vector (empty: from drain() or Vec::new) and populate it
+        let mut fetches = self.fetch_request_vec_pool.get(Vec::new);
+        fetches.extend(fetches_borrow.drain(..));
         drop(fetches_borrow);
 
         // Get the HTTP agent, next_stream_id, and header pool from isolate state
@@ -197,7 +225,8 @@ impl EventLoop {
         let next_stream_id_ref = state.borrow().next_stream_id.clone();
         let header_pool = state.borrow().header_vec_pool.clone();
 
-        for fetch_request in fetches {
+        // Process each fetch request (consuming the vector with drain to maintain order)
+        for fetch_request in fetches.drain(..) {
             // Execute the HTTP request and get the response (but don't read body yet)
             let result = Self::execute_fetch_streaming(
                 &agent,
@@ -306,6 +335,9 @@ impl EventLoop {
                 }
             }
         }
+
+        // Return the fetch request vector to the pool (already cleared by drain)
+        self.fetch_request_vec_pool.put(fetches);
     }
 
     /// Execute an HTTP request using ureq (streaming version)
@@ -419,9 +451,9 @@ impl EventLoop {
             }
 
             // Collect and execute ready timers
-            let ready_timers = self.collect_ready_timers();
+            let mut ready_timers = self.collect_ready_timers();
 
-            for (timer_id, callback, is_interval) in ready_timers {
+            for (timer_id, callback, is_interval) in ready_timers.drain(..) {
                 let callback_local = v8::Local::new(scope, &callback);
                 let recv = v8::undefined(scope).into();
                 let _ = callback_local.call(scope, recv, &[]);
@@ -434,6 +466,9 @@ impl EventLoop {
                     self.timers.remove(&timer_id);
                 }
             }
+
+            // Return the vector to the pool (already cleared by drain)
+            self.ready_timer_vec_pool.put(ready_timers);
 
             // Clear any timers that were marked for clearing during callbacks
             self.clear_marked_timers();
@@ -459,9 +494,9 @@ impl EventLoop {
         scope.perform_microtask_checkpoint();
 
         // Collect and execute ready timers (without sleeping)
-        let ready_timers = self.collect_ready_timers();
+        let mut ready_timers = self.collect_ready_timers();
 
-        for (timer_id, callback, is_interval) in ready_timers {
+        for (timer_id, callback, is_interval) in ready_timers.drain(..) {
             let callback_local = v8::Local::new(scope, &callback);
             let recv = v8::undefined(scope).into();
             let _ = callback_local.call(scope, recv, &[]);
@@ -474,6 +509,9 @@ impl EventLoop {
                 self.timers.remove(&timer_id);
             }
         }
+
+        // Return the vector to the pool (already cleared by drain)
+        self.ready_timer_vec_pool.put(ready_timers);
 
         // Clear any timers that were marked for clearing during callbacks
         self.clear_marked_timers();
@@ -493,6 +531,10 @@ impl Default for EventLoop {
             Rc::new(RefCell::new(Vec::new())),
             Rc::new(RefCell::new(1)),
             Rc::new(RefCell::new(Vec::new())),
+            Rc::new(crate::pool::Pool::new(100)),
+            Rc::new(crate::pool::Pool::new(100)),
+            Rc::new(crate::pool::Pool::new(100)),
+            Rc::new(crate::pool::Pool::new(100)),
         )
     }
 }

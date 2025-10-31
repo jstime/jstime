@@ -147,12 +147,17 @@ pub(crate) struct IsolateState {
     pub(crate) next_stream_id: Rc<RefCell<u64>>,
     pub(crate) streaming_fetches: Rc<RefCell<rustc_hash::FxHashMap<u64, StreamingFetch>>>,
     // Object pools for frequently allocated types
-    // Note: timer_id_vec_pool and pending_timer_vec_pool are reserved for future optimizations
+    // These pools are passed to EventLoop but not directly accessed from IsolateState after initialization
     #[allow(dead_code)]
     pub(crate) timer_id_vec_pool: Rc<crate::pool::Pool<Vec<crate::event_loop::TimerId>>>,
     #[allow(dead_code)]
     pub(crate) pending_timer_vec_pool: Rc<crate::pool::Pool<Vec<crate::event_loop::PendingTimer>>>,
     pub(crate) header_vec_pool: Rc<crate::pool::Pool<Vec<(String, String)>>>,
+    #[allow(dead_code)]
+    pub(crate) fetch_request_vec_pool: Rc<crate::pool::Pool<Vec<FetchRequest>>>,
+    #[allow(dead_code)]
+    pub(crate) ready_timer_vec_pool:
+        Rc<crate::pool::Pool<Vec<crate::event_loop::ReadyTimerCallback>>>,
 }
 
 impl IsolateState {
@@ -172,6 +177,8 @@ impl IsolateState {
         let timer_id_vec_pool = Rc::new(crate::pool::Pool::new(100));
         let pending_timer_vec_pool = Rc::new(crate::pool::Pool::new(100));
         let header_vec_pool = Rc::new(crate::pool::Pool::new(200));
+        let fetch_request_vec_pool = Rc::new(crate::pool::Pool::new(100));
+        let ready_timer_vec_pool = Rc::new(crate::pool::Pool::new(100));
 
         // Create an HTTP agent for connection pooling
         // Configure to not treat HTTP status codes as errors (fetch API expects this)
@@ -188,6 +195,10 @@ impl IsolateState {
                 timers_to_add.clone(),
                 next_timer_id.clone(),
                 pending_fetches.clone(),
+                timer_id_vec_pool.clone(),
+                pending_timer_vec_pool.clone(),
+                fetch_request_vec_pool.clone(),
+                ready_timer_vec_pool.clone(),
             ))),
             timers_to_clear,
             timers_to_add,
@@ -201,6 +212,8 @@ impl IsolateState {
             timer_id_vec_pool,
             pending_timer_vec_pool,
             header_vec_pool,
+            fetch_request_vec_pool,
+            ready_timer_vec_pool,
         }))
     }
 
