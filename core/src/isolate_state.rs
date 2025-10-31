@@ -146,6 +146,13 @@ pub(crate) struct IsolateState {
     pub(crate) process_argv: Vec<String>,
     pub(crate) next_stream_id: Rc<RefCell<u64>>,
     pub(crate) streaming_fetches: Rc<RefCell<rustc_hash::FxHashMap<u64, StreamingFetch>>>,
+    // Object pools for frequently allocated types
+    // Note: timer_id_vec_pool and pending_timer_vec_pool are reserved for future optimizations
+    #[allow(dead_code)]
+    pub(crate) timer_id_vec_pool: Rc<crate::pool::Pool<Vec<crate::event_loop::TimerId>>>,
+    #[allow(dead_code)]
+    pub(crate) pending_timer_vec_pool: Rc<crate::pool::Pool<Vec<crate::event_loop::PendingTimer>>>,
+    pub(crate) header_vec_pool: Rc<crate::pool::Pool<Vec<(String, String)>>>,
 }
 
 impl IsolateState {
@@ -160,6 +167,11 @@ impl IsolateState {
         let string_cache = Rc::new(RefCell::new(StringCache::new()));
         let next_stream_id = Rc::new(RefCell::new(1u64));
         let streaming_fetches = Rc::new(RefCell::new(rustc_hash::FxHashMap::default()));
+
+        // Create object pools with reasonable capacity limits
+        let timer_id_vec_pool = Rc::new(crate::pool::Pool::new(100));
+        let pending_timer_vec_pool = Rc::new(crate::pool::Pool::new(100));
+        let header_vec_pool = Rc::new(crate::pool::Pool::new(200));
 
         // Create an HTTP agent for connection pooling
         // Configure to not treat HTTP status codes as errors (fetch API expects this)
@@ -186,6 +198,9 @@ impl IsolateState {
             process_argv,
             next_stream_id,
             streaming_fetches,
+            timer_id_vec_pool,
+            pending_timer_vec_pool,
+            header_vec_pool,
         }))
     }
 
