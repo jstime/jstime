@@ -45,13 +45,12 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     }
 
     // Remove whitespace if present (spec: https://html.spec.whatwg.org/multipage/webappapis.html#atob)
-    // Optimize by checking if whitespace exists first
-    let input_bytes = if input_str.chars().any(|c| c.is_whitespace()) {
+    // Most base64 strings don't have whitespace, so we check first to avoid unnecessary allocation
+    let input_bytes = if input_str.bytes().any(|b| b.is_ascii_whitespace()) {
         input_str
-            .chars()
-            .filter(|c| !c.is_whitespace())
-            .collect::<String>()
-            .into_bytes()
+            .bytes()
+            .filter(|&b| !b.is_ascii_whitespace())
+            .collect()
     } else {
         input_str.into_bytes()
     };
