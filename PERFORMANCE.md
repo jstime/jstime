@@ -50,7 +50,18 @@ See `benchmarks/README.md` for detailed benchmark instructions.
    - External references
    - Fetch request headers
 
-2. **String Caching**: Frequently used V8 string keys (like "body", "status", "statusText", "headers") are cached in `IsolateState` to avoid repeated allocation during fetch operations.
+2. **Comprehensive String Caching**: A comprehensive string caching mechanism significantly reduces UTF-8 ↔ V8 string conversion overhead.
+   - **Cache Structure**: `StringCache` in `IsolateState` caches 40+ frequently used string literals
+   - **Lazy Initialization**: Strings are cached on first use (zero overhead for unused strings)
+   - **Categories Covered**:
+     - Fetch-related: "status", "statusText", "headers"
+     - Common properties: "name", "type", "value", "length", "done", "message", "stack"
+     - Crypto: "algorithm", "hash", "extractable", "usages", etc.
+     - Events: "listeners", "stopPropagation", etc.
+     - File system: "isFile", "isDirectory", "size", etc.
+     - Modules: "url" for import.meta
+   - **Performance Impact**: Eliminates repeated string allocations in hot paths like error formatting, fetch operations, and module loading
+   - **Implementation**: Uses V8's `Global<String>` handles with helper macro `get_or_create_cached_string!`
 
 ### Hash Map Performance
 - Replaced `std::collections::HashMap` with `rustc_hash::FxHashMap` in the module map for faster lookups
@@ -214,4 +225,4 @@ js.run_script("/* your code */", "script.js")?;
 2. **Memory Pooling**: Implement object pooling for frequently allocated objects
 3. **Native Modules**: Add support for native Rust modules for performance-critical operations
 4. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
-5. **String Interning**: Consider interning frequently used strings beyond current cache
+5. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge

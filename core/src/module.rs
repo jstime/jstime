@@ -302,7 +302,13 @@ pub(crate) unsafe extern "C" fn host_initialize_import_meta_object_callback(
     if let Some(module_path) = module_path {
         // Convert file path to file:// URL
         let url = format!("file://{}", module_path);
-        let url_key = v8::String::new(scope, "url").unwrap();
+
+        // Use cached "url" string
+        let cache = state.borrow().string_cache.clone();
+        let mut cache_borrow = cache.borrow_mut();
+        let url_key = crate::get_or_create_cached_string!(scope, cache_borrow, url, "url");
+        drop(cache_borrow);
+
         let url_value = v8::String::new(scope, &url).unwrap();
         meta.set(scope, url_key.into(), url_value.into());
     }

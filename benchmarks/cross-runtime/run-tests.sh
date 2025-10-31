@@ -2,6 +2,20 @@
 # Cross-runtime compliance and performance test runner
 # Compares jstime with other JavaScript runtimes (Node.js, Deno, Bun)
 
+# Check if running under bash
+if [ -z "$BASH_VERSION" ]; then
+    echo "Error: This script requires bash to run."
+    echo "Please run with: bash $0"
+    exit 1
+fi
+
+# Check bash version (need 4.0+ for associative arrays)
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    echo "Error: This script requires bash 4.0 or higher."
+    echo "Current version: $BASH_VERSION"
+    exit 1
+fi
+
 # Don't use set -e so that test failures don't stop the script
 set +e
 
@@ -113,12 +127,16 @@ for test_file in "${COMPLIANCE_TESTS[@]}"; do
             COMPLIANCE_RESULTS["$runtime-$test_name"]="FAILED"
             echo "$output" | grep -E "FAIL:|Error:" | head -3 | sed 's/^/    /'
         elif [ -n "$result_line" ]; then
+            # Extract passed and failed counts
+            passed_count=$(echo "$result_line" | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo "0")
+            failed_count=$(echo "$result_line" | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo "0")
+            
             # Check if any tests failed
-            if echo "$result_line" | grep -qE "[1-9][0-9]* failed"; then
-                echo -e "${YELLOW}$result_line${NC}"
+            if [ "$failed_count" != "0" ] && [ -n "$failed_count" ]; then
+                echo -e "${YELLOW}${passed_count} passed, ${failed_count} failed${NC}"
                 COMPLIANCE_RESULTS["$runtime-$test_name"]="FAILED"
             else
-                echo -e "${GREEN}$result_line${NC}"
+                echo -e "${GREEN}${passed_count} passed ✓${NC}"
                 COMPLIANCE_RESULTS["$runtime-$test_name"]="PASSED"
             fi
         else
