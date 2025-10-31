@@ -1,5 +1,3 @@
-use base64::{Engine, engine::general_purpose::STANDARD};
-
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     vec![
         v8::ExternalReference {
@@ -44,33 +42,25 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         return;
     }
 
-    // Remove whitespace if present (spec: https://html.spec.whatwg.org/multipage/webappapis.html#atob)
-    // Optimize by checking for whitespace and only allocating if necessary
-    let input_bytes = input_str.as_bytes();
+    // Convert to bytes for in-place decoding
+    // This follows the "forgiving base64" spec which removes ASCII whitespace
+    let mut input_bytes = input_str.into_bytes();
 
-    // Decode base64 (handles whitespace in input)
-    let decoded = if input_bytes.iter().any(|&b| b.is_ascii_whitespace()) {
-        // Only allocate a new Vec if there's whitespace to filter
-        let filtered: Vec<u8> = input_bytes
-            .iter()
-            .copied()
-            .filter(|&b| !b.is_ascii_whitespace())
-            .collect();
-        match STANDARD.decode(&filtered) {
-            Ok(bytes) => bytes,
-            Err(e) => {
-                crate::error::throw_error(scope, &format!("Invalid base64 string: {}", e));
-                return;
-            }
-        }
-    } else {
-        // No whitespace, decode directly without allocation
-        match STANDARD.decode(input_bytes) {
-            Ok(bytes) => bytes,
-            Err(e) => {
-                crate::error::throw_error(scope, &format!("Invalid base64 string: {}", e));
-                return;
-            }
+    // Remove ASCII whitespace first (per forgiving base64 spec)
+    input_bytes.retain(|&b| !b.is_ascii_whitespace());
+
+    // Validate length is multiple of 4 (per WHATWG spec)
+    if input_bytes.len() % 4 != 0 {
+        crate::error::throw_error(scope, "Invalid base64 string length");
+        return;
+    }
+
+    // Decode base64 in-place
+    let decoded = match base64_simd::forgiving_decode_inplace(&mut input_bytes) {
+        Ok(decoded_slice) => decoded_slice,
+        Err(_) => {
+            crate::error::throw_error(scope, "Invalid base64 string");
+            return;
         }
     };
 
@@ -78,7 +68,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     // This matches browser behavior for atob
     // Optimize by pre-allocating and avoiding iterator overhead
     let mut result_str = String::with_capacity(decoded.len());
-    for &byte in &decoded {
+    for &byte in decoded.iter() {
         // SAFETY: Latin-1 bytes map directly to Unicode code points 0-255
         result_str.push(byte as char);
     }
@@ -133,8 +123,8 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         }
     }
 
-    // Encode to base64
-    let encoded = STANDARD.encode(&bytes);
+    // Encode to base64 using SIMD-optimized encoder
+    let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
 
     let result = v8::String::new(scope, &encoded).unwrap();
     rv.set(result.into());
