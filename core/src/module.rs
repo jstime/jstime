@@ -49,8 +49,17 @@ fn read_source_cached(path: &str) -> std::io::Result<String> {
     Ok(source)
 }
 
-/// Extract import specifiers from JavaScript source code
-/// This is a simple regex-based extraction that handles common import patterns
+/// Extract import specifiers from JavaScript source code.
+///
+/// This is a best-effort extraction that handles common import patterns.
+/// It uses simple string matching and may not handle all edge cases such as:
+/// - Imports within template literals or multiline strings
+/// - Dynamically constructed import strings
+/// - Malformed syntax
+///
+/// This is acceptable for the optimization's purpose: to prefetch modules that can be
+/// statically determined. Missing some edge cases means we fall back to sequential loading
+/// for those modules, which is the baseline behavior.
 fn extract_import_specifiers(source: &str) -> Vec<String> {
     let mut specifiers = Vec::new();
 
@@ -66,13 +75,17 @@ fn extract_import_specifiers(source: &str) -> Vec<String> {
     for line in source.lines() {
         let line = line.trim();
 
-        // Skip comments
+        // Skip single-line comments (basic check)
+        // Note: This doesn't handle all cases (inline comments, multi-line comments)
+        // but catches the most common cases
         if line.starts_with("//") || line.starts_with("/*") {
             continue;
         }
 
         // Match: import/export ... from 'specifier' or import/export ... from "specifier"
-        if (line.starts_with("import ") || line.starts_with("export ")) && line.contains(" from ")
+        // We check that the line starts with import/export to avoid false positives
+        if (line.starts_with("import ") || line.starts_with("export "))
+            && line.contains(" from ")
             && let Some(from_idx) = line.rfind(" from ")
         {
             let after_from = &line[from_idx + 6..].trim();
@@ -89,7 +102,8 @@ fn extract_import_specifiers(source: &str) -> Vec<String> {
         if let Some(spec) = extract_quoted_string(&source[start..]) {
             specifiers.push(spec);
         }
-        pos = start;
+        // Move past this import( to avoid infinite loops
+        pos = start + 1;
     }
 
     specifiers
@@ -110,8 +124,12 @@ fn extract_quoted_string(s: &str) -> Option<String> {
     None
 }
 
-/// Prefetch modules and their dependencies in parallel
-/// This populates the SOURCE_CACHE before V8 compilation begins
+/// Prefetch modules and their dependencies in parallel.
+/// This populates the SOURCE_CACHE before V8 compilation begins.
+///
+/// Note: This function creates one thread per module in each batch. For typical projects,
+/// batches are small (usually < 20 modules per dependency level), making this approach
+/// efficient. The threads are short-lived and only perform file I/O operations.
 fn prefetch_modules_parallel(root_path: &str, _referrer_path: &str) {
     let mut to_fetch = vec![root_path.to_string()];
     let mut fetched = HashSet::new();
@@ -121,7 +139,8 @@ fn prefetch_modules_parallel(root_path: &str, _referrer_path: &str) {
         let current_batch = std::mem::take(&mut to_fetch);
         let mut next_batch = Vec::new();
 
-        // Process batch in parallel using threads
+        // Process batch in parallel using threads (one per module in this batch)
+        // Each thread performs file I/O and import discovery
         let handles: Vec<_> = current_batch
             .into_iter()
             .filter(|path| !path.starts_with("node:")) // Skip built-in modules
