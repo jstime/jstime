@@ -1,6 +1,7 @@
 use crate::IsolateState;
 use lazy_static::lazy_static;
 use rustc_hash::FxHashMap;
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::RwLock;
 
@@ -48,6 +49,122 @@ fn read_source_cached(path: &str) -> std::io::Result<String> {
     Ok(source)
 }
 
+/// Extract import specifiers from JavaScript source code
+/// This is a simple regex-based extraction that handles common import patterns
+fn extract_import_specifiers(source: &str) -> Vec<String> {
+    let mut specifiers = Vec::new();
+
+    // Match import statements with various patterns:
+    // import ... from 'specifier'
+    // import ... from "specifier"
+    // import('specifier')
+    // import("specifier")
+    // export ... from 'specifier'
+    // export ... from "specifier"
+
+    // Static imports: import ... from 'specifier'
+    for line in source.lines() {
+        let line = line.trim();
+
+        // Skip comments
+        if line.starts_with("//") || line.starts_with("/*") {
+            continue;
+        }
+
+        // Match: import/export ... from 'specifier' or import/export ... from "specifier"
+        if (line.starts_with("import ") || line.starts_with("export ")) && line.contains(" from ")
+            && let Some(from_idx) = line.rfind(" from ")
+        {
+            let after_from = &line[from_idx + 6..].trim();
+            if let Some(spec) = extract_quoted_string(after_from) {
+                specifiers.push(spec);
+            }
+        }
+    }
+
+    // Dynamic imports: import('specifier')
+    let mut pos = 0;
+    while let Some(idx) = source[pos..].find("import(") {
+        let start = pos + idx + 7; // after "import("
+        if let Some(spec) = extract_quoted_string(&source[start..]) {
+            specifiers.push(spec);
+        }
+        pos = start;
+    }
+
+    specifiers
+}
+
+/// Extract a string from quotes (single or double)
+fn extract_quoted_string(s: &str) -> Option<String> {
+    let s = s.trim();
+    if let Some(stripped) = s.strip_prefix('\'')
+        && let Some(end) = stripped.find('\'')
+    {
+        return Some(stripped[..end].to_string());
+    } else if let Some(stripped) = s.strip_prefix('"')
+        && let Some(end) = stripped.find('"')
+    {
+        return Some(stripped[..end].to_string());
+    }
+    None
+}
+
+/// Prefetch modules and their dependencies in parallel
+/// This populates the SOURCE_CACHE before V8 compilation begins
+fn prefetch_modules_parallel(root_path: &str, _referrer_path: &str) {
+    let mut to_fetch = vec![root_path.to_string()];
+    let mut fetched = HashSet::new();
+
+    while !to_fetch.is_empty() {
+        // Take current batch (use std::mem::take to avoid drain-collect)
+        let current_batch = std::mem::take(&mut to_fetch);
+        let mut next_batch = Vec::new();
+
+        // Process batch in parallel using threads
+        let handles: Vec<_> = current_batch
+            .into_iter()
+            .filter(|path| !path.starts_with("node:")) // Skip built-in modules
+            .filter(|path| fetched.insert(path.clone())) // Only process new paths
+            .map(|path| {
+                std::thread::spawn(move || {
+                    // Read the file (will cache it)
+                    if let Ok(source) = read_source_cached(&path) {
+                        // Extract imports from this module
+                        let specifiers = extract_import_specifiers(&source);
+
+                        // Resolve specifiers to absolute paths
+                        let resolved: Vec<String> = specifiers
+                            .into_iter()
+                            .filter_map(|spec| {
+                                if spec.starts_with("node:") {
+                                    None // Skip built-in modules
+                                } else {
+                                    // Resolve relative to the current module
+                                    Some(normalize_path(&path, &spec))
+                                }
+                            })
+                            .collect();
+
+                        resolved
+                    } else {
+                        Vec::new()
+                    }
+                })
+            })
+            .collect();
+
+        // Collect results
+        for handle in handles {
+            if let Ok(resolved_paths) = handle.join() {
+                next_batch.extend(resolved_paths);
+            }
+        }
+
+        to_fetch = next_batch;
+    }
+}
+
 pub(crate) struct ModuleMap {
     hash_to_absolute_path: FxHashMap<std::num::NonZeroI32, String>,
     absolute_path_to_module: FxHashMap<String, v8::Global<v8::Module>>,
@@ -83,6 +200,13 @@ impl Loader {
         referrer: &str,
         specifier: &str,
     ) -> Result<v8::Local<'a, v8::Value>, v8::Local<'a, v8::Value>> {
+        // Prefetch modules in parallel before starting V8 compilation
+        // This populates the SOURCE_CACHE to avoid sequential I/O during module resolution
+        if !specifier.starts_with("node:") {
+            let root_path = normalize_path(referrer, specifier);
+            prefetch_modules_parallel(&root_path, referrer);
+        }
+
         v8::tc_scope!(let tc, scope);
         match resolve(tc, referrer, specifier) {
             Some(m) => {
