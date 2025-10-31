@@ -87,4 +87,22 @@ mod tests {
         let result = jstime.run_script("globalThis.results.join(',');", "jstime");
         assert_eq!(result.unwrap(), "3,2,1");
     }
+
+    #[test]
+    fn test_many_concurrent_timers() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+        // Create 12 timers (more than SmallVec[8] inline capacity) to test heap spillover
+        let script = r#"
+            globalThis.timerCount = 0;
+            for (let i = 0; i < 12; i++) {
+                setTimeout(() => { globalThis.timerCount++; }, 10);
+            }
+        "#;
+        jstime.run_script(script, "jstime").unwrap();
+        // Check that all timers executed
+        let result = jstime.run_script("globalThis.timerCount;", "jstime");
+        assert_eq!(result.unwrap(), "12");
+    }
 }
