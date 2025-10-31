@@ -148,6 +148,8 @@ pub(crate) struct IsolateState {
     pub(crate) streaming_fetches: Rc<RefCell<rustc_hash::FxHashMap<u64, StreamingFetch>>>,
     // Object pool for frequently allocated header vectors
     pub(crate) header_vec_pool: Rc<crate::pool::Pool<Vec<(String, String)>>>,
+    // Shared SystemRandom for crypto operations
+    pub(crate) system_random: ring::rand::SystemRandom,
 }
 
 impl IsolateState {
@@ -192,6 +194,7 @@ impl IsolateState {
             next_stream_id,
             streaming_fetches,
             header_vec_pool,
+            system_random: ring::rand::SystemRandom::new(),
         }))
     }
 

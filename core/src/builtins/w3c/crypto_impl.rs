@@ -1,6 +1,6 @@
 use ring::aead::BoundKey;
 use ring::digest;
-use ring::rand::{SecureRandom, SystemRandom};
+use ring::rand::SecureRandom;
 use ring::{aead, hmac};
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
@@ -122,12 +122,15 @@ fn crypto_get_random_values(
         )
     };
 
-    // Fill with random bytes
-    let rng = SystemRandom::new();
-    if rng.fill(data).is_err() {
+    // Fill with random bytes using cached SystemRandom
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let state_ref = state.borrow();
+    if state_ref.system_random.fill(data).is_err() {
+        drop(state_ref);
         crate::error::throw_error(scope, "Failed to generate random values");
         return;
     }
+    drop(state_ref);
 
     // Return the same array
     rv.set(array);
@@ -139,12 +142,16 @@ fn crypto_random_uuid(
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    let rng = SystemRandom::new();
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let state_ref = state.borrow();
+
     let mut bytes = [0u8; 16];
-    if rng.fill(&mut bytes).is_err() {
+    if state_ref.system_random.fill(&mut bytes).is_err() {
+        drop(state_ref);
         crate::error::throw_error(scope, "Failed to generate random UUID");
         return;
     }
+    drop(state_ref);
 
     // Set version to 4 (random)
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -911,11 +918,14 @@ fn crypto_subtle_generate_key(
 
             let byte_length = (length / 8) as usize;
             let mut key_bytes = vec![0u8; byte_length];
-            let rng = SystemRandom::new();
-            if rng.fill(&mut key_bytes).is_err() {
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let state_ref = state.borrow();
+            if state_ref.system_random.fill(&mut key_bytes).is_err() {
+                drop(state_ref);
                 crate::error::throw_error(scope, "Failed to generate random key");
                 return;
             }
+            drop(state_ref);
             key_bytes
         }
         "HMAC" => {
@@ -963,11 +973,14 @@ fn crypto_subtle_generate_key(
             };
 
             let mut key_bytes = vec![0u8; byte_length];
-            let rng = SystemRandom::new();
-            if rng.fill(&mut key_bytes).is_err() {
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let state_ref = state.borrow();
+            if state_ref.system_random.fill(&mut key_bytes).is_err() {
+                drop(state_ref);
                 crate::error::throw_error(scope, "Failed to generate random key");
                 return;
             }
+            drop(state_ref);
             key_bytes
         }
         _ => {
