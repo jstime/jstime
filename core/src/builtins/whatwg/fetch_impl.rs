@@ -44,12 +44,11 @@ fn fetch_send(
     };
     let headers_len = headers_array.length();
 
-    // Get a pooled vector for headers
+    // Get a pooled vector for headers (pool should return cleared vectors)
     let isolate: &mut v8::Isolate = scope;
     let state = crate::IsolateState::get(isolate);
     let header_pool = state.borrow().header_vec_pool.clone();
     let mut headers = header_pool.get(|| Vec::with_capacity(headers_len as usize));
-    headers.clear();
 
     for i in 0..headers_len {
         let Some(entry) = headers_array.get_index(scope, i) else {
