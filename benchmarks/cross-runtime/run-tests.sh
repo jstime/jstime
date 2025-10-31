@@ -104,10 +104,13 @@ COMPLIANCE_TESTS=(
 COMPLIANCE_RESULTS=""
 
 # Helper function to store a key-value pair
+# Note: Keys and values are internally generated (runtime names, test names, timing values)
+# not from user input, so eval usage is safe in this context.
 set_result() {
     local var_name=$1
     local key=$2
     local value=$3
+    # The newline is intentional - it separates entries in the string
     eval "$var_name=\"\${$var_name}\${key}|${value}
 \""
 }
@@ -116,6 +119,7 @@ set_result() {
 get_result() {
     local var_name=$1
     local key=$2
+    # Safely extract value by matching the key pattern
     eval "echo \"\$$var_name\"" | grep "^${key}|" | cut -d'|' -f2-
 }
 
