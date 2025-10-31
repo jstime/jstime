@@ -33,7 +33,12 @@ fn fetch_send(
     let url = to_rust_string(scope, args.get(0));
     let method = to_rust_string(scope, args.get(1));
 
-    // Extract headers array
+    // Get pool reference early for cleanup on early returns
+    let isolate: &mut v8::Isolate = scope;
+    let state = crate::IsolateState::get(isolate);
+    let header_pool = state.borrow().header_vec_pool.clone();
+
+    // Extract headers array - use pooled vector
     let headers_array_val = args.get(2);
     let headers_array = match crate::error::try_get_array_result(headers_array_val) {
         Ok(arr) => arr,
@@ -43,7 +48,9 @@ fn fetch_send(
         }
     };
     let headers_len = headers_array.length();
-    let mut headers = Vec::with_capacity(headers_len as usize);
+
+    // Get a pooled vector for headers (pool should return cleared vectors)
+    let mut headers = header_pool.get(|| Vec::with_capacity(headers_len as usize));
 
     for i in 0..headers_len {
         let Some(entry) = headers_array.get_index(scope, i) else {
@@ -53,6 +60,9 @@ fn fetch_send(
             Ok(arr) => arr,
             Err(msg) => {
                 crate::error::throw_type_error(scope, msg);
+                // Return the pooled vector before early return
+                headers.clear();
+                header_pool.put(headers);
                 return;
             }
         };
@@ -78,11 +88,14 @@ fn fetch_send(
     // Create a promise
     let Some(resolver) = v8::PromiseResolver::new(scope) else {
         crate::error::throw_error(scope, "Failed to create promise");
+        // Return the pooled vector before early return
+        headers.clear();
+        header_pool.put(headers);
         return;
     };
     let promise = resolver.get_promise(scope);
 
-    // Store the fetch request
+    // Store the fetch request (headers ownership transferred)
     let fetch_request = crate::isolate_state::FetchRequest {
         url,
         method,
