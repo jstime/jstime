@@ -154,8 +154,7 @@ pub(crate) struct IsolateState {
     #[allow(dead_code)]
     pub(crate) timer_id_vec_pool: Rc<crate::pool::Pool<Vec<crate::event_loop::TimerId>>>,
     #[allow(dead_code)]
-    pub(crate) pending_timer_vec_pool:
-        Rc<crate::pool::Pool<Vec<crate::event_loop::PendingTimer>>>,
+    pub(crate) pending_timer_vec_pool: Rc<crate::pool::Pool<Vec<crate::event_loop::PendingTimer>>>,
     pub(crate) header_vec_pool: Rc<crate::pool::Pool<Vec<(String, String)>>>,
     #[allow(dead_code)]
     pub(crate) fetch_request_vec_pool: Rc<crate::pool::Pool<Vec<FetchRequest>>>,

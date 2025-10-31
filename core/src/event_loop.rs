@@ -46,7 +46,6 @@ pub(crate) struct EventLoop {
     ready_timer_vec_pool: Rc<crate::pool::Pool<Vec<ReadyTimerCallback>>>,
 }
 
-
 impl EventLoop {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
@@ -79,9 +78,8 @@ impl EventLoop {
         if pending_borrow.is_empty() {
             return;
         }
-        // Get a pooled vector and drain pending timers into it
+        // Get a pooled vector (already cleared by pool) and drain pending timers into it
         let mut pending = self.pending_timer_vec_pool.get(Vec::new);
-        pending.clear();
         pending.extend(pending_borrow.drain(..));
         drop(pending_borrow);
 
@@ -135,9 +133,8 @@ impl EventLoop {
         if to_clear_borrow.is_empty() {
             return;
         }
-        // Get a pooled vector and drain timers into it
+        // Get a pooled vector (already cleared by pool) and drain timers into it
         let mut to_clear = self.timer_id_vec_pool.get(Vec::new);
-        to_clear.clear();
         to_clear.extend(to_clear_borrow.drain(..));
         drop(to_clear_borrow);
 
@@ -173,9 +170,8 @@ impl EventLoop {
     #[inline]
     fn collect_ready_timers(&mut self) -> Vec<ReadyTimerCallback> {
         let now = Instant::now();
-        // Get a pooled vector for ready callbacks
+        // Get a pooled vector for ready callbacks (already cleared by pool)
         let mut ready_callbacks = self.ready_timer_vec_pool.get(Vec::new);
-        ready_callbacks.clear();
 
         // Collect all timers that should fire
         let ready_times: Vec<Instant> = self
@@ -219,9 +215,8 @@ impl EventLoop {
         if fetches_borrow.is_empty() {
             return;
         }
-        // Get a pooled vector and drain fetches into it
+        // Get a pooled vector (already cleared by pool) and drain fetches into it
         let mut fetches = self.fetch_request_vec_pool.get(Vec::new);
-        fetches.clear();
         fetches.extend(fetches_borrow.drain(..));
         drop(fetches_borrow);
 
