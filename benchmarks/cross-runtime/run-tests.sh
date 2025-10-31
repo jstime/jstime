@@ -97,6 +97,11 @@ COMPLIANCE_TESTS=(
     "test-performance.js"
     "test-base64.js"
     "test-json.js"
+    "test-text-encoding.js"
+    "test-event.js"
+    "test-streams.js"
+    "test-structured-clone.js"
+    "test-microtask.js"
 )
 
 # Track results using delimiter-separated strings (bash 3.2 compatible)
@@ -177,6 +182,9 @@ PERFORMANCE_TESTS=(
     "bench-base64.js"
     "bench-url.js"
     "bench-crypto.js"
+    "bench-text-encoding.js"
+    "bench-structured-clone.js"
+    "bench-event.js"
 )
 
 # Store performance results (bash 3.2 compatible)
