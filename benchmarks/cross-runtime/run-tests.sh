@@ -244,13 +244,17 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js | sed 's/bench-//')
     printf "  %-20s" "$test_name:"
     
-    # Find the best (lowest) time
+    # Find the best (lowest) time and worst (highest) time
     best_time=999999
+    worst_time=0
     for runtime in "${RUNTIMES[@]}"; do
         time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
         if [ "$time" != "ERROR" ] && [ -n "$time" ]; then
             if (( $(echo "$time < $best_time" | bc -l 2>/dev/null || echo 0) )); then
                 best_time="$time"
+            fi
+            if (( $(echo "$time > $worst_time" | bc -l 2>/dev/null || echo 0) )); then
+                worst_time="$time"
             fi
         fi
     done
@@ -258,11 +262,13 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
         if [ "$time" != "ERROR" ] && [ -n "$time" ]; then
-            # Mark the fastest runtime
+            # Mark the fastest runtime in green, slowest in red, others in yellow
             if [ "$time" == "$best_time" ]; then
                 printf " ${GREEN}%-10s${NC}" "$runtime:${time}ms★"
+            elif [ "$time" == "$worst_time" ]; then
+                printf " ${RED}%-10s${NC}" "$runtime:${time}ms"
             else
-                printf " %-10s" "$runtime:${time}ms"
+                printf " ${YELLOW}%-10s${NC}" "$runtime:${time}ms"
             fi
         fi
     done
