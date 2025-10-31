@@ -808,6 +808,7 @@ name = "jstime_core"
 version = "0.62.0"
 dependencies = [
  "align-data",
+ "base64",
  "criterion",
  "filetime",
  "lazy_static",
