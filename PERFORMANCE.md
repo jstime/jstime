@@ -60,12 +60,12 @@ See `benchmarks/README.md` for detailed benchmark instructions.
 
 3. **Object Pooling**: A generic object pooling mechanism reduces allocation overhead by reusing objects:
    - **Pool Structure**: `Pool<T>` in `core/src/pool.rs` provides thread-local object recycling
-   - **Pooled Types**: Currently pools header vectors (`Vec<(String, String)>`) for fetch operations
+   - **Pooled Types**: Header vectors (`Vec<(String, String)>`) for fetch operations
    - **Per-Isolate Lifecycle**: Pools are stored in `IsolateState` and managed per V8 isolate
-   - **Capacity Limits**: Pools have configurable maximum capacity (100-200 objects) to prevent unbounded growth
+   - **Capacity Limits**: Pools have configurable maximum capacity (200 objects) to prevent unbounded growth
    - **Zero-Cost Abstraction**: `PooledVec<T>` provides RAII-style automatic return-to-pool via Drop
    - **Performance Impact**: Reduces allocations in fetch hot paths, particularly beneficial for applications making many HTTP requests
-   - **Future Expansion**: Infrastructure ready for pooling timer vectors and other frequently allocated objects
+   - **Implementation**: Event loop methods use pooled vectors instead of allocating fresh ones on each fetch operation
 
 4. **Comprehensive String Caching**: A comprehensive string caching mechanism significantly reduces UTF-8 ↔ V8 string conversion overhead.
    - **Cache Structure**: `StringCache` in `IsolateState` caches 40+ frequently used string literals
@@ -267,4 +267,4 @@ For a module graph with 10 independent modules, parallel loading can reduce tota
 
 1. **Native Modules**: Add support for native Rust modules for performance-critical operations
 2. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
-3. **Extended Object Pooling**: Expand object pooling to additional hot paths (timer vectors, fetch buffers) as profiling identifies bottlenecks
+3. **Additional Pooling Opportunities**: As profiling identifies new bottlenecks, expand pooling to other frequently allocated types
