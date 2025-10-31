@@ -143,7 +143,7 @@ fn crypto_random_uuid(
 ) {
     let state = crate::isolate_state::IsolateState::get(scope);
     let state_ref = state.borrow();
-    
+
     let mut bytes = [0u8; 16];
     if state_ref.system_random.fill(&mut bytes).is_err() {
         drop(state_ref);
@@ -160,10 +160,22 @@ fn crypto_random_uuid(
     // Format as UUID string - optimized version using a single format call
     let uuid = format!(
         "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-        bytes[0], bytes[1], bytes[2], bytes[3],
-        bytes[4], bytes[5], bytes[6], bytes[7],
-        bytes[8], bytes[9], bytes[10], bytes[11],
-        bytes[12], bytes[13], bytes[14], bytes[15]
+        bytes[0],
+        bytes[1],
+        bytes[2],
+        bytes[3],
+        bytes[4],
+        bytes[5],
+        bytes[6],
+        bytes[7],
+        bytes[8],
+        bytes[9],
+        bytes[10],
+        bytes[11],
+        bytes[12],
+        bytes[13],
+        bytes[14],
+        bytes[15]
     );
 
     let result = v8::String::new(scope, &uuid).unwrap();
