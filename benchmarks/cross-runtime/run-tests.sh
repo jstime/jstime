@@ -9,12 +9,7 @@ if [ -z "$BASH_VERSION" ]; then
     exit 1
 fi
 
-# Check bash version (need 4.0+ for associative arrays)
-if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-    echo "Error: This script requires bash 4.0 or higher."
-    echo "Current version: $BASH_VERSION"
-    exit 1
-fi
+# Note: This script is compatible with bash 3.2+
 
 # Don't use set -e so that test failures don't stop the script
 set +e
@@ -104,8 +99,29 @@ COMPLIANCE_TESTS=(
     "test-json.js"
 )
 
-# Track results
-declare -A COMPLIANCE_RESULTS
+# Track results using delimiter-separated strings (bash 3.2 compatible)
+# Format: "key1|value1\nkey2|value2\n..."
+COMPLIANCE_RESULTS=""
+
+# Helper function to store a key-value pair
+# Note: Keys and values are internally generated (runtime names, test names, timing values)
+# not from user input, so eval usage is safe in this context.
+set_result() {
+    local var_name=$1
+    local key=$2
+    local value=$3
+    # The newline is intentional - it separates entries in the string
+    eval "$var_name=\"\${$var_name}\${key}|${value}
+\""
+}
+
+# Helper function to get a value by key
+get_result() {
+    local var_name=$1
+    local key=$2
+    # Safely extract value by matching the key pattern
+    eval "echo \"\$$var_name\"" | grep "^${key}|" | cut -d'|' -f2-
+}
 
 for test_file in "${COMPLIANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js)
@@ -121,10 +137,10 @@ for test_file in "${COMPLIANCE_TESTS[@]}"; do
         
         if echo "$output" | grep -q "RUNTIME_ERROR"; then
             echo -e "${RED}ERROR${NC}"
-            COMPLIANCE_RESULTS["$runtime-$test_name"]="ERROR"
+            set_result COMPLIANCE_RESULTS "$runtime-$test_name" "ERROR"
         elif echo "$output" | grep -qE "FAIL:|SyntaxError|ReferenceError|TypeError"; then
             echo -e "${RED}FAILED${NC}"
-            COMPLIANCE_RESULTS["$runtime-$test_name"]="FAILED"
+            set_result COMPLIANCE_RESULTS "$runtime-$test_name" "FAILED"
             echo "$output" | grep -E "FAIL:|Error:" | head -3 | sed 's/^/    /'
         elif [ -n "$result_line" ]; then
             # Extract passed and failed counts
@@ -134,14 +150,14 @@ for test_file in "${COMPLIANCE_TESTS[@]}"; do
             # Check if any tests failed
             if [ "$failed_count" != "0" ] && [ -n "$failed_count" ]; then
                 echo -e "${YELLOW}${passed_count} passed, ${failed_count} failed${NC}"
-                COMPLIANCE_RESULTS["$runtime-$test_name"]="FAILED"
+                set_result COMPLIANCE_RESULTS "$runtime-$test_name" "FAILED"
             else
                 echo -e "${GREEN}${passed_count} passed ✓${NC}"
-                COMPLIANCE_RESULTS["$runtime-$test_name"]="PASSED"
+                set_result COMPLIANCE_RESULTS "$runtime-$test_name" "PASSED"
             fi
         else
             echo -e "${RED}NO OUTPUT${NC}"
-            COMPLIANCE_RESULTS["$runtime-$test_name"]="ERROR"
+            set_result COMPLIANCE_RESULTS "$runtime-$test_name" "ERROR"
         fi
     done
     echo ""
@@ -163,8 +179,8 @@ PERFORMANCE_TESTS=(
     "bench-crypto.js"
 )
 
-# Store performance results
-declare -A PERF_RESULTS
+# Store performance results (bash 3.2 compatible)
+PERF_RESULTS=""
 
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js)
@@ -181,10 +197,10 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
             ops_per_ms=$(echo "$output" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
             
             echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
-            PERF_RESULTS["$runtime-$test_name"]="$elapsed"
+            set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
         else
             echo -e "${RED}ERROR${NC}"
-            PERF_RESULTS["$runtime-$test_name"]="ERROR"
+            set_result PERF_RESULTS "$runtime-$test_name" "ERROR"
         fi
     done
     echo ""
@@ -201,7 +217,7 @@ for runtime in "${RUNTIMES[@]}"; do
     
     for test_file in "${COMPLIANCE_TESTS[@]}"; do
         test_name=$(basename "$test_file" .js)
-        result="${COMPLIANCE_RESULTS[$runtime-$test_name]}"
+        result=$(get_result COMPLIANCE_RESULTS "$runtime-$test_name")
         if [ "$result" == "PASSED" ]; then
             ((passed++))
         else
@@ -228,25 +244,31 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js | sed 's/bench-//')
     printf "  %-20s" "$test_name:"
     
-    # Find the best (lowest) time
+    # Find the best (lowest) time and worst (highest) time
     best_time=999999
+    worst_time=0
     for runtime in "${RUNTIMES[@]}"; do
-        time="${PERF_RESULTS[$runtime-bench-$test_name]}"
+        time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
         if [ "$time" != "ERROR" ] && [ -n "$time" ]; then
             if (( $(echo "$time < $best_time" | bc -l 2>/dev/null || echo 0) )); then
                 best_time="$time"
+            fi
+            if (( $(echo "$time > $worst_time" | bc -l 2>/dev/null || echo 0) )); then
+                worst_time="$time"
             fi
         fi
     done
     
     for runtime in "${RUNTIMES[@]}"; do
-        time="${PERF_RESULTS[$runtime-bench-$test_name]}"
+        time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
         if [ "$time" != "ERROR" ] && [ -n "$time" ]; then
-            # Mark the fastest runtime
+            # Mark the fastest runtime in green, slowest in red, others in yellow
             if [ "$time" == "$best_time" ]; then
                 printf " ${GREEN}%-10s${NC}" "$runtime:${time}ms★"
+            elif [ "$time" == "$worst_time" ]; then
+                printf " ${RED}%-10s${NC}" "$runtime:${time}ms"
             else
-                printf " %-10s" "$runtime:${time}ms"
+                printf " ${YELLOW}%-10s${NC}" "$runtime:${time}ms"
             fi
         fi
     done
