@@ -1,9 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-/// Type alias for ready timer callback tuple
-type ReadyTimerCallback = (crate::event_loop::TimerId, v8::Global<v8::Function>, bool);
-
 pub(crate) struct FetchRequest {
     pub(crate) url: String,
     pub(crate) method: String,
@@ -159,7 +156,8 @@ pub(crate) struct IsolateState {
     #[allow(dead_code)]
     pub(crate) fetch_request_vec_pool: Rc<crate::pool::Pool<Vec<FetchRequest>>>,
     #[allow(dead_code)]
-    pub(crate) ready_timer_vec_pool: Rc<crate::pool::Pool<Vec<ReadyTimerCallback>>>,
+    pub(crate) ready_timer_vec_pool:
+        Rc<crate::pool::Pool<Vec<crate::event_loop::ReadyTimerCallback>>>,
 }
 
 impl IsolateState {

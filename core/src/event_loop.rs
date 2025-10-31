@@ -11,7 +11,7 @@ pub(crate) struct TimerId(pub(crate) u64);
 type FetchResponseData = (u16, String, Vec<(String, String)>, Vec<u8>);
 
 /// Type alias for ready timer callback tuple
-type ReadyTimerCallback = (TimerId, v8::Global<v8::Function>, bool);
+pub(crate) type ReadyTimerCallback = (TimerId, v8::Global<v8::Function>, bool);
 
 struct Timer {
     callback: v8::Global<v8::Function>,
@@ -78,7 +78,7 @@ impl EventLoop {
         if pending_borrow.is_empty() {
             return;
         }
-        // Get a pooled vector (already cleared by pool) and drain pending timers into it
+        // Get a pooled vector (empty: from drain() or Vec::new) and populate it
         let mut pending = self.pending_timer_vec_pool.get(Vec::new);
         pending.extend(pending_borrow.drain(..));
         drop(pending_borrow);
@@ -132,7 +132,7 @@ impl EventLoop {
         if to_clear_borrow.is_empty() {
             return;
         }
-        // Get a pooled vector (already cleared by pool) and drain timers into it
+        // Get a pooled vector (empty: from drain() or Vec::new) and populate it
         let mut to_clear = self.timer_id_vec_pool.get(Vec::new);
         to_clear.extend(to_clear_borrow.drain(..));
         drop(to_clear_borrow);
@@ -168,7 +168,7 @@ impl EventLoop {
     #[inline]
     fn collect_ready_timers(&mut self) -> Vec<ReadyTimerCallback> {
         let now = Instant::now();
-        // Get a pooled vector for ready callbacks (already cleared by pool)
+        // Get a pooled vector for ready callbacks (empty: from drain() or Vec::new)
         let mut ready_callbacks = self.ready_timer_vec_pool.get(Vec::new);
 
         // Collect all timers that should fire
@@ -213,7 +213,7 @@ impl EventLoop {
         if fetches_borrow.is_empty() {
             return;
         }
-        // Get a pooled vector (already cleared by pool) and drain fetches into it
+        // Get a pooled vector (empty: from drain() or Vec::new) and populate it
         let mut fetches = self.fetch_request_vec_pool.get(Vec::new);
         fetches.extend(fetches_borrow.drain(..));
         drop(fetches_borrow);
