@@ -18,6 +18,12 @@ struct Opt {
     /// Options for V8
     #[structopt(long)]
     v8_options: Option<String>,
+
+    /// Number of warmup iterations to run before actual execution.
+    /// This allows V8's TurboFan JIT compiler to optimize the code.
+    /// Useful for benchmarking or performance-critical scripts.
+    #[structopt(long, default_value = "0")]
+    warmup: usize,
 }
 
 fn main() {
@@ -28,18 +34,33 @@ fn main() {
     let mut structopt_args = vec![all_args[0].clone()];
     let mut script_args = Vec::with_capacity(4); // Pre-allocate for typical script args
     let mut found_filename = false;
+    let mut expect_value = false; // Track if we expect a value for an option
 
     for (_i, arg) in all_args.iter().enumerate().skip(1) {
-        if !found_filename && !arg.starts_with("--") && !arg.starts_with('-') {
+        if expect_value {
+            // This is a value for the previous option
+            structopt_args.push(arg.clone());
+            expect_value = false;
+        } else if arg.starts_with("--") {
+            // This is a long flag
+            structopt_args.push(arg.clone());
+            // Check if this flag expects a value (doesn't use = syntax)
+            let is_option_with_value = (arg.starts_with("--warmup")
+                || arg.starts_with("--v8-options"))
+                && !arg.contains('=');
+            if is_option_with_value {
+                expect_value = true;
+            }
+        } else if arg.starts_with('-') && !found_filename {
+            // This is a short flag
+            structopt_args.push(arg.clone());
+        } else if !found_filename {
             // This is the filename
             structopt_args.push(arg.clone());
             found_filename = true;
-        } else if found_filename {
+        } else {
             // These are script arguments
             script_args.push(arg.clone());
-        } else {
-            // These are jstime options
-            structopt_args.push(arg.clone());
         }
     }
 
@@ -86,11 +107,12 @@ fn main() {
     // Add any additional script arguments
     process_argv.extend(script_args);
 
-    let mut options = jstime::Options::new(Some(include_bytes!(concat!(
+    let options = jstime::Options::new(Some(include_bytes!(concat!(
         env!("OUT_DIR"),
         "/snapshot_data.blob"
-    ))));
-    options.process_argv = process_argv;
+    ))))
+    .with_process_argv(process_argv)
+    .with_warmup(opt.warmup);
 
     let mut jstime = jstime::JSTime::new(options);
 

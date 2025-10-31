@@ -178,11 +178,51 @@ The Criterion benchmark suite provides:
 
 See `benchmarks/README.md` for detailed benchmark documentation.
 
+## JIT Warmup
+
+**Implemented**: JIT warmup support allows V8's TurboFan compiler to optimize code before actual execution.
+
+The runtime now supports optional warmup iterations:
+- Controlled via the `--warmup` CLI flag or `Options::with_warmup()` API
+- Executes the script/module multiple times before the actual run
+- Allows TurboFan JIT compiler to profile and optimize hot code paths
+- Particularly useful for benchmarking and performance-critical scripts
+
+**Usage Examples**:
+
+Command line:
+```bash
+# Run with 10 warmup iterations
+jstime --warmup 10 script.js
+
+# Or use = syntax
+jstime --warmup=10 script.js
+```
+
+API usage:
+```rust
+use jstime_core as jstime;
+
+let options = jstime::Options::default()
+    .with_warmup(10);
+let mut js = jstime::JSTime::new(options);
+js.run_script("/* your code */", "script.js")?;
+```
+
+**Performance Impact**:
+- Warmup incurs upfront cost but can significantly improve execution time for compute-intensive code
+- Best used for benchmarking, repeated executions, or performance-critical scripts
+- Default is 0 (no warmup) to optimize for startup time
+
+**Recommendations**:
+- Use 5-10 iterations for benchmarking
+- Use 0 (default) for one-time script execution
+- Adjust based on script complexity and execution patterns
+
 ## Future Optimization Opportunities
 
 1. **Parallel Module Loading**: Parallelize module compilation where possible
-2. **JIT Warmup**: Consider adding warmup patterns for hot code paths
-3. **Memory Pooling**: Implement object pooling for frequently allocated objects
-4. **Native Modules**: Add support for native Rust modules for performance-critical operations
-5. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
-6. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
+2. **Memory Pooling**: Implement object pooling for frequently allocated objects
+3. **Native Modules**: Add support for native Rust modules for performance-critical operations
+4. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
+5. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
