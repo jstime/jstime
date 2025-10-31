@@ -42,24 +42,36 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         return;
     }
 
-    // Decode base64
-    let decoded = match base64_decode(&input_str) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            crate::error::throw_error(scope, &e);
+    // Convert to bytes for in-place decoding
+    // This follows the "forgiving base64" spec which removes ASCII whitespace
+    let mut input_bytes = input_str.into_bytes();
+
+    // Remove ASCII whitespace first (per forgiving base64 spec)
+    input_bytes.retain(|&b| !b.is_ascii_whitespace());
+
+    // Validate length is multiple of 4 (per WHATWG spec)
+    if input_bytes.len() % 4 != 0 {
+        crate::error::throw_error(scope, "Invalid base64 string length");
+        return;
+    }
+
+    // Decode base64 in-place
+    let decoded = match base64_simd::forgiving_decode_inplace(&mut input_bytes) {
+        Ok(decoded_slice) => decoded_slice,
+        Err(_) => {
+            crate::error::throw_error(scope, "Invalid base64 string");
             return;
         }
     };
 
-    // Convert bytes to string
-    let result_str = match String::from_utf8(decoded.clone()) {
-        Ok(s) => s,
-        Err(_) => {
-            // If it's not valid UTF-8, convert bytes to Latin-1 string
-            // This matches browser behavior for atob
-            decoded.iter().map(|&b| b as char).collect()
-        }
-    };
+    // Convert bytes to Latin-1 string (each byte becomes a character)
+    // This matches browser behavior for atob
+    // Optimize by pre-allocating and avoiding iterator overhead
+    let mut result_str = String::with_capacity(decoded.len());
+    for &byte in decoded.iter() {
+        // SAFETY: Latin-1 bytes map directly to Unicode code points 0-255
+        result_str.push(byte as char);
+    }
 
     let result = v8::String::new(scope, &result_str).unwrap();
     rv.set(result.into());
@@ -89,122 +101,31 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     }
 
     // Check if string contains characters outside the Latin-1 range
-    for ch in input_str.chars() {
-        if ch as u32 > 0xFF {
-            crate::error::throw_error(
-                scope,
-                "The string to be encoded contains characters outside of the Latin1 range.",
-            );
-            return;
+    // and convert to bytes simultaneously
+    // Use bytes() instead of chars() for better performance since we're checking ASCII/Latin-1
+    let input_bytes = input_str.as_bytes();
+    let mut bytes = Vec::with_capacity(input_bytes.len());
+
+    // Fast path: if input is already ASCII, just copy it
+    if input_str.is_ascii() {
+        bytes.extend_from_slice(input_bytes);
+    } else {
+        // Slow path: validate UTF-8 characters are in Latin-1 range
+        for ch in input_str.chars() {
+            if ch as u32 > 0xFF {
+                crate::error::throw_error(
+                    scope,
+                    "The string to be encoded contains characters outside of the Latin1 range.",
+                );
+                return;
+            }
+            bytes.push(ch as u8);
         }
     }
 
-    // Convert string to bytes (Latin-1 encoding)
-    let bytes: Vec<u8> = input_str.chars().map(|c| c as u8).collect();
-
-    // Encode to base64
-    let encoded = base64_encode(&bytes);
+    // Encode to base64 using SIMD-optimized encoder
+    let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
 
     let result = v8::String::new(scope, &encoded).unwrap();
     rv.set(result.into());
-}
-
-// Base64 encoding/decoding helper functions
-#[inline]
-fn base64_encode(input: &[u8]) -> String {
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    // Pre-allocate string with exact capacity needed
-    // Each 3 bytes encode to 4 base64 chars
-    let output_len = input.len().div_ceil(3) * 4;
-    let mut result = String::with_capacity(output_len);
-
-    let mut i = 0;
-    while i < input.len() {
-        let b1 = input[i];
-        let b2 = if i + 1 < input.len() { input[i + 1] } else { 0 };
-        let b3 = if i + 2 < input.len() { input[i + 2] } else { 0 };
-
-        let enc1 = b1 >> 2;
-        let enc2 = ((b1 & 0x03) << 4) | (b2 >> 4);
-        let enc3 = ((b2 & 0x0F) << 2) | (b3 >> 6);
-        let enc4 = b3 & 0x3F;
-
-        result.push(ALPHABET[enc1 as usize] as char);
-        result.push(ALPHABET[enc2 as usize] as char);
-
-        if i + 1 < input.len() {
-            result.push(ALPHABET[enc3 as usize] as char);
-        } else {
-            result.push('=');
-        }
-
-        if i + 2 < input.len() {
-            result.push(ALPHABET[enc4 as usize] as char);
-        } else {
-            result.push('=');
-        }
-
-        i += 3;
-    }
-
-    result
-}
-
-#[inline]
-fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
-    // Remove whitespace
-    let input: String = input.chars().filter(|c| !c.is_whitespace()).collect();
-
-    if input.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Validate length (must be multiple of 4)
-    if !input.len().is_multiple_of(4) {
-        return Err("Invalid base64 string length".to_string());
-    }
-
-    // Pre-allocate result vector with estimated size
-    // Each 4 base64 chars decodes to at most 3 bytes
-    let estimated_size = (input.len() / 4) * 3;
-    let mut result = Vec::with_capacity(estimated_size);
-
-    for chunk in input.as_bytes().chunks(4) {
-        let b1 = decode_char(chunk[0] as char)?;
-        let b2 = decode_char(chunk[1] as char)?;
-        let b3 = if chunk[2] == b'=' {
-            0
-        } else {
-            decode_char(chunk[2] as char)?
-        };
-        let b4 = if chunk[3] == b'=' {
-            0
-        } else {
-            decode_char(chunk[3] as char)?
-        };
-
-        result.push((b1 << 2) | (b2 >> 4));
-        if chunk[2] != b'=' {
-            result.push(((b2 & 0x0F) << 4) | (b3 >> 2));
-        }
-        if chunk[3] != b'=' {
-            result.push(((b3 & 0x03) << 6) | b4);
-        }
-    }
-
-    Ok(result)
-}
-
-#[inline]
-fn decode_char(c: char) -> Result<u8, String> {
-    match c {
-        'A'..='Z' => Ok((c as u8) - b'A'),
-        'a'..='z' => Ok((c as u8) - b'a' + 26),
-        '0'..='9' => Ok((c as u8) - b'0' + 52),
-        '+' => Ok(62),
-        '/' => Ok(63),
-        '=' => Ok(0),
-        _ => Err(format!("Invalid base64 character: {}", c)),
-    }
 }
