@@ -22,6 +22,11 @@ for (let i = 0; i < ITERATIONS; i++) {
 const end = performance.now();
 const elapsed = end - start;
 
+// Use counter to prevent dead code elimination
+if (counter !== ITERATIONS) {
+  throw new Error(`Expected ${ITERATIONS} events, got ${counter}`);
+}
+
 console.log(JSON.stringify({
   test: 'event_dispatch',
   iterations: ITERATIONS,
