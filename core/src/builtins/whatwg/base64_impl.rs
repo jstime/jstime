@@ -45,28 +45,43 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     }
 
     // Remove whitespace if present (spec: https://html.spec.whatwg.org/multipage/webappapis.html#atob)
-    // Most base64 strings don't have whitespace, so we check first to avoid unnecessary allocation
-    let input_bytes = if input_str.bytes().any(|b| b.is_ascii_whitespace()) {
-        input_str
-            .bytes()
-            .filter(|&b| !b.is_ascii_whitespace())
-            .collect()
-    } else {
-        input_str.into_bytes()
-    };
+    // Optimize by checking for whitespace and only allocating if necessary
+    let input_bytes = input_str.as_bytes();
 
-    // Decode base64
-    let decoded = match STANDARD.decode(&input_bytes) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            crate::error::throw_error(scope, &format!("Invalid base64 string: {}", e));
-            return;
+    // Decode base64 (handles whitespace in input)
+    let decoded = if input_bytes.iter().any(|&b| b.is_ascii_whitespace()) {
+        // Only allocate a new Vec if there's whitespace to filter
+        let filtered: Vec<u8> = input_bytes
+            .iter()
+            .copied()
+            .filter(|&b| !b.is_ascii_whitespace())
+            .collect();
+        match STANDARD.decode(&filtered) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                crate::error::throw_error(scope, &format!("Invalid base64 string: {}", e));
+                return;
+            }
+        }
+    } else {
+        // No whitespace, decode directly without allocation
+        match STANDARD.decode(input_bytes) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                crate::error::throw_error(scope, &format!("Invalid base64 string: {}", e));
+                return;
+            }
         }
     };
 
     // Convert bytes to Latin-1 string (each byte becomes a character)
     // This matches browser behavior for atob
-    let result_str: String = decoded.iter().map(|&b| b as char).collect();
+    // Optimize by pre-allocating and avoiding iterator overhead
+    let mut result_str = String::with_capacity(decoded.len());
+    for &byte in &decoded {
+        // SAFETY: Latin-1 bytes map directly to Unicode code points 0-255
+        result_str.push(byte as char);
+    }
 
     let result = v8::String::new(scope, &result_str).unwrap();
     rv.set(result.into());
@@ -97,16 +112,25 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
     // Check if string contains characters outside the Latin-1 range
     // and convert to bytes simultaneously
-    let mut bytes = Vec::with_capacity(input_str.len());
-    for ch in input_str.chars() {
-        if ch as u32 > 0xFF {
-            crate::error::throw_error(
-                scope,
-                "The string to be encoded contains characters outside of the Latin1 range.",
-            );
-            return;
+    // Use bytes() instead of chars() for better performance since we're checking ASCII/Latin-1
+    let input_bytes = input_str.as_bytes();
+    let mut bytes = Vec::with_capacity(input_bytes.len());
+
+    // Fast path: if input is already ASCII, just copy it
+    if input_str.is_ascii() {
+        bytes.extend_from_slice(input_bytes);
+    } else {
+        // Slow path: validate UTF-8 characters are in Latin-1 range
+        for ch in input_str.chars() {
+            if ch as u32 > 0xFF {
+                crate::error::throw_error(
+                    scope,
+                    "The string to be encoded contains characters outside of the Latin1 range.",
+                );
+                return;
+            }
+            bytes.push(ch as u8);
         }
-        bytes.push(ch as u8);
     }
 
     // Encode to base64
