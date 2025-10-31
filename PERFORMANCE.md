@@ -228,10 +228,36 @@ js.run_script("/* your code */", "script.js")?;
 - Use 0 (default) for one-time script execution
 - Adjust based on script complexity and execution patterns
 
+## Parallel Module Loading
+
+**Implemented**: Parallel module loading optimizes the module import process by parallelizing file I/O operations.
+
+The runtime now implements intelligent parallel prefetching of module dependencies:
+- **Import Discovery**: Parses JavaScript source to discover import/export statements
+- **Parallel File I/O**: Reads discovered module files in parallel using threads
+- **Smart Caching**: Files are cached in the global SOURCE_CACHE before V8 compilation begins
+- **Breadth-First Traversal**: Efficiently discovers and loads the entire module dependency graph
+- **Deduplication**: Shared dependencies are loaded only once
+
+**Implementation Details**:
+1. When a module is imported, the system first scans its source code to extract all import specifiers
+2. All discovered modules are read from disk in parallel using threads
+3. The process continues recursively, building and caching the entire dependency graph
+4. V8 module compilation, instantiation, and evaluation remain sequential (as required)
+5. When V8's module resolution callback is invoked, files are already cached, eliminating I/O bottlenecks
+
+**Performance Impact**:
+- Reduces module loading time for projects with many dependencies
+- Particularly beneficial for applications with deep or wide module dependency graphs
+- No overhead for single-module scripts
+- Maintains correctness and determinism of module evaluation order
+
+**Example**:
+For a module graph with 10 independent modules, parallel loading can reduce total I/O time from 10× sequential reads to approximately 1× parallel read batch (assuming sufficient parallelism).
+
 ## Future Optimization Opportunities
 
-1. **Parallel Module Loading**: Parallelize module compilation where possible
-2. **Native Modules**: Add support for native Rust modules for performance-critical operations
-3. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
-4. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
-5. **Extended Object Pooling**: Expand object pooling to additional hot paths (timer vectors, fetch buffers) as profiling identifies bottlenecks
+1. **Native Modules**: Add support for native Rust modules for performance-critical operations
+2. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
+3. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
+4. **Extended Object Pooling**: Expand object pooling to additional hot paths (timer vectors, fetch buffers) as profiling identifies bottlenecks
