@@ -33,7 +33,7 @@ fn fetch_send(
     let url = to_rust_string(scope, args.get(0));
     let method = to_rust_string(scope, args.get(1));
 
-    // Extract headers array
+    // Extract headers array - use pooled vector
     let headers_array_val = args.get(2);
     let headers_array = match crate::error::try_get_array_result(headers_array_val) {
         Ok(arr) => arr,
@@ -43,7 +43,13 @@ fn fetch_send(
         }
     };
     let headers_len = headers_array.length();
-    let mut headers = Vec::with_capacity(headers_len as usize);
+
+    // Get a pooled vector for headers
+    let isolate: &mut v8::Isolate = scope;
+    let state = crate::IsolateState::get(isolate);
+    let header_pool = state.borrow().header_vec_pool.clone();
+    let mut headers = header_pool.get(|| Vec::with_capacity(headers_len as usize));
+    headers.clear();
 
     for i in 0..headers_len {
         let Some(entry) = headers_array.get_index(scope, i) else {

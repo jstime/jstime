@@ -188,11 +188,12 @@ impl EventLoop {
         let fetches: Vec<crate::isolate_state::FetchRequest> = fetches_borrow.drain(..).collect();
         drop(fetches_borrow);
 
-        // Get the HTTP agent and next_stream_id from isolate state
+        // Get the HTTP agent, next_stream_id, and header pool from isolate state
         let isolate: &mut v8::Isolate = scope;
         let state = crate::IsolateState::get(isolate);
         let agent = state.borrow().http_agent.clone();
         let next_stream_id_ref = state.borrow().next_stream_id.clone();
+        let header_pool = state.borrow().header_vec_pool.clone();
 
         for fetch_request in fetches {
             // Execute the HTTP request and get the response (but don't read body yet)
@@ -203,6 +204,9 @@ impl EventLoop {
                 &fetch_request.headers,
                 fetch_request.body.as_deref(),
             );
+
+            // Return the request headers to the pool
+            header_pool.put(fetch_request.headers);
 
             // Resolve the promise with the result
             let resolver = v8::Local::new(scope, &fetch_request.resolver);
@@ -283,6 +287,9 @@ impl EventLoop {
                         headers_array.set_index(scope, i as u32, entry.into());
                     }
                     obj.set(scope, headers_key.into(), headers_array.into());
+
+                    // Return response headers to pool
+                    header_pool.put(response_headers);
 
                     let _ = resolver.resolve(scope, obj.into());
                 }

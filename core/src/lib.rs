@@ -4,6 +4,7 @@ mod event_loop;
 mod isolate_state;
 mod js_loading;
 mod module;
+mod pool;
 mod script;
 mod sourcemap;
 
