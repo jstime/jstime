@@ -50,24 +50,24 @@ See `benchmarks/README.md` for detailed benchmark instructions.
    - External references
    - Fetch request headers
 
-2. **Object Pooling**: A generic object pooling mechanism reduces allocation overhead by reusing objects:
-   - **Pool Structure**: `Pool<T>` in `core/src/pool.rs` provides thread-local object recycling
-   - **Pooled Types**: 
-     - Header vectors (`Vec<(String, String)>`) for fetch operations
-     - Timer ID vectors (`Vec<TimerId>`) for timer clearing operations
-     - Pending timer vectors (`Vec<PendingTimer>`) for timer addition
-     - Fetch request vectors (`Vec<FetchRequest>`) for batch fetch processing
-     - Ready timer callback vectors for timer execution
-   - **Per-Isolate Lifecycle**: Pools are stored in `IsolateState` and managed per V8 isolate
-   - **Capacity Limits**: Pools have configurable maximum capacity (100-200 objects) to prevent unbounded growth
-   - **Zero-Cost Abstraction**: `PooledVec<T>` provides RAII-style automatic return-to-pool via Drop
-   - **Performance Impact**: Reduces allocations in fetch and timer hot paths, particularly beneficial for:
-     - Applications making many HTTP requests
-     - Scripts with frequent timer creation/clearing patterns
-     - Event-driven applications with high timer churn
-   - **Implementation**: Event loop methods (`add_pending_timers`, `clear_marked_timers`, `collect_ready_timers`, `process_fetches`) now use pooled vectors instead of allocating fresh ones on each operation
+2. **SmallVec Optimization**: Small, stack-allocated vectors reduce heap allocations for collections that are typically small:
+   - **Event Loop Collections**: Timer collections (ready callbacks, ready times, pending additions, cleared timers) use SmallVec with inline capacity of 8, avoiding heap allocations for typical workloads
+   - **Fetch Requests**: Pending fetch request collection uses SmallVec[4] to handle common concurrent fetch scenarios without heap allocation
+   - **URL Parsing**: Host:port splitting uses SmallVec[2] for zero-allocation parsing in the common case
+   - **External References**: Module external references (79 items) use SmallVec to keep the fixed-size collection on stack during initialization
+   - **Performance Impact**: Eliminates heap allocations for small collections, reducing memory pressure and improving cache locality in hot paths
+   - **Implementation**: Uses `smallvec` crate with appropriate inline capacities based on typical usage patterns
 
-3. **Comprehensive String Caching**: A comprehensive string caching mechanism significantly reduces UTF-8 ↔ V8 string conversion overhead.
+3. **Object Pooling**: A generic object pooling mechanism reduces allocation overhead by reusing objects:
+   - **Pool Structure**: `Pool<T>` in `core/src/pool.rs` provides thread-local object recycling
+   - **Pooled Types**: Header vectors (`Vec<(String, String)>`) for fetch operations
+   - **Per-Isolate Lifecycle**: Pools are stored in `IsolateState` and managed per V8 isolate
+   - **Capacity Limits**: Pools have configurable maximum capacity (200 objects) to prevent unbounded growth
+   - **Zero-Cost Abstraction**: `PooledVec<T>` provides RAII-style automatic return-to-pool via Drop
+   - **Performance Impact**: Reduces allocations in fetch hot paths, particularly beneficial for applications making many HTTP requests
+   - **Implementation**: Event loop methods use pooled vectors instead of allocating fresh ones on each fetch operation
+
+4. **Comprehensive String Caching**: A comprehensive string caching mechanism significantly reduces UTF-8 ↔ V8 string conversion overhead.
    - **Cache Structure**: `StringCache` in `IsolateState` caches 40+ frequently used string literals
    - **Lazy Initialization**: Strings are cached on first use (zero overhead for unused strings)
    - **Categories Covered**:
@@ -266,6 +266,5 @@ For a module graph with 10 independent modules, parallel loading can reduce tota
 ## Future Optimization Opportunities
 
 1. **Native Modules**: Add support for native Rust modules for performance-critical operations
-2. **SmallVec**: Use SmallVec for small collections to reduce heap allocations
-3. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
-4. **Additional Pooling Opportunities**: As profiling identifies new bottlenecks, expand pooling to other frequently allocated types
+2. **Extended String Caching**: Further expand string caching to additional builtins (text encoding, streams, etc.) as usage patterns emerge
+3. **Additional Pooling Opportunities**: As profiling identifies new bottlenecks, expand pooling to other frequently allocated types

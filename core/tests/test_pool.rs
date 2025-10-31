@@ -97,23 +97,23 @@ fn test_pool_stress() {
     assert_eq!(result.unwrap(), "499500");
 }
 
-/// Test that timer vector pooling works correctly with multiple timers
+/// Test that timer vector operations work correctly with multiple timers
 #[test]
 fn test_timer_vector_pooling() {
     let _setup_guard = common::setup();
     let options = jstime::Options::default();
     let mut jstime = jstime::JSTime::new(options);
 
-    // Create and clear many timers to exercise timer vector pooling
+    // Create and clear many timers to exercise timer operations
     let script = r#"
         let timerCount = 0;
         
-        // Create and clear multiple timers to test pool reuse
+        // Create and clear multiple timers
         for (let i = 0; i < 50; i++) {
             const timerId = setTimeout(() => {}, i);
             timerCount++;
             
-            // Clear some timers immediately to test pool reuse
+            // Clear some timers immediately
             if (i % 2 === 0) {
                 clearTimeout(timerId);
             }
@@ -122,20 +122,19 @@ fn test_timer_vector_pooling() {
         timerCount.toString();
     "#;
 
-    let result = jstime.run_script(script, "test_timer_pooling.js");
+    let result = jstime.run_script(script, "test_timer_operations.js");
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "50");
 }
 
-/// Test that timer pooling works correctly with intervals
+/// Test that interval operations work correctly
 #[test]
 fn test_interval_vector_pooling() {
     let _setup_guard = common::setup();
     let options = jstime::Options::default();
     let mut jstime = jstime::JSTime::new(options);
 
-    // Test pooling with intervals that are cleared
-    // This test verifies that the event loop correctly pools timer vectors
+    // Test interval operations
     let script = r#"
         let count = 0;
         const intervals = [];
@@ -148,10 +147,10 @@ fn test_interval_vector_pooling() {
             intervals.push(intervalId);
         }
         
-        // Clear all intervals immediately to test pool recycling
+        // Clear all intervals immediately
         intervals.forEach(id => clearInterval(id));
         
-        // Create more intervals to reuse pooled vectors
+        // Create more intervals
         for (let i = 0; i < 10; i++) {
             const intervalId = setInterval(() => {
                 count++;
@@ -162,12 +161,12 @@ fn test_interval_vector_pooling() {
         "success";
     "#;
 
-    let result = jstime.run_script(script, "test_interval_pooling.js");
+    let result = jstime.run_script(script, "test_interval_operations.js");
     assert!(result.is_ok(), "Script execution should succeed");
     assert_eq!(result.unwrap(), "success");
 }
 
-/// Test that mixed timer operations work correctly with pooling
+/// Test that mixed timer operations work correctly
 #[test]
 fn test_mixed_timer_pooling() {
     let _setup_guard = common::setup();
@@ -175,7 +174,6 @@ fn test_mixed_timer_pooling() {
     let mut jstime = jstime::JSTime::new(options);
 
     // Test a mix of timeouts and intervals being created and cleared
-    // This verifies that different timer types can share the pooling infrastructure
     let script = r#"
         let operations = 0;
         

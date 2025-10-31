@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use url::Url;
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
@@ -383,7 +384,7 @@ fn url_set_host(
     if let Ok(mut url) = Url::parse(&url_str) {
         // Parse host and port if present
         if host.contains(':') {
-            let parts: Vec<&str> = host.splitn(2, ':').collect();
+            let parts: SmallVec<[&str; 2]> = host.splitn(2, ':').collect();
             if parts.len() == 2 {
                 let _ = url.set_host(Some(parts[0]));
                 if let Ok(port) = parts[1].parse::<u16>() {
