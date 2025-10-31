@@ -106,29 +106,25 @@ fn test_timer_vector_pooling() {
 
     // Create and clear many timers to exercise timer vector pooling
     let script = r#"
-        (async function() {
-            let count = 0;
+        let timerCount = 0;
+        
+        // Create and clear multiple timers to test pool reuse
+        for (let i = 0; i < 50; i++) {
+            const timerId = setTimeout(() => {}, i);
+            timerCount++;
             
-            // Create and clear multiple timers
-            for (let i = 0; i < 50; i++) {
-                const timerId = setTimeout(() => {
-                    count++;
-                }, i);
-                
-                // Clear some timers immediately to test pool reuse
-                if (i % 2 === 0) {
-                    clearTimeout(timerId);
-                } else {
-                    count++;
-                }
+            // Clear some timers immediately to test pool reuse
+            if (i % 2 === 0) {
+                clearTimeout(timerId);
             }
-            
-            return count;
-        })();
+        }
+        
+        timerCount.toString();
     "#;
 
     let result = jstime.run_script(script, "test_timer_pooling.js");
     assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "50");
 }
 
 /// Test that timer pooling works correctly with intervals

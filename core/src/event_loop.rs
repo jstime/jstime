@@ -122,7 +122,6 @@ impl EventLoop {
         }
 
         // Return the vector to the pool (already cleared by drain)
-
         self.pending_timer_vec_pool.put(pending);
     }
 
