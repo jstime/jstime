@@ -803,7 +803,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.62.0"
+version = "0.63.0"
 dependencies = [
  "assert_cmd",
  "dirs",
@@ -815,7 +815,7 @@ dependencies = [
 
 [[package]]
 name = "jstime_core"
-version = "0.62.0"
+version = "0.63.0"
 dependencies = [
  "align-data",
  "base64-simd",
