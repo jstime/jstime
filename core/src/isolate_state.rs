@@ -17,20 +17,120 @@ pub(crate) struct StreamingFetch {
     pub(crate) offset: usize,
 }
 
+/// Cache for frequently used V8 strings to avoid repeated UTF-8 ↔ V8 conversions.
+/// This addresses a key performance bottleneck by caching commonly used property names
+/// and string literals throughout the runtime.
+///
+/// Note: Some fields are not yet used but are included for comprehensive caching
+/// opportunities across all builtins. The unused fields are intentionally kept
+/// to support future optimizations.
+#[allow(dead_code)]
 pub(crate) struct StringCache {
+    // Fetch-related strings
     pub(crate) status: Option<v8::Global<v8::String>>,
     pub(crate) status_text: Option<v8::Global<v8::String>>,
     pub(crate) headers: Option<v8::Global<v8::String>>,
+
+    // Common property names
+    pub(crate) name: Option<v8::Global<v8::String>>,
+    pub(crate) type_: Option<v8::Global<v8::String>>,
+    pub(crate) value: Option<v8::Global<v8::String>>,
+    pub(crate) length: Option<v8::Global<v8::String>>,
+    pub(crate) done: Option<v8::Global<v8::String>>,
+    pub(crate) message: Option<v8::Global<v8::String>>,
+    pub(crate) stack: Option<v8::Global<v8::String>>,
+
+    // Crypto-related strings
+    pub(crate) algorithm: Option<v8::Global<v8::String>>,
+    pub(crate) hash: Option<v8::Global<v8::String>>,
+    pub(crate) key_data: Option<v8::Global<v8::String>>,
+    pub(crate) extractable: Option<v8::Global<v8::String>>,
+    pub(crate) usages: Option<v8::Global<v8::String>>,
+    pub(crate) secret: Option<v8::Global<v8::String>>,
+    pub(crate) iv: Option<v8::Global<v8::String>>,
+    pub(crate) additional_data: Option<v8::Global<v8::String>>,
+
+    // Event-related strings
+    pub(crate) listeners: Option<v8::Global<v8::String>>,
+    pub(crate) stop_propagation: Option<v8::Global<v8::String>>,
+    pub(crate) stop_immediate_propagation: Option<v8::Global<v8::String>>,
+    pub(crate) default_prevented: Option<v8::Global<v8::String>>,
+
+    // File system strings
+    pub(crate) is_file: Option<v8::Global<v8::String>>,
+    pub(crate) is_directory: Option<v8::Global<v8::String>>,
+    pub(crate) is_symbolic_link: Option<v8::Global<v8::String>>,
+    pub(crate) size: Option<v8::Global<v8::String>>,
+    pub(crate) mtime_ms: Option<v8::Global<v8::String>>,
+    pub(crate) recursive: Option<v8::Global<v8::String>>,
+
+    // Module/import strings
+    pub(crate) url: Option<v8::Global<v8::String>>,
 }
 
 impl StringCache {
     pub(crate) fn new() -> Self {
         Self {
+            // Fetch-related
             status: None,
             status_text: None,
             headers: None,
+
+            // Common property names
+            name: None,
+            type_: None,
+            value: None,
+            length: None,
+            done: None,
+            message: None,
+            stack: None,
+
+            // Crypto-related
+            algorithm: None,
+            hash: None,
+            key_data: None,
+            extractable: None,
+            usages: None,
+            secret: None,
+            iv: None,
+            additional_data: None,
+
+            // Event-related
+            listeners: None,
+            stop_propagation: None,
+            stop_immediate_propagation: None,
+            default_prevented: None,
+
+            // File system
+            is_file: None,
+            is_directory: None,
+            is_symbolic_link: None,
+            size: None,
+            mtime_ms: None,
+            recursive: None,
+
+            // Module/import
+            url: None,
         }
     }
+}
+
+/// Macro to get or create a cached string.
+/// This simplifies the pattern of checking for cached strings and creating them if needed.
+///
+/// Usage: get_or_create_cached_string!(scope, cache, field_name, "literal")
+#[macro_export]
+macro_rules! get_or_create_cached_string {
+    ($scope:expr, $cache:expr, $field:ident, $literal:expr) => {{
+        if let Some(ref cached) = $cache.$field {
+            v8::Local::new($scope, cached)
+        } else {
+            let key = v8::String::new($scope, $literal).unwrap();
+            let isolate: &v8::Isolate = $scope;
+            $cache.$field = Some(v8::Global::new(isolate, key));
+            key
+        }
+    }};
 }
 
 pub(crate) struct IsolateState {

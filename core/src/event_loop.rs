@@ -247,36 +247,29 @@ impl EventLoop {
                     let stream_id_value = v8::Number::new(scope, stream_id as f64);
                     obj.set(scope, stream_id_key.into(), stream_id_value.into());
 
-                    // Set status
-                    let status_key = if let Some(ref cached) = cache_borrow.status {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "status").unwrap();
-                        cache_borrow.status = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set status (using cached string)
+                    let status_key =
+                        crate::get_or_create_cached_string!(scope, cache_borrow, status, "status");
                     let status_value = v8::Integer::new(scope, status as i32);
                     obj.set(scope, status_key.into(), status_value.into());
 
-                    // Set statusText
-                    let status_text_key = if let Some(ref cached) = cache_borrow.status_text {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "statusText").unwrap();
-                        cache_borrow.status_text = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set statusText (using cached string)
+                    let status_text_key = crate::get_or_create_cached_string!(
+                        scope,
+                        cache_borrow,
+                        status_text,
+                        "statusText"
+                    );
                     let status_text_value = v8::String::new(scope, &status_text).unwrap();
                     obj.set(scope, status_text_key.into(), status_text_value.into());
 
-                    // Set headers
-                    let headers_key = if let Some(ref cached) = cache_borrow.headers {
-                        v8::Local::new(scope, cached)
-                    } else {
-                        let key = v8::String::new(scope, "headers").unwrap();
-                        cache_borrow.headers = Some(v8::Global::new(scope, key));
-                        key
-                    };
+                    // Set headers (using cached string)
+                    let headers_key = crate::get_or_create_cached_string!(
+                        scope,
+                        cache_borrow,
+                        headers,
+                        "headers"
+                    );
 
                     drop(cache_borrow);
                     let headers_len = response_headers.len() as i32;
