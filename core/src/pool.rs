@@ -61,6 +61,8 @@ impl<T> Pool<T> {
 }
 
 /// A handle to a pooled vector that automatically returns it to the pool when dropped.
+/// Note: This is currently used only in tests but provides infrastructure for future
+/// RAII-style pool management. The #[allow(dead_code)] will be removed when used in production code.
 #[allow(dead_code)]
 pub(crate) struct PooledVec<T> {
     vec: Option<Vec<T>>,
