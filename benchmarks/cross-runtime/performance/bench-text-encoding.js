@@ -11,9 +11,11 @@ const testString = 'Hello, World! 世界 🌍 Testing UTF-8 encoding and decodin
 
 const start = performance.now();
 
+let sum = 0;
 for (let i = 0; i < ITERATIONS; i++) {
   const encoded = encoder.encode(testString);
   const decoded = decoder.decode(encoded);
+  sum += decoded.length;
 }
 
 const end = performance.now();

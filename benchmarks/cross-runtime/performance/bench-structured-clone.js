@@ -19,8 +19,10 @@ const testObject = {
 
 const start = performance.now();
 
+let sum = 0;
 for (let i = 0; i < ITERATIONS; i++) {
   const cloned = structuredClone(testObject);
+  sum += cloned.number;
 }
 
 const end = performance.now();
