@@ -240,7 +240,7 @@ fn event_target_dispatch_event(
 
     // Get all cached strings at once to minimize borrow overhead
     let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow_mut().string_cache.clone();
+    let string_cache = isolate_state.borrow().string_cache.clone();
     let mut cache = string_cache.borrow_mut();
 
     let current_target_key =
@@ -307,7 +307,9 @@ fn event_target_dispatch_event(
         }
     };
 
-    // Create the type key for looking up listeners (not cached since it's dynamic)
+    // Create the type key for looking up listeners in the map
+    // Note: This string is not cached because event types are user-provided and vary widely
+    // (e.g., "click", "test", "custom-event", etc.), so caching wouldn't provide benefit
     let type_key_lookup = v8::String::new(scope, &type_str).unwrap();
     let listeners_array = match listeners_map.get(scope, type_key_lookup.into()) {
         Some(val) if val.is_array() => v8::Local::<v8::Array>::try_from(val).unwrap(),

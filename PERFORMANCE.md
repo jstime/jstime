@@ -74,7 +74,7 @@ See `benchmarks/README.md` for detailed benchmark instructions.
      - Fetch-related: "status", "statusText", "headers"
      - Common properties: "name", "type", "value", "length", "done", "message", "stack"
      - Crypto: "algorithm", "hash", "extractable", "usages", etc.
-     - Events: "__listeners__", "__currentTarget__", "__target__", "__stopPropagation__", "__stopImmediatePropagation__", "__defaultPrevented__", "cancelable", "type"
+     - Events: Internal property names like "__listeners__", "__currentTarget__", "__target__", "__stopPropagation__", "__stopImmediatePropagation__", "__defaultPrevented__", and standard property names like "cancelable", "type" (Note: User-provided event type values like "click" are not cached as they vary widely)
      - File system: "isFile", "isDirectory", "size", etc.
      - Modules: "url" for import.meta
    - **Performance Impact**: Eliminates repeated string allocations in hot paths like error formatting, fetch operations, event dispatching, and module loading
