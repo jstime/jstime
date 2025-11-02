@@ -74,10 +74,11 @@ fn event_target_add_event_listener(
         return;
     }
 
-    let type_str = {
+    // Convert type to a V8 string directly, without going through Rust String
+    let type_key = {
         v8::tc_scope!(let tc, scope);
         match type_arg.to_string(tc) {
-            Some(s) => s.to_rust_string_lossy(tc),
+            Some(s) => s,
             None => return,
         }
     };
@@ -99,18 +100,24 @@ fn event_target_add_event_listener(
         Err(_) => return,
     };
 
+    // Get or create the listeners map
     let listeners_map = if let Some(existing) = target_obj.get(scope, listeners_key.into()) {
         if existing.is_map() {
             v8::Local::<v8::Map>::try_from(existing).unwrap()
         } else {
-            v8::Map::new(scope)
+            // If __listeners__ exists but isn't a Map, create a new one and set it
+            let new_map = v8::Map::new(scope);
+            target_obj.set(scope, listeners_key.into(), new_map.into());
+            new_map
         }
     } else {
-        v8::Map::new(scope)
+        // Create new map and set it on the target
+        let new_map = v8::Map::new(scope);
+        target_obj.set(scope, listeners_key.into(), new_map.into());
+        new_map
     };
 
     // Get the array of listeners for this event type
-    let type_key = v8::String::new(scope, &type_str).unwrap();
     let listeners_array = if let Some(existing) = listeners_map.get(scope, type_key.into()) {
         if existing.is_array() {
             v8::Local::<v8::Array>::try_from(existing).unwrap()
@@ -126,14 +133,13 @@ fn event_target_add_event_listener(
     let length = listeners_array.length();
     listeners_array.set_index(scope, length, listener_func.into());
 
-    // Update the map
+    // Update the array in the map. The map reference is already stored on the target
+    // object, so we only need to update the array contents within the map.
     listeners_map.set(scope, type_key.into(), listeners_array.into());
-
-    // Store the map back on the target
-    target_obj.set(scope, listeners_key.into(), listeners_map.into());
 }
 
 // EventTarget.removeEventListener(type, listener, options)
+#[inline]
 fn event_target_remove_event_listener(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -151,10 +157,11 @@ fn event_target_remove_event_listener(
         return;
     }
 
-    let type_str = {
+    // Convert type to a V8 string directly, without going through Rust String
+    let type_key = {
         v8::tc_scope!(let tc, scope);
         match type_arg.to_string(tc) {
-            Some(s) => s.to_rust_string_lossy(tc),
+            Some(s) => s,
             None => return,
         }
     };
@@ -180,7 +187,6 @@ fn event_target_remove_event_listener(
         _ => return,
     };
 
-    let type_key = v8::String::new(scope, &type_str).unwrap();
     let listeners_array = match listeners_map.get(scope, type_key.into()) {
         Some(val) if val.is_array() => v8::Local::<v8::Array>::try_from(val).unwrap(),
         _ => return,
