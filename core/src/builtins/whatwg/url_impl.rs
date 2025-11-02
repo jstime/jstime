@@ -10,6 +10,22 @@ thread_local! {
     static URL_CACHE: RefCell<FxHashMap<String, Url>> = RefCell::new(FxHashMap::default());
 }
 
+// Helper to evict half the cache when size limit is reached
+#[inline]
+fn evict_cache_if_full(cache_map: &mut FxHashMap<String, Url>) {
+    const MAX_CACHE_SIZE: usize = 512;
+    if cache_map.len() >= MAX_CACHE_SIZE {
+        // Clear half the cache to maintain some entries
+        // Note: HashMap iteration order is non-deterministic, but this is acceptable
+        // for a simple cache eviction strategy
+        let keys_to_remove: Vec<String> =
+            cache_map.keys().take(MAX_CACHE_SIZE / 2).cloned().collect();
+        for key in keys_to_remove {
+            cache_map.remove(&key);
+        }
+    }
+}
+
 // Helper to get or parse a URL with caching
 #[inline]
 fn get_or_parse_url(url_str: &str) -> Result<Url, ()> {
@@ -24,18 +40,7 @@ fn get_or_parse_url(url_str: &str) -> Result<Url, ()> {
         // Parse URL
         match Url::parse(url_str) {
             Ok(url) => {
-                // Limit cache size to prevent unbounded growth
-                if cache_map.len() >= 512 {
-                    // Clear half the cache to maintain some entries
-                    let keys_to_remove: Vec<String> = cache_map
-                        .keys()
-                        .take(cache_map.len() / 2)
-                        .cloned()
-                        .collect();
-                    for key in keys_to_remove {
-                        cache_map.remove(&key);
-                    }
-                }
+                evict_cache_if_full(&mut cache_map);
                 cache_map.insert(url_str.to_string(), url.clone());
                 Ok(url)
             }
@@ -50,16 +55,7 @@ fn update_url_cache(url: &Url) {
     let url_str = url.as_str().to_string();
     URL_CACHE.with(|cache| {
         let mut cache_map = cache.borrow_mut();
-        if cache_map.len() >= 512 {
-            let keys_to_remove: Vec<String> = cache_map
-                .keys()
-                .take(cache_map.len() / 2)
-                .cloned()
-                .collect();
-            for key in keys_to_remove {
-                cache_map.remove(&key);
-            }
-        }
+        evict_cache_if_full(&mut cache_map);
         cache_map.insert(url_str, url.clone());
     });
 }
