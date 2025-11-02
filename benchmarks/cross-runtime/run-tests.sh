@@ -14,6 +14,32 @@ fi
 # Don't use set -e so that test failures don't stop the script
 set +e
 
+# Parse command line arguments
+VERBOSE=false
+for arg in "$@"; do
+    case "$arg" in
+        --verbose|-v)
+            VERBOSE=true
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --verbose, -v    Show detailed breakdown for each performance test"
+            echo "  --help, -h       Show this help message"
+            echo ""
+            echo "The test suite will automatically detect available runtimes"
+            echo "(jstime, node, deno, bun) and run compliance and performance tests."
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg"
+            echo "Use --help to see available options"
+            exit 1
+            ;;
+    esac
+done
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -241,6 +267,7 @@ PERFORMANCE_TESTS=(
 
 # Store performance results (bash 3.2 compatible)
 PERF_RESULTS=""
+PERF_DETAILS=""  # Store detailed results for verbose mode
 
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js)
@@ -255,12 +282,21 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
             # Parse JSON output
             elapsed=$(echo "$output" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
             ops_per_ms=$(echo "$output" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
+            iterations=$(echo "$output" | grep -o '"iterations":[0-9]*' | cut -d':' -f2)
             
-            echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
+            if [ "$VERBOSE" = true ]; then
+                echo -e "${GREEN}${elapsed}ms${NC}"
+                echo -e "    ${GREEN}Iterations: ${iterations}, Ops/ms: ${ops_per_ms}${NC}"
+            else
+                echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
+            fi
+            
             set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
+            set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
         else
             echo -e "${RED}ERROR${NC}"
             set_result PERF_RESULTS "$runtime-$test_name" "ERROR"
+            set_result PERF_DETAILS "$runtime-$test_name" "ERROR||"
         fi
     done
     echo ""
@@ -296,7 +332,11 @@ done
 
 echo ""
 echo -e "${YELLOW}Performance Comparison:${NC}"
-echo "  (Lower is better - showing elapsed time in milliseconds)"
+if [ "$VERBOSE" = true ]; then
+    echo "  (Lower time is better - showing detailed breakdown)"
+else
+    echo "  (Lower is better - showing elapsed time in milliseconds)"
+fi
 echo ""
 
 # Print performance comparison table
@@ -333,6 +373,21 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
         fi
     done
     echo ""
+    
+    # Show detailed breakdown in verbose mode
+    if [ "$VERBOSE" = true ]; then
+        for runtime in "${RUNTIMES[@]}"; do
+            details=$(get_result PERF_DETAILS "$runtime-bench-$test_name")
+            if [ "$details" != "ERROR||" ] && [ -n "$details" ]; then
+                elapsed=$(echo "$details" | cut -d'|' -f1)
+                ops_per_ms=$(echo "$details" | cut -d'|' -f2)
+                iterations=$(echo "$details" | cut -d'|' -f3)
+                printf "    ${GREEN}%-10s${NC}" "$runtime:"
+                echo -e "elapsed=${elapsed}ms, iterations=${iterations}, ops_per_ms=${ops_per_ms}"
+            fi
+        done
+        echo ""
+    fi
 done
 
 echo ""

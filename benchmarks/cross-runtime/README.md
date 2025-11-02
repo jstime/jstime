@@ -16,6 +16,9 @@ The test suite is divided into two categories:
 ```bash
 # From the repository root
 ./benchmarks/cross-runtime/run-tests.sh
+
+# For detailed performance breakdown
+./benchmarks/cross-runtime/run-tests.sh --verbose
 ```
 
 The test runner will:
@@ -23,6 +26,14 @@ The test runner will:
 - Build jstime if needed
 - Run all compliance and performance tests
 - Generate a comparison report
+
+### Command Line Options
+
+- `--verbose` or `-v`: Show detailed breakdown for each performance test, including:
+  - Individual elapsed time for each runtime
+  - Number of iterations
+  - Operations per millisecond
+- `--help` or `-h`: Show usage information
 
 ### Requirements
 
@@ -137,6 +148,36 @@ Performance Comparison:
 
   arithmetic:          jstime:45.123ms node:38.456ms★ deno:42.789ms
   strings:             jstime:52.341ms★ node:55.678ms deno:53.912ms
+  ...
+```
+
+### Sample Output (Verbose Mode)
+
+With `--verbose` flag, the output includes detailed breakdown for each performance test:
+
+```
+=== Performance Tests ===
+
+Running bench-arithmetic...
+  jstime    : 0.944ms
+    Iterations: 100000, Ops/ms: 105976.71
+  node      : 2.193ms
+    Iterations: 100000, Ops/ms: 45605.42
+
+...
+
+=== Summary ===
+
+Performance Comparison:
+  (Lower time is better - showing detailed breakdown)
+
+  arithmetic:          jstime:0.944ms★ node:2.193ms
+    jstime:   elapsed=0.944ms, iterations=100000, ops_per_ms=105976.71
+    node:     elapsed=2.193ms, iterations=100000, ops_per_ms=45605.42
+
+  strings:             jstime:6.758ms★ node:8.635ms
+    jstime:   elapsed=6.758ms, iterations=10000, ops_per_ms=1479.77
+    node:     elapsed=8.635ms, iterations=10000, ops_per_ms=1158.08
   ...
 ```
 
