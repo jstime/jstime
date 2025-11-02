@@ -55,6 +55,9 @@ pub(crate) struct StringCache {
     pub(crate) stop_propagation: Option<v8::Global<v8::String>>,
     pub(crate) stop_immediate_propagation: Option<v8::Global<v8::String>>,
     pub(crate) default_prevented: Option<v8::Global<v8::String>>,
+    pub(crate) current_target: Option<v8::Global<v8::String>>,
+    pub(crate) target: Option<v8::Global<v8::String>>,
+    pub(crate) cancelable: Option<v8::Global<v8::String>>,
 
     // File system strings
     pub(crate) is_file: Option<v8::Global<v8::String>>,
@@ -100,6 +103,9 @@ impl StringCache {
             stop_propagation: None,
             stop_immediate_propagation: None,
             default_prevented: None,
+            current_target: None,
+            target: None,
+            cancelable: None,
 
             // File system
             is_file: None,
