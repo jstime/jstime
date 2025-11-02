@@ -62,37 +62,58 @@ get_runtime_info() {
     echo "$version|$path"
 }
 
+# Helper function to store a key-value pair in delimiter-separated strings
+# Note: Keys and values are internally generated (runtime names, test names, timing values)
+# not from user input, so eval usage is safe in this context.
+set_result() {
+    local var_name=$1
+    local key=$2
+    local value=$3
+    # The newline is intentional - it separates entries in the string
+    eval "$var_name=\"\${$var_name}\${key}|${value}
+\""
+}
+
+# Helper function to get a value by key from delimiter-separated strings
+get_result() {
+    local var_name=$1
+    local key=$2
+    # Safely extract value by matching the key pattern
+    eval "echo \"\$$var_name\"" | grep "^${key}|" | cut -d'|' -f2-
+}
+
 # Detect available runtimes
 RUNTIMES=()
-declare -A RUNTIME_VERSIONS
-declare -A RUNTIME_PATHS
+# Use delimiter-separated strings for bash 3.2 compatibility (no associative arrays)
+RUNTIME_VERSIONS=""
+RUNTIME_PATHS=""
 
 if [ -x "$JSTIME" ]; then
     RUNTIMES+=("jstime")
     info=$(get_runtime_info "jstime")
-    RUNTIME_VERSIONS["jstime"]=$(echo "$info" | cut -d'|' -f1)
-    RUNTIME_PATHS["jstime"]=$(echo "$info" | cut -d'|' -f2)
+    set_result RUNTIME_VERSIONS "jstime" "$(echo "$info" | cut -d'|' -f1)"
+    set_result RUNTIME_PATHS "jstime" "$(echo "$info" | cut -d'|' -f2)"
 fi
 
 if command -v node &> /dev/null; then
     RUNTIMES+=("node")
     info=$(get_runtime_info "node")
-    RUNTIME_VERSIONS["node"]=$(echo "$info" | cut -d'|' -f1)
-    RUNTIME_PATHS["node"]=$(echo "$info" | cut -d'|' -f2)
+    set_result RUNTIME_VERSIONS "node" "$(echo "$info" | cut -d'|' -f1)"
+    set_result RUNTIME_PATHS "node" "$(echo "$info" | cut -d'|' -f2)"
 fi
 
 if command -v deno &> /dev/null; then
     RUNTIMES+=("deno")
     info=$(get_runtime_info "deno")
-    RUNTIME_VERSIONS["deno"]=$(echo "$info" | cut -d'|' -f1)
-    RUNTIME_PATHS["deno"]=$(echo "$info" | cut -d'|' -f2)
+    set_result RUNTIME_VERSIONS "deno" "$(echo "$info" | cut -d'|' -f1)"
+    set_result RUNTIME_PATHS "deno" "$(echo "$info" | cut -d'|' -f2)"
 fi
 
 if command -v bun &> /dev/null; then
     RUNTIMES+=("bun")
     info=$(get_runtime_info "bun")
-    RUNTIME_VERSIONS["bun"]=$(echo "$info" | cut -d'|' -f1)
-    RUNTIME_PATHS["bun"]=$(echo "$info" | cut -d'|' -f2)
+    set_result RUNTIME_VERSIONS "bun" "$(echo "$info" | cut -d'|' -f1)"
+    set_result RUNTIME_PATHS "bun" "$(echo "$info" | cut -d'|' -f2)"
 fi
 
 if [ ${#RUNTIMES[@]} -eq 0 ]; then
@@ -107,8 +128,8 @@ echo ""
 # Display runtime information
 for runtime in "${RUNTIMES[@]}"; do
     echo -e "${YELLOW}$runtime${NC}"
-    echo -e "  Path:    ${RUNTIME_PATHS[$runtime]}"
-    echo -e "  Version: ${RUNTIME_VERSIONS[$runtime]}"
+    echo -e "  Path:    $(get_result RUNTIME_PATHS "$runtime")"
+    echo -e "  Version: $(get_result RUNTIME_VERSIONS "$runtime")"
 done
 echo ""
 
@@ -158,25 +179,6 @@ COMPLIANCE_TESTS=(
 # Format: "key1|value1\nkey2|value2\n..."
 COMPLIANCE_RESULTS=""
 
-# Helper function to store a key-value pair
-# Note: Keys and values are internally generated (runtime names, test names, timing values)
-# not from user input, so eval usage is safe in this context.
-set_result() {
-    local var_name=$1
-    local key=$2
-    local value=$3
-    # The newline is intentional - it separates entries in the string
-    eval "$var_name=\"\${$var_name}\${key}|${value}
-\""
-}
-
-# Helper function to get a value by key
-get_result() {
-    local var_name=$1
-    local key=$2
-    # Safely extract value by matching the key pattern
-    eval "echo \"\$$var_name\"" | grep "^${key}|" | cut -d'|' -f2-
-}
 
 for test_file in "${COMPLIANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js)
