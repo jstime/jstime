@@ -273,6 +273,12 @@ PERFORMANCE_TESTS=(
     "bench-text-encoding.js"
     "bench-structured-clone.js"
     "bench-event.js"
+    "bench-console.js"
+    "bench-performance.js"
+    "bench-timers.js"
+    "bench-streams.js"
+    "bench-fetch.js"
+    "bench-webassembly.js"
 )
 
 # Store performance results (bash 3.2 compatible)
