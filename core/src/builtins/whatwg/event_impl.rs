@@ -50,6 +50,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 }
 
 // EventTarget.addEventListener(type, listener, options)
+#[inline]
 fn event_target_add_event_listener(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -209,6 +210,7 @@ fn event_target_remove_event_listener(
 }
 
 // EventTarget.dispatchEvent(event)
+#[inline]
 fn event_target_dispatch_event(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -275,26 +277,68 @@ fn event_target_dispatch_event(
         event_obj.set(scope, target_key.into(), target);
     }
 
-    // Get event type
-    let type_val = match event_obj.get(scope, type_key.into()) {
-        Some(val) => val,
-        None => {
-            rv.set(v8::Boolean::new(scope, true).into());
-            return;
-        }
-    };
+    // Get event type - use cached type string if available to avoid allocations
+    // in the common case where the same event is dispatched multiple times
+    let type_str_key = v8::String::new_external_onebyte_static(scope, b"__typeStr__").unwrap();
+    
+    let type_key_lookup = if let Some(cached) = event_obj.get(scope, type_str_key.into()) {
+        if cached.is_string() {
+            v8::Local::<v8::String>::try_from(cached).unwrap()
+        } else {
+            // Fallback: get type from event and cache it
+            let type_val = match event_obj.get(scope, type_key.into()) {
+                Some(val) => val,
+                None => {
+                    rv.set(v8::Boolean::new(scope, true).into());
+                    return;
+                }
+            };
 
-    let type_str = {
-        v8::tc_scope!(let tc, scope);
-        type_val.to_string(tc).map(|s| s.to_rust_string_lossy(tc))
-    };
-
-    let type_str = match type_str {
-        Some(s) => s,
-        None => {
-            rv.set(v8::Boolean::new(scope, true).into());
-            return;
+            let type_v8_str_opt = {
+                v8::tc_scope!(let tc, scope);
+                type_val.to_string(tc)
+            };
+            
+            let type_v8_str = match type_v8_str_opt {
+                Some(s) => s,
+                None => {
+                    rv.set(v8::Boolean::new(scope, true).into());
+                    return;
+                }
+            };
+            
+            // Cache the V8 string on the event object for future dispatches
+            event_obj.set(scope, type_str_key.into(), type_v8_str.into());
+            
+            type_v8_str
         }
+    } else {
+        // First dispatch: get type from event and cache it
+        let type_val = match event_obj.get(scope, type_key.into()) {
+            Some(val) => val,
+            None => {
+                rv.set(v8::Boolean::new(scope, true).into());
+                return;
+            }
+        };
+
+        let type_v8_str_opt = {
+            v8::tc_scope!(let tc, scope);
+            type_val.to_string(tc)
+        };
+        
+        let type_v8_str = match type_v8_str_opt {
+            Some(s) => s,
+            None => {
+                rv.set(v8::Boolean::new(scope, true).into());
+                return;
+            }
+        };
+        
+        // Cache the V8 string on the event object for future dispatches
+        event_obj.set(scope, type_str_key.into(), type_v8_str.into());
+        
+        type_v8_str
     };
 
     // Get listeners for this event type
@@ -307,10 +351,7 @@ fn event_target_dispatch_event(
         }
     };
 
-    // Create the type key for looking up listeners in the map
-    // Note: This string is not cached because event types are user-provided and vary widely
-    // (e.g., "click", "test", "custom-event", etc.), so caching wouldn't provide benefit
-    let type_key_lookup = v8::String::new(scope, &type_str).unwrap();
+    // Use the already-converted type_key_lookup (which is a v8::String)
     let listeners_array = match listeners_map.get(scope, type_key_lookup.into()) {
         Some(val) if val.is_array() => v8::Local::<v8::Array>::try_from(val).unwrap(),
         _ => {
@@ -322,21 +363,22 @@ fn event_target_dispatch_event(
 
     // Call each listener
     let length = listeners_array.length();
+    let event_arg = [event];
+    
     for i in 0..length {
         // Check if immediate propagation was stopped
-        if let Some(stop_val) = event_obj.get(scope, stop_immediate_key.into())
-            && stop_val.is_true()
-        {
-            break;
+        if let Some(stop_val) = event_obj.get(scope, stop_immediate_key.into()) {
+            if stop_val.is_true() {
+                break;
+            }
         }
 
-        if let Some(item) = listeners_array.get_index(scope, i)
-            && item.is_function()
-        {
-            let listener_func = v8::Local::<v8::Function>::try_from(item).unwrap();
-            let recv = target;
-            let args = [event];
-            listener_func.call(scope, recv, &args);
+        // Get listener at index i and call it if it's a function
+        if let Some(item) = listeners_array.get_index(scope, i) {
+            if item.is_function() {
+                let listener_func = v8::Local::<v8::Function>::try_from(item).unwrap();
+                listener_func.call(scope, target, &event_arg);
+            }
         }
     }
 
@@ -379,6 +421,7 @@ fn event_stop_propagation(
 }
 
 // Event.stopImmediatePropagation()
+#[inline]
 fn event_stop_immediate_propagation(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
