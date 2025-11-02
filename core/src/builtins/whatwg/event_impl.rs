@@ -106,7 +106,7 @@ fn event_target_add_event_listener(
         Some(existing) if existing.is_map() => {
             // Fast path: listeners map already exists
             let map = v8::Local::<v8::Map>::try_from(existing).unwrap();
-            
+
             // Get or create the array of listeners for this event type
             match map.get(scope, type_key.into()) {
                 Some(arr) if arr.is_array() => {
