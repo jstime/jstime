@@ -26,7 +26,7 @@ The test runner will:
 
 ### Requirements
 
-- **Bash 4.0+**: Required to run the test script (uses associative arrays for tracking results)
+- **Bash 3.2+**: Required to run the test script (compatible with the default bash on macOS)
 - **jstime**: Built automatically if not found at `target/release/jstime`
 - **Node.js**: Optional, will be used if available
 - **Deno**: Optional, will be used if available
@@ -227,7 +227,7 @@ cargo build --release
 
 ### "This script requires bash to run"
 
-The test runner script requires Bash 4.0 or higher. If you get this error:
+The test runner script requires Bash 3.2 or higher (which is available on all modern systems, including macOS). If you get this error:
 ```bash
 # Make sure to run with bash explicitly
 bash benchmarks/cross-runtime/run-tests.sh
@@ -237,12 +237,7 @@ chmod +x benchmarks/cross-runtime/run-tests.sh
 ./benchmarks/cross-runtime/run-tests.sh
 ```
 
-On macOS, the default bash may be outdated. Install a newer version:
-```bash
-brew install bash
-# Then run with the newer bash (check the actual path with: which bash)
-$(brew --prefix)/bin/bash benchmarks/cross-runtime/run-tests.sh
-```
+The script is compatible with Bash 3.2+, so it works with the default bash on macOS without needing to install a newer version.
 
 ### "No JavaScript runtimes found"
 
