@@ -280,7 +280,7 @@ fn event_target_dispatch_event(
     // Get event type - use cached type string if available to avoid allocations
     // in the common case where the same event is dispatched multiple times
     let type_str_key = v8::String::new_external_onebyte_static(scope, b"__typeStr__").unwrap();
-    
+
     let type_key_lookup = if let Some(cached) = event_obj.get(scope, type_str_key.into()) {
         if cached.is_string() {
             v8::Local::<v8::String>::try_from(cached).unwrap()
@@ -298,7 +298,7 @@ fn event_target_dispatch_event(
                 v8::tc_scope!(let tc, scope);
                 type_val.to_string(tc)
             };
-            
+
             let type_v8_str = match type_v8_str_opt {
                 Some(s) => s,
                 None => {
@@ -306,10 +306,10 @@ fn event_target_dispatch_event(
                     return;
                 }
             };
-            
+
             // Cache the V8 string on the event object for future dispatches
             event_obj.set(scope, type_str_key.into(), type_v8_str.into());
-            
+
             type_v8_str
         }
     } else {
@@ -326,7 +326,7 @@ fn event_target_dispatch_event(
             v8::tc_scope!(let tc, scope);
             type_val.to_string(tc)
         };
-        
+
         let type_v8_str = match type_v8_str_opt {
             Some(s) => s,
             None => {
@@ -334,10 +334,10 @@ fn event_target_dispatch_event(
                 return;
             }
         };
-        
+
         // Cache the V8 string on the event object for future dispatches
         event_obj.set(scope, type_str_key.into(), type_v8_str.into());
-        
+
         type_v8_str
     };
 
@@ -364,20 +364,20 @@ fn event_target_dispatch_event(
     // Call each listener
     let length = listeners_array.length();
     let event_arg = [event];
-    
+
     for i in 0..length {
         // Get listener at index i and call it if it's a function
-        if let Some(item) = listeners_array.get_index(scope, i) {
-            if item.is_function() {
-                let listener_func = v8::Local::<v8::Function>::try_from(item).unwrap();
-                listener_func.call(scope, target, &event_arg);
-                
-                // Check if immediate propagation was stopped after the call
-                if let Some(stop_val) = event_obj.get(scope, stop_immediate_key.into()) {
-                    if stop_val.is_true() {
-                        break;
-                    }
-                }
+        if let Some(item) = listeners_array.get_index(scope, i)
+            && item.is_function()
+        {
+            let listener_func = v8::Local::<v8::Function>::try_from(item).unwrap();
+            listener_func.call(scope, target, &event_arg);
+
+            // Check if immediate propagation was stopped after the call
+            if let Some(stop_val) = event_obj.get(scope, stop_immediate_key.into())
+                && stop_val.is_true()
+            {
+                break;
             }
         }
     }
