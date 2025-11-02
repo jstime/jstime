@@ -16,6 +16,9 @@ The test suite is divided into two categories:
 ```bash
 # From the repository root
 ./benchmarks/cross-runtime/run-tests.sh
+
+# For detailed performance breakdown
+./benchmarks/cross-runtime/run-tests.sh --verbose
 ```
 
 The test runner will:
@@ -23,6 +26,16 @@ The test runner will:
 - Build jstime if needed
 - Run all compliance and performance tests
 - Generate a comparison report
+
+### Command Line Options
+
+- `--verbose` or `-v`: Show detailed breakdown for each performance test
+  - Shows individual sub-test results (e.g., for strings: concatenation, template literals, repeat, split/join)
+  - Displays elapsed time and operations per millisecond for each sub-test
+  - During execution: Shows sub-tests immediately after each benchmark
+  - In summary: Shows complete breakdown for all runtimes
+  - Helps identify which specific operations need performance improvements
+- `--help` or `-h`: Show usage information
 
 ### Requirements
 
@@ -57,21 +70,32 @@ Each test outputs: `API_NAME: X passed, Y failed`
 
 ### Performance Tests (`performance/`)
 
-Benchmarks measure execution speed for common operations:
+Benchmarks measure execution speed for common operations. Each benchmark includes multiple sub-tests to provide granular performance metrics:
 
-- **bench-arithmetic.js** - Basic arithmetic operations (100K iterations)
-- **bench-strings.js** - String concatenation (10K iterations)
-- **bench-arrays.js** - Array map operations (1K iterations, 1K elements)
-- **bench-objects.js** - Object creation and property access (100K iterations)
-- **bench-json.js** - JSON stringify/parse round-trip (100K iterations)
-- **bench-base64.js** - Base64 encode/decode round-trip (100K iterations)
-- **bench-url.js** - URL parsing (100K iterations)
-- **bench-crypto.js** - UUID generation (10K iterations)
-- **bench-text-encoding.js** - Text encoding/decoding round-trip (10K iterations)
-- **bench-structured-clone.js** - Structured cloning of complex objects (10K iterations)
-- **bench-event.js** - Event creation and dispatching (100K iterations)
+- **bench-arithmetic.js** - Arithmetic operations (100K iterations)
+  - Sub-tests: addition, subtraction, multiplication, division, mixed operations
+- **bench-strings.js** - String operations (10K iterations)
+  - Sub-tests: concatenation, template literals, repeat, split/join
+- **bench-arrays.js** - Array operations (1K iterations, 1K elements)
+  - Sub-tests: creation, map, filter, reduce, push/pop
+- **bench-objects.js** - Object operations (100K iterations)
+  - Sub-tests: creation, property access, property assignment, spread
+- **bench-json.js** - JSON operations (100K iterations)
+  - Sub-tests: stringify (small), parse (small), roundtrip (small)
+- **bench-base64.js** - Base64 operations (100K iterations)
+  - Sub-tests: encode, decode, roundtrip
+- **bench-url.js** - URL operations (100K iterations)
+  - Sub-tests: parse, searchparams, property access
+- **bench-crypto.js** - Crypto operations (10K iterations)
+  - Sub-tests: randomUUID, getRandomValues (small), getRandomValues (large)
+- **bench-text-encoding.js** - Text encoding operations (10K iterations)
+  - Sub-tests: encode, decode, roundtrip
+- **bench-structured-clone.js** - Structured cloning (10K iterations)
+  - Sub-tests: simple, complex, array
+- **bench-event.js** - Event operations (100K iterations)
+  - Sub-tests: creation, addEventListener, dispatch
 
-Each benchmark outputs JSON with timing results.
+Each benchmark outputs JSON with timing results including aggregate totals and individual sub-test metrics.
 
 ## Running Individual Tests
 
@@ -137,6 +161,73 @@ Performance Comparison:
 
   arithmetic:          jstime:45.123ms node:38.456ms★ deno:42.789ms
   strings:             jstime:52.341ms★ node:55.678ms deno:53.912ms
+  ...
+```
+
+### Sample Output (Verbose Mode)
+
+With `--verbose` flag, the output shows individual sub-test results for each benchmark:
+
+```
+=== Performance Tests ===
+
+Running bench-arithmetic...
+  jstime    : 5.428ms (total)
+      addition            :    1.760ms (  56809.99 ops/ms)
+      subtraction         :    0.832ms ( 120223.07 ops/ms)
+      multiplication      :    0.838ms ( 119312.55 ops/ms)
+      division            :    0.853ms ( 117195.99 ops/ms)
+      mixed               :    1.144ms (  87390.66 ops/ms)
+  node      : 5.576ms (total)
+      addition            :    1.199ms (  83384.27 ops/ms)
+      subtraction         :    1.036ms (  96521.18 ops/ms)
+      multiplication      :    0.865ms ( 115567.79 ops/ms)
+      division            :    1.233ms (  81101.22 ops/ms)
+      mixed               :    1.243ms (  80478.04 ops/ms)
+
+Running bench-strings...
+  jstime    : 9.740ms (total)
+      concatenation       :    6.302ms (   1586.86 ops/ms)
+      template_literals   :    0.675ms (  14819.10 ops/ms)
+      repeat              :    0.665ms (  15042.23 ops/ms)
+      split_join          :    2.099ms (   4764.45 ops/ms)
+  ...
+
+=== Summary ===
+
+Performance Comparison:
+  (Lower time is better - showing detailed breakdown)
+
+  arithmetic:          jstime:5.428ms★ node:5.576ms
+    jstime:   
+        addition            :    1.760ms (  56809.99 ops/ms)
+        subtraction         :    0.832ms ( 120223.07 ops/ms)
+        multiplication      :    0.838ms ( 119312.55 ops/ms)
+        division            :    0.853ms ( 117195.99 ops/ms)
+        mixed               :    1.144ms (  87390.66 ops/ms)
+    node:     
+        addition            :    1.199ms (  83384.27 ops/ms)
+        subtraction         :    1.036ms (  96521.18 ops/ms)
+        multiplication      :    0.865ms ( 115567.79 ops/ms)
+        division            :    1.233ms (  81101.22 ops/ms)
+        mixed               :    1.243ms (  80478.04 ops/ms)
+
+  strings:             jstime:9.740ms★ node:11.987ms
+    jstime:   
+        concatenation       :    6.302ms (   1586.86 ops/ms)
+        template_literals   :    0.675ms (  14819.10 ops/ms)
+        repeat              :    0.665ms (  15042.23 ops/ms)
+        split_join          :    2.099ms (   4764.45 ops/ms)
+    node:     
+        concatenation       :    7.387ms (   1353.73 ops/ms)
+        template_literals   :    0.560ms (  17859.44 ops/ms)
+        repeat              :    1.120ms (   8931.96 ops/ms)
+        split_join          :    2.921ms (   3423.73 ops/ms)
+  ...
+
+  strings:             jstime:6.758ms★ node:8.635ms
+    jstime:   elapsed=6.758ms, iterations=10000, ops_per_ms=1479.77
+    node:     elapsed=8.635ms, iterations=10000, ops_per_ms=1158.08
   ...
 ```
 
