@@ -94,6 +94,18 @@ Benchmarks measure execution speed for common operations. Each benchmark include
   - Sub-tests: simple, complex, array
 - **bench-event.js** - Event operations (100K iterations)
   - Sub-tests: creation, addEventListener, dispatch
+- **bench-console.js** - Console API operations (100K iterations)
+  - Sub-tests: log, error, warn, info
+- **bench-performance.js** - Performance API operations (1M iterations)
+  - Sub-tests: now, timeOrigin, measurements
+- **bench-timers.js** - Timers API operations (10K iterations)
+  - Sub-tests: setTimeout_cancel, setInterval_cancel, setTimeout_execute
+- **bench-streams.js** - Streams API operations (1K iterations)
+  - Sub-tests: readable_creation, writable_creation, transform_creation, readable_read, writable_write
+- **bench-fetch.js** - Fetch API operations (10K iterations)
+  - Sub-tests: headers_creation, headers_from_object, request_creation, response_creation
+- **bench-webassembly.js** - WebAssembly API operations (1K iterations)
+  - Sub-tests: validate, module_sync, instantiate_sync, memory_creation, table_creation
 
 Each benchmark outputs JSON with timing results including aggregate totals and individual sub-test metrics.
 
