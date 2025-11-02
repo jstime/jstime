@@ -176,14 +176,15 @@ fn crypto_random_uuid(
     let mut uuid_buf = [0u8; 36];
     let mut pos = 0;
 
-    // Format each byte as two hex chars, with hyphens at character positions 8, 13, 18, 23
+    // Format each byte as two hex chars, with hyphens after bytes at indices 3, 5, 7, 9
+    // (which produces hyphens at character positions 8, 13, 18, 23 in the final string)
     for (i, &byte) in bytes.iter().enumerate() {
         let (hi, lo) = byte_to_hex(byte);
         uuid_buf[pos] = hi;
         uuid_buf[pos + 1] = lo;
         pos += 2;
 
-        // Add hyphen after bytes 3, 5, 7, 9 (character positions 8, 13, 18, 23 in final string)
+        // Add hyphen after byte indices 3, 5, 7, and 9 (character positions 8, 13, 18, 23 in final string)
         if i == 3 || i == 5 || i == 7 || i == 9 {
             uuid_buf[pos] = b'-';
             pos += 1;
