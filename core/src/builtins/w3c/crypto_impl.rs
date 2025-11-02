@@ -127,6 +127,8 @@ fn crypto_get_random_values(
     let byte_offset = typed_array.byte_offset();
 
     // Get mutable slice to the typed array data, considering byte_offset
+    // SAFETY: V8 guarantees that byte_offset + byte_length <= backing_store.byte_length()
+    // for valid typed arrays, so this pointer arithmetic is safe
     let data = unsafe {
         std::slice::from_raw_parts_mut(
             (backing_store.data().unwrap().as_ptr() as *mut u8).add(byte_offset),
@@ -188,6 +190,8 @@ fn crypto_random_uuid(
     let mut uuid_buf = [0u8; 36];
 
     // Unrolled formatting for optimal performance
+    // Use a macro to avoid repetitive code while keeping the loop fully unrolled at compile time
+    // This eliminates branches and makes the code more maintainable than 16 separate calls
     macro_rules! write_hex {
         ($pos:expr, $byte:expr) => {{
             let (hi, lo) = byte_to_hex($byte);
