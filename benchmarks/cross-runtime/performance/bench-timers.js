@@ -36,34 +36,29 @@ results.push({
   ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
 });
 
-// Test 3: setTimeout with immediate execution (0ms)
+// Test 3: Multiple setTimeout/clearTimeout cycles
 start = performance.now();
-let count = 0;
-const promises = [];
 for (let i = 0; i < ITERATIONS; i++) {
-  promises.push(new Promise(resolve => {
-    setTimeout(() => {
-      count++;
-      resolve();
-    }, 0);
-  }));
+  const id1 = setTimeout(() => {}, 100);
+  const id2 = setTimeout(() => {}, 200);
+  const id3 = setTimeout(() => {}, 300);
+  clearTimeout(id1);
+  clearTimeout(id2);
+  clearTimeout(id3);
 }
-// Wait for all to complete
-Promise.all(promises).then(() => {
-  end = performance.now();
-  elapsed = end - start;
-  totalElapsed += elapsed;
-  results.push({
-    name: 'setTimeout_execute',
-    elapsed_ms: elapsed.toFixed(3),
-    ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
-  });
-
-  console.log(JSON.stringify({
-    test: 'timers',
-    iterations: ITERATIONS,
-    elapsed_ms: totalElapsed.toFixed(3),
-    ops_per_ms: (ITERATIONS * results.length / totalElapsed).toFixed(2),
-    sub_tests: results
-  }));
+end = performance.now();
+elapsed = end - start;
+totalElapsed += elapsed;
+results.push({
+  name: 'multiple_timers',
+  elapsed_ms: elapsed.toFixed(3),
+  ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
 });
+
+console.log(JSON.stringify({
+  test: 'timers',
+  iterations: ITERATIONS,
+  elapsed_ms: totalElapsed.toFixed(3),
+  ops_per_ms: (ITERATIONS * results.length / totalElapsed).toFixed(2),
+  sub_tests: results
+}));
