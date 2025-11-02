@@ -374,6 +374,8 @@ fn event_stop_propagation(
         crate::get_or_create_cached_string!(scope, cache, stop_propagation, "__stopPropagation__");
     let value = v8::Boolean::new(scope, true);
     event_obj.set(scope, key.into(), value.into());
+    drop(cache);
+    drop(string_cache);
 }
 
 // Event.stopImmediatePropagation()
@@ -410,6 +412,8 @@ fn event_stop_immediate_propagation(
     let prop_key =
         crate::get_or_create_cached_string!(scope, cache, stop_propagation, "__stopPropagation__");
     event_obj.set(scope, prop_key.into(), value.into());
+    drop(cache);
+    drop(string_cache);
 }
 
 // Event.preventDefault()
@@ -451,4 +455,6 @@ fn event_prevent_default(
         let value = v8::Boolean::new(scope, true);
         event_obj.set(scope, key.into(), value.into());
     }
+    drop(cache);
+    drop(string_cache);
 }
