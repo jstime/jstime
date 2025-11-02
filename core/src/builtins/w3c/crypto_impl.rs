@@ -1073,8 +1073,8 @@ fn crypto_subtle_generate_key(
     key_obj.set(scope, usages_key.into(), usages);
 
     // Set type
-    let type_val = secret_key;
-    key_obj.set(scope, type_key.into(), type_val.into());
+    // Use cached "secret" string as type value
+    key_obj.set(scope, type_key.into(), secret_key.into());
 
     // Set key data (private property)
     key_obj.set(scope, key_data_key.into(), key_buffer.into());
@@ -1178,8 +1178,8 @@ fn crypto_subtle_import_key(
     key_obj.set(scope, usages_key.into(), usages);
 
     // Set type
-    let type_val = secret_key;
-    key_obj.set(scope, type_key.into(), type_val.into());
+    // Use cached "secret" string as type value
+    key_obj.set(scope, type_key.into(), secret_key.into());
 
     // Set key data (private property)
     key_obj.set(scope, key_data_key.into(), key_buffer.into());
