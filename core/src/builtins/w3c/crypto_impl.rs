@@ -81,6 +81,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 }
 
 // crypto.getRandomValues(typedArray)
+#[inline]
 fn crypto_get_random_values(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -136,7 +137,16 @@ fn crypto_get_random_values(
     rv.set(array);
 }
 
+// Helper function to convert byte to lowercase hex (always 2 chars)
+#[inline]
+const fn byte_to_hex(byte: u8) -> (u8, u8) {
+    const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
+    (HEX_CHARS[(byte >> 4) as usize], HEX_CHARS[(byte & 0x0f) as usize])
+}
+
 // crypto.randomUUID()
+// Optimized to avoid slow format! macro - directly formats UUID into pre-allocated buffer
+#[inline]
 fn crypto_random_uuid(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
@@ -158,32 +168,33 @@ fn crypto_random_uuid(
     // Set variant to RFC 4122
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
-    // Format as UUID string
-    let uuid = format!(
-        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-        bytes[0],
-        bytes[1],
-        bytes[2],
-        bytes[3],
-        bytes[4],
-        bytes[5],
-        bytes[6],
-        bytes[7],
-        bytes[8],
-        bytes[9],
-        bytes[10],
-        bytes[11],
-        bytes[12],
-        bytes[13],
-        bytes[14],
-        bytes[15]
-    );
+    // Format as UUID string: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 bytes)
+    // Pre-allocate buffer with exact size to avoid allocations
+    let mut uuid_buf = [0u8; 36];
+    let mut pos = 0;
+    
+    // Format each byte as two hex chars, with hyphens at positions 8, 13, 18, 23
+    for (i, &byte) in bytes.iter().enumerate() {
+        let (hi, lo) = byte_to_hex(byte);
+        uuid_buf[pos] = hi;
+        uuid_buf[pos + 1] = lo;
+        pos += 2;
+        
+        // Add hyphen after positions 8, 12, 16, 20 (bytes 3, 5, 7, 9)
+        if i == 3 || i == 5 || i == 7 || i == 9 {
+            uuid_buf[pos] = b'-';
+            pos += 1;
+        }
+    }
 
-    let result = v8::String::new(scope, &uuid).unwrap();
+    // SAFETY: uuid_buf contains only valid ASCII hex digits and hyphens
+    let uuid_str = unsafe { std::str::from_utf8_unchecked(&uuid_buf) };
+    let result = v8::String::new(scope, uuid_str).unwrap();
     rv.set(result.into());
 }
 
 // crypto.subtle.digest(algorithm, data)
+#[inline]
 fn crypto_subtle_digest(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
