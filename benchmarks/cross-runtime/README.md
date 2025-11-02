@@ -97,6 +97,16 @@ bun run benchmarks/cross-runtime/performance/bench-arithmetic.js
 === Cross-Runtime Test Suite ===
 Available runtimes: jstime node deno
 
+jstime
+  Path:    /path/to/jstime/target/release/jstime
+  Version: jstime 0.63.0
+node
+  Path:    /usr/local/bin/node
+  Version: v20.19.5
+deno
+  Path:    /usr/local/bin/deno
+  Version: 1.40.0
+
 === Compliance Tests ===
 
 Running test-console...

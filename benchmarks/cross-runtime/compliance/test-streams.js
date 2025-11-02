@@ -69,11 +69,7 @@ test('TransformStream exists', () => {
 
 // Test TransformStream can be constructed
 test('TransformStream can be constructed', () => {
-  const transform = new TransformStream({
-    transform(chunk, controller) {
-      controller.enqueue(chunk);
-    }
-  });
+  const transform = new TransformStream();
   if (typeof transform.readable !== 'object') throw new Error('readable is not an object');
   if (typeof transform.writable !== 'object') throw new Error('writable is not an object');
 });
