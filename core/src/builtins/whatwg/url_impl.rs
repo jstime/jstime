@@ -1,6 +1,68 @@
+use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use std::borrow::Cow;
+use std::cell::RefCell;
 use url::Url;
+
+thread_local! {
+    // Cache of parsed URLs to avoid reparsing the same URL string
+    // Using FxHashMap for faster hashing of string keys
+    static URL_CACHE: RefCell<FxHashMap<String, Url>> = RefCell::new(FxHashMap::default());
+}
+
+// Helper to get or parse a URL with caching
+#[inline]
+fn get_or_parse_url(url_str: &str) -> Result<Url, ()> {
+    URL_CACHE.with(|cache| {
+        let mut cache_map = cache.borrow_mut();
+
+        // Check if URL is in cache
+        if let Some(cached_url) = cache_map.get(url_str) {
+            return Ok(cached_url.clone());
+        }
+
+        // Parse URL
+        match Url::parse(url_str) {
+            Ok(url) => {
+                // Limit cache size to prevent unbounded growth
+                if cache_map.len() >= 512 {
+                    // Clear half the cache to maintain some entries
+                    let keys_to_remove: Vec<String> = cache_map
+                        .keys()
+                        .take(cache_map.len() / 2)
+                        .cloned()
+                        .collect();
+                    for key in keys_to_remove {
+                        cache_map.remove(&key);
+                    }
+                }
+                cache_map.insert(url_str.to_string(), url.clone());
+                Ok(url)
+            }
+            Err(_) => Err(()),
+        }
+    })
+}
+
+// Helper to update cache with modified URL
+#[inline]
+fn update_url_cache(url: &Url) {
+    let url_str = url.as_str().to_string();
+    URL_CACHE.with(|cache| {
+        let mut cache_map = cache.borrow_mut();
+        if cache_map.len() >= 512 {
+            let keys_to_remove: Vec<String> = cache_map
+                .keys()
+                .take(cache_map.len() / 2)
+                .cloned()
+                .collect();
+            for key in keys_to_remove {
+                cache_map.remove(&key);
+            }
+        }
+        cache_map.insert(url_str, url.clone());
+    });
+}
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
     vec![
@@ -248,15 +310,15 @@ fn url_set_protocol(
     let url_str = to_rust_string(scope, args.get(0));
     let protocol = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             let protocol = protocol.trim_end_matches(':');
             let _ = url.set_scheme(protocol);
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
         Err(_) => {
-            // If parsing fails, return null (shouldn't happen as we're parsing a valid URL)
             rv.set(v8::null(scope).into());
         }
     }
@@ -270,9 +332,10 @@ fn url_set_username(
     let url_str = to_rust_string(scope, args.get(0));
     let username = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             let _ = url.set_username(&username);
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -290,9 +353,10 @@ fn url_set_password(
     let url_str = to_rust_string(scope, args.get(0));
     let password = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             let _ = url.set_password(Some(&password));
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -310,7 +374,7 @@ fn url_set_host(
     let url_str = to_rust_string(scope, args.get(0));
     let host = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             // Parse host and port if present
             if host.contains(':') {
@@ -324,6 +388,7 @@ fn url_set_host(
             } else {
                 let _ = url.set_host(Some(&host));
             }
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -341,9 +406,10 @@ fn url_set_hostname(
     let url_str = to_rust_string(scope, args.get(0));
     let hostname = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             let _ = url.set_host(Some(&hostname));
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -361,13 +427,14 @@ fn url_set_port(
     let url_str = to_rust_string(scope, args.get(0));
     let port_str = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             if port_str.is_empty() {
                 let _ = url.set_port(None);
             } else if let Ok(port) = port_str.parse::<u16>() {
                 let _ = url.set_port(Some(port));
             }
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -385,9 +452,10 @@ fn url_set_pathname(
     let url_str = to_rust_string(scope, args.get(0));
     let pathname = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             url.set_path(&pathname);
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -405,7 +473,7 @@ fn url_set_search(
     let url_str = to_rust_string(scope, args.get(0));
     let search = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             let search = search.trim_start_matches('?');
             if search.is_empty() {
@@ -413,6 +481,7 @@ fn url_set_search(
             } else {
                 url.set_query(Some(search));
             }
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
@@ -430,7 +499,7 @@ fn url_set_hash(
     let url_str = to_rust_string(scope, args.get(0));
     let hash = to_rust_string(scope, args.get(1));
 
-    match Url::parse(&url_str) {
+    match get_or_parse_url(&url_str) {
         Ok(mut url) => {
             let hash = hash.trim_start_matches('#');
             if hash.is_empty() {
@@ -438,6 +507,7 @@ fn url_set_hash(
             } else {
                 url.set_fragment(Some(hash));
             }
+            update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
         }
