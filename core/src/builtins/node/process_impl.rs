@@ -62,6 +62,8 @@ fn get_env(
 ) {
     let env_obj = v8::Object::new(scope);
 
+    // Pre-allocate estimated capacity for environment variables
+    // Typically systems have 20-50 env vars, but we don't want to iterate twice
     // Get all environment variables
     for (key, value) in std::env::vars() {
         let Some(k) = v8::String::new(scope, &key) else {
@@ -150,16 +152,30 @@ fn write_stdout(
 
     let output = if chunk.is_string() {
         // Handle string input
-        v8::tc_scope!(let tc, scope);
-        let str_val = chunk.to_string(tc).unwrap();
-        str_val.to_rust_string_lossy(tc).into_bytes()
+        let output = {
+            v8::tc_scope!(let tc, scope);
+            let str_val = chunk.to_string(tc).unwrap();
+            str_val.to_rust_string_lossy(tc).into_bytes()
+        };
+        // Early return for empty strings
+        if output.is_empty() {
+            retval.set(v8::undefined(scope).into());
+            return;
+        }
+        output
     } else if chunk.is_uint8_array() {
         // Handle Uint8Array input
         let Some(uint8_array) = v8::Local::<v8::Uint8Array>::try_from(chunk).ok() else {
             crate::error::throw_error(scope, "Failed to convert to Uint8Array");
             return;
         };
-        let mut buffer = vec![0u8; uint8_array.byte_length()];
+        let byte_length = uint8_array.byte_length();
+        // Early return for empty arrays
+        if byte_length == 0 {
+            retval.set(v8::undefined(scope).into());
+            return;
+        }
+        let mut buffer = vec![0u8; byte_length];
         let copied = uint8_array.copy_contents(&mut buffer);
         if copied != buffer.len() {
             crate::error::throw_error(scope, "Failed to copy buffer data");
@@ -168,9 +184,17 @@ fn write_stdout(
         buffer
     } else {
         // For other types, convert to string
-        v8::tc_scope!(let tc, scope);
-        let str_val = chunk.to_string(tc).unwrap();
-        str_val.to_rust_string_lossy(tc).into_bytes()
+        let output = {
+            v8::tc_scope!(let tc, scope);
+            let str_val = chunk.to_string(tc).unwrap();
+            str_val.to_rust_string_lossy(tc).into_bytes()
+        };
+        // Early return for empty strings
+        if output.is_empty() {
+            retval.set(v8::undefined(scope).into());
+            return;
+        }
+        output
     };
 
     use std::io::Write;
@@ -203,16 +227,30 @@ fn write_stderr(
 
     let output = if chunk.is_string() {
         // Handle string input
-        v8::tc_scope!(let tc, scope);
-        let str_val = chunk.to_string(tc).unwrap();
-        str_val.to_rust_string_lossy(tc).into_bytes()
+        let output = {
+            v8::tc_scope!(let tc, scope);
+            let str_val = chunk.to_string(tc).unwrap();
+            str_val.to_rust_string_lossy(tc).into_bytes()
+        };
+        // Early return for empty strings
+        if output.is_empty() {
+            retval.set(v8::undefined(scope).into());
+            return;
+        }
+        output
     } else if chunk.is_uint8_array() {
         // Handle Uint8Array input
         let Some(uint8_array) = v8::Local::<v8::Uint8Array>::try_from(chunk).ok() else {
             crate::error::throw_error(scope, "Failed to convert to Uint8Array");
             return;
         };
-        let mut buffer = vec![0u8; uint8_array.byte_length()];
+        let byte_length = uint8_array.byte_length();
+        // Early return for empty arrays
+        if byte_length == 0 {
+            retval.set(v8::undefined(scope).into());
+            return;
+        }
+        let mut buffer = vec![0u8; byte_length];
         let copied = uint8_array.copy_contents(&mut buffer);
         if copied != buffer.len() {
             crate::error::throw_error(scope, "Failed to copy buffer data");
@@ -221,9 +259,17 @@ fn write_stderr(
         buffer
     } else {
         // For other types, convert to string
-        v8::tc_scope!(let tc, scope);
-        let str_val = chunk.to_string(tc).unwrap();
-        str_val.to_rust_string_lossy(tc).into_bytes()
+        let output = {
+            v8::tc_scope!(let tc, scope);
+            let str_val = chunk.to_string(tc).unwrap();
+            str_val.to_rust_string_lossy(tc).into_bytes()
+        };
+        // Early return for empty strings
+        if output.is_empty() {
+            retval.set(v8::undefined(scope).into());
+            return;
+        }
+        output
     };
 
     use std::io::Write;

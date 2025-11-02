@@ -283,7 +283,8 @@ fn write_file(
             crate::error::throw_type_error(scope, "Failed to convert to Uint8Array");
             return;
         };
-        let mut buffer = vec![0u8; uint8_array.byte_length()];
+        let byte_length = uint8_array.byte_length();
+        let mut buffer = vec![0u8; byte_length];
         let copied = uint8_array.copy_contents(&mut buffer);
         if copied != buffer.len() {
             crate::error::throw_error(scope, "Failed to copy buffer data");
