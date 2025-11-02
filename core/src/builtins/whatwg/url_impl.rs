@@ -1,4 +1,5 @@
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use url::Url;
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
@@ -89,7 +90,7 @@ fn url_to_components_object<'a>(
 ) -> v8::Local<'a, v8::Object> {
     let obj = v8::Object::new(scope);
 
-    // Helper macro to set object properties
+    // Helper macro to set object properties with pre-computed keys
     macro_rules! set_prop {
         ($name:expr, $value:expr) => {
             let key = v8::String::new(scope, $name).unwrap();
@@ -98,35 +99,63 @@ fn url_to_components_object<'a>(
         };
     }
 
+    // Reuse string references where possible to avoid allocations
     set_prop!("href", url.as_str());
     set_prop!("origin", &url.origin().ascii_serialization());
-    set_prop!("protocol", &format!("{}:", url.scheme()));
+
+    // Avoid format! for protocol - use SmallVec as stack buffer
+    let scheme = url.scheme();
+    let mut protocol_buf = SmallVec::<[u8; 16]>::new();
+    protocol_buf.extend_from_slice(scheme.as_bytes());
+    protocol_buf.push(b':');
+    let protocol = std::str::from_utf8(&protocol_buf).unwrap();
+    set_prop!("protocol", protocol);
+
     set_prop!("username", url.username());
     set_prop!("password", url.password().unwrap_or(""));
 
+    // Optimize host with port - avoid allocation when no port
     let host = url.host_str().unwrap_or("");
-    let host_with_port = if let Some(port) = url.port() {
-        format!("{}:{}", host, port)
+    if let Some(port) = url.port() {
+        let mut buf = SmallVec::<[u8; 64]>::new();
+        buf.extend_from_slice(host.as_bytes());
+        buf.push(b':');
+        // Use a simple integer to string conversion
+        let port_str = port.to_string();
+        buf.extend_from_slice(port_str.as_bytes());
+        let host_with_port = std::str::from_utf8(&buf).unwrap();
+        set_prop!("host", host_with_port);
+        set_prop!("hostname", host);
+        set_prop!("port", &port_str);
     } else {
-        host.to_string()
-    };
-    set_prop!("host", &host_with_port);
-    set_prop!("hostname", host);
-    set_prop!(
-        "port",
-        &url.port().map(|p| p.to_string()).unwrap_or_default()
-    );
+        set_prop!("host", host);
+        set_prop!("hostname", host);
+        set_prop!("port", "");
+    }
+
     set_prop!("pathname", url.path());
-    set_prop!(
-        "search",
-        &url.query().map(|q| format!("?{}", q)).unwrap_or_default()
-    );
-    set_prop!(
-        "hash",
-        &url.fragment()
-            .map(|f| format!("#{}", f))
-            .unwrap_or_default()
-    );
+
+    // Optimize search - avoid format! when no query
+    if let Some(query) = url.query() {
+        let mut search_buf = SmallVec::<[u8; 128]>::new();
+        search_buf.push(b'?');
+        search_buf.extend_from_slice(query.as_bytes());
+        let search = std::str::from_utf8(&search_buf).unwrap();
+        set_prop!("search", search);
+    } else {
+        set_prop!("search", "");
+    }
+
+    // Optimize hash - avoid format! when no fragment
+    if let Some(fragment) = url.fragment() {
+        let mut hash_buf = SmallVec::<[u8; 64]>::new();
+        hash_buf.push(b'#');
+        hash_buf.extend_from_slice(fragment.as_bytes());
+        let hash = std::str::from_utf8(&hash_buf).unwrap();
+        set_prop!("hash", hash);
+    } else {
+        set_prop!("hash", "");
+    }
 
     obj
 }
@@ -423,15 +452,22 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
         if pair.is_empty() {
             continue;
         }
-        let mut parts = pair.splitn(2, '=');
-        let key = parts.next().unwrap_or("");
-        let value = parts.next().unwrap_or("");
 
-        // URL decode
-        let key = urlencoding::decode(key).unwrap_or_default().to_string();
-        let value = urlencoding::decode(value).unwrap_or_default().to_string();
+        // Split on first '=' only
+        if let Some(eq_pos) = pair.find('=') {
+            let key = &pair[..eq_pos];
+            let value = &pair[eq_pos + 1..];
 
-        params.push((key, value));
+            // URL decode - use Cow to avoid allocation when no decoding needed
+            let key_decoded = urlencoding::decode(key).unwrap_or(Cow::Borrowed(key));
+            let value_decoded = urlencoding::decode(value).unwrap_or(Cow::Borrowed(value));
+
+            params.push((key_decoded.into_owned(), value_decoded.into_owned()));
+        } else {
+            // No '=' found, treat whole pair as key with empty value
+            let key_decoded = urlencoding::decode(pair).unwrap_or(Cow::Borrowed(pair));
+            params.push((key_decoded.into_owned(), String::new()));
+        }
     }
     params
 }
@@ -444,8 +480,20 @@ fn url_search_params_to_string(
     let params_array = v8::Local::<v8::Array>::try_from(args.get(0)).unwrap();
     let len = params_array.length();
 
-    let mut parts = Vec::with_capacity(len as usize);
+    if len == 0 {
+        let v8_str = to_v8_string(scope, "");
+        rv.set(v8_str.into());
+        return;
+    }
+
+    // Pre-allocate with estimated size to reduce reallocations
+    let mut result = String::with_capacity(len as usize * 20);
+
     for i in 0..len {
+        if i > 0 {
+            result.push('&');
+        }
+
         let entry = params_array.get_index(scope, i).unwrap();
         let entry_array = v8::Local::<v8::Array>::try_from(entry).unwrap();
 
@@ -455,14 +503,11 @@ fn url_search_params_to_string(
         let key_str = to_rust_string(scope, key);
         let value_str = to_rust_string(scope, value);
 
-        parts.push(format!(
-            "{}={}",
-            urlencoding::encode(&key_str),
-            urlencoding::encode(&value_str)
-        ));
+        result.push_str(&urlencoding::encode(&key_str));
+        result.push('=');
+        result.push_str(&urlencoding::encode(&value_str));
     }
 
-    let result = parts.join("&");
     let v8_str = to_v8_string(scope, &result);
     rv.set(v8_str.into());
 }
