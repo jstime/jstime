@@ -74,11 +74,12 @@ See `benchmarks/README.md` for detailed benchmark instructions.
      - Fetch-related: "status", "statusText", "headers"
      - Common properties: "name", "type", "value", "length", "done", "message", "stack"
      - Crypto: "algorithm", "hash", "extractable", "usages", etc.
-     - Events: "listeners", "stopPropagation", etc.
+     - Events: Internal property names like "__listeners__", "__currentTarget__", "__target__", "__stopPropagation__", "__stopImmediatePropagation__", "__defaultPrevented__", and standard property names like "cancelable", "type" (Note: User-provided event type values like "click" are not cached as they vary widely)
      - File system: "isFile", "isDirectory", "size", etc.
      - Modules: "url" for import.meta
-   - **Performance Impact**: Eliminates repeated string allocations in hot paths like error formatting, fetch operations, and module loading
+   - **Performance Impact**: Eliminates repeated string allocations in hot paths like error formatting, fetch operations, event dispatching, and module loading
    - **Implementation**: Uses V8's `Global<String>` handles with helper macro `get_or_create_cached_string!`
+   - **Event API Optimization**: String caching in the event implementation delivers 1.7x performance improvement (from 141ms to 81ms for 100K event dispatches)
 
 ### Hash Map Performance
 - Replaced `std::collections::HashMap` with `rustc_hash::FxHashMap` in the module map for faster lookups
@@ -116,6 +117,7 @@ On a typical system, the optimized jstime runtime achieves:
 - **JSON operations**: ~20ms for 1K serialize/parse cycles
 - **Timer management**: ~0.6ms for 1K timer create/clear operations
 - **Crypto UUID generation**: ~7ms for 10K iterations (1.85x faster than Node.js)
+- **Event dispatch**: ~81ms for 100K dispatches (1.7x faster after string caching optimization)
 
 ### Binary Size
 The optimized release binary is approximately 34MB with LTO and debug symbols stripped.
