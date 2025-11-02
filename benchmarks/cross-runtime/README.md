@@ -47,6 +47,11 @@ Tests verify that standard JavaScript APIs work correctly:
 - **test-performance.js** - Performance API (performance.now, performance.timeOrigin)
 - **test-base64.js** - Base64 encoding (btoa, atob)
 - **test-json.js** - JSON operations (JSON.parse, JSON.stringify)
+- **test-text-encoding.js** - Text Encoding API (TextEncoder, TextDecoder)
+- **test-event.js** - Event and EventTarget API (Event, EventTarget, event dispatching)
+- **test-streams.js** - Streams API (ReadableStream, WritableStream, TransformStream)
+- **test-structured-clone.js** - Structured Clone API (structuredClone for deep cloning)
+- **test-microtask.js** - Microtask API (queueMicrotask)
 
 Each test outputs: `API_NAME: X passed, Y failed`
 
@@ -62,6 +67,9 @@ Benchmarks measure execution speed for common operations:
 - **bench-base64.js** - Base64 encode/decode round-trip (100K iterations)
 - **bench-url.js** - URL parsing (100K iterations)
 - **bench-crypto.js** - UUID generation (10K iterations)
+- **bench-text-encoding.js** - Text encoding/decoding round-trip (10K iterations)
+- **bench-structured-clone.js** - Structured cloning of complex objects (10K iterations)
+- **bench-event.js** - Event creation and dispatching (100K iterations)
 
 Each benchmark outputs JSON with timing results.
 
@@ -89,6 +97,16 @@ bun run benchmarks/cross-runtime/performance/bench-arithmetic.js
 === Cross-Runtime Test Suite ===
 Available runtimes: jstime node deno
 
+jstime
+  Path:    /path/to/jstime/target/release/jstime
+  Version: jstime 0.63.0
+node
+  Path:    /usr/local/bin/node
+  Version: v20.19.5
+deno
+  Path:    /usr/local/bin/deno
+  Version: 1.40.0
+
 === Compliance Tests ===
 
 Running test-console...
@@ -110,9 +128,9 @@ Running bench-arithmetic...
 === Summary ===
 
 Compliance Test Results:
-  jstime    : 7/7 passed ✓
-  node      : 7/7 passed ✓
-  deno      : 7/7 passed ✓
+  jstime    : 12/12 passed ✓
+  node      : 12/12 passed ✓
+  deno      : 12/12 passed ✓
 
 Performance Comparison:
   (Lower is better - showing elapsed time in milliseconds)

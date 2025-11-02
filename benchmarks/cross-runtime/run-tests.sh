@@ -34,23 +34,65 @@ fi
 
 JSTIME="$PROJECT_ROOT/target/release/jstime"
 
+# Function to get version and path for a runtime
+get_runtime_info() {
+    local runtime=$1
+    local version=""
+    local path=""
+    
+    case "$runtime" in
+        jstime)
+            path="$JSTIME"
+            version=$("$JSTIME" --version 2>/dev/null | head -1 || echo "unknown")
+            ;;
+        node)
+            path=$(command -v node)
+            version=$(node --version 2>/dev/null || echo "unknown")
+            ;;
+        deno)
+            path=$(command -v deno)
+            version=$(deno --version 2>/dev/null | head -1 | awk '{print $2}' || echo "unknown")
+            ;;
+        bun)
+            path=$(command -v bun)
+            version=$(bun --version 2>/dev/null || echo "unknown")
+            ;;
+    esac
+    
+    echo "$version|$path"
+}
+
 # Detect available runtimes
 RUNTIMES=()
+declare -A RUNTIME_VERSIONS
+declare -A RUNTIME_PATHS
 
 if [ -x "$JSTIME" ]; then
     RUNTIMES+=("jstime")
+    info=$(get_runtime_info "jstime")
+    RUNTIME_VERSIONS["jstime"]=$(echo "$info" | cut -d'|' -f1)
+    RUNTIME_PATHS["jstime"]=$(echo "$info" | cut -d'|' -f2)
 fi
 
 if command -v node &> /dev/null; then
     RUNTIMES+=("node")
+    info=$(get_runtime_info "node")
+    RUNTIME_VERSIONS["node"]=$(echo "$info" | cut -d'|' -f1)
+    RUNTIME_PATHS["node"]=$(echo "$info" | cut -d'|' -f2)
 fi
 
 if command -v deno &> /dev/null; then
     RUNTIMES+=("deno")
+    info=$(get_runtime_info "deno")
+    RUNTIME_VERSIONS["deno"]=$(echo "$info" | cut -d'|' -f1)
+    RUNTIME_PATHS["deno"]=$(echo "$info" | cut -d'|' -f2)
 fi
 
 if command -v bun &> /dev/null; then
     RUNTIMES+=("bun")
+    info=$(get_runtime_info "bun")
+    RUNTIME_VERSIONS["bun"]=$(echo "$info" | cut -d'|' -f1)
+    RUNTIME_PATHS["bun"]=$(echo "$info" | cut -d'|' -f2)
 fi
 
 if [ ${#RUNTIMES[@]} -eq 0 ]; then
@@ -60,6 +102,14 @@ fi
 
 echo -e "${BLUE}=== Cross-Runtime Test Suite ===${NC}"
 echo -e "${BLUE}Available runtimes: ${RUNTIMES[*]}${NC}"
+echo ""
+
+# Display runtime information
+for runtime in "${RUNTIMES[@]}"; do
+    echo -e "${YELLOW}$runtime${NC}"
+    echo -e "  Path:    ${RUNTIME_PATHS[$runtime]}"
+    echo -e "  Version: ${RUNTIME_VERSIONS[$runtime]}"
+done
 echo ""
 
 # Function to run a test file with a specific runtime
@@ -97,6 +147,11 @@ COMPLIANCE_TESTS=(
     "test-performance.js"
     "test-base64.js"
     "test-json.js"
+    "test-text-encoding.js"
+    "test-event.js"
+    "test-streams.js"
+    "test-structured-clone.js"
+    "test-microtask.js"
 )
 
 # Track results using delimiter-separated strings (bash 3.2 compatible)
@@ -177,6 +232,9 @@ PERFORMANCE_TESTS=(
     "bench-base64.js"
     "bench-url.js"
     "bench-crypto.js"
+    "bench-text-encoding.js"
+    "bench-structured-clone.js"
+    "bench-event.js"
 )
 
 # Store performance results (bash 3.2 compatible)
