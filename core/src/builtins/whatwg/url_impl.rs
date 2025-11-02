@@ -104,11 +104,13 @@ fn url_to_components_object<'a>(
     set_prop!("origin", &url.origin().ascii_serialization());
 
     // Avoid format! for protocol - use SmallVec as stack buffer
+    // URL schemes are guaranteed to be ASCII by the URL spec
     let scheme = url.scheme();
     let mut protocol_buf = SmallVec::<[u8; 16]>::new();
     protocol_buf.extend_from_slice(scheme.as_bytes());
     protocol_buf.push(b':');
-    let protocol = std::str::from_utf8(&protocol_buf).unwrap();
+    // SAFETY: URL schemes are guaranteed to be valid ASCII
+    let protocol = unsafe { std::str::from_utf8_unchecked(&protocol_buf) };
     set_prop!("protocol", protocol);
 
     set_prop!("username", url.username());
@@ -123,7 +125,8 @@ fn url_to_components_object<'a>(
         // Use a simple integer to string conversion
         let port_str = port.to_string();
         buf.extend_from_slice(port_str.as_bytes());
-        let host_with_port = std::str::from_utf8(&buf).unwrap();
+        // SAFETY: host is valid UTF-8 from the url crate, ':' is ASCII, port_str is ASCII digits
+        let host_with_port = unsafe { std::str::from_utf8_unchecked(&buf) };
         set_prop!("host", host_with_port);
         set_prop!("hostname", host);
         set_prop!("port", &port_str);
@@ -140,7 +143,8 @@ fn url_to_components_object<'a>(
         let mut search_buf = SmallVec::<[u8; 128]>::new();
         search_buf.push(b'?');
         search_buf.extend_from_slice(query.as_bytes());
-        let search = std::str::from_utf8(&search_buf).unwrap();
+        // SAFETY: query is valid UTF-8 from the url crate, '?' is ASCII
+        let search = unsafe { std::str::from_utf8_unchecked(&search_buf) };
         set_prop!("search", search);
     } else {
         set_prop!("search", "");
@@ -151,7 +155,8 @@ fn url_to_components_object<'a>(
         let mut hash_buf = SmallVec::<[u8; 64]>::new();
         hash_buf.push(b'#');
         hash_buf.extend_from_slice(fragment.as_bytes());
-        let hash = std::str::from_utf8(&hash_buf).unwrap();
+        // SAFETY: fragment is valid UTF-8 from the url crate, '#' is ASCII
+        let hash = unsafe { std::str::from_utf8_unchecked(&hash_buf) };
         set_prop!("hash", hash);
     } else {
         set_prop!("hash", "");
@@ -487,6 +492,7 @@ fn url_search_params_to_string(
     }
 
     // Pre-allocate with estimated size to reduce reallocations
+    // Estimate: 20 bytes per parameter (typical key=value pair length)
     let mut result = String::with_capacity(len as usize * 20);
 
     for i in 0..len {
