@@ -82,6 +82,31 @@ fn to_v8_string<'a>(scope: &mut v8::PinScope<'a, '_>, s: &str) -> v8::Local<'a, 
     v8::String::new(scope, s).unwrap()
 }
 
+// Helper to format a u16 port number directly to a buffer
+#[inline]
+fn format_port_to_buffer(port: u16, buf: &mut SmallVec<[u8; 64]>) {
+    // Port numbers are max 5 digits (65535)
+    let mut digits = [0u8; 5];
+    let mut n = port;
+    let mut i = 0;
+
+    // Extract digits in reverse order
+    loop {
+        digits[i] = b'0' + (n % 10) as u8;
+        n /= 10;
+        i += 1;
+        if n == 0 {
+            break;
+        }
+    }
+
+    // Write digits in correct order
+    while i > 0 {
+        i -= 1;
+        buf.push(digits[i]);
+    }
+}
+
 // Helper to create a URL components object
 #[inline]
 fn url_to_components_object<'a>(
@@ -119,17 +144,18 @@ fn url_to_components_object<'a>(
     // Optimize host with port - avoid allocation when no port
     let host = url.host_str().unwrap_or("");
     if let Some(port) = url.port() {
-        let mut buf = SmallVec::<[u8; 64]>::new();
-        buf.extend_from_slice(host.as_bytes());
-        buf.push(b':');
-        // Use a simple integer to string conversion
-        let port_str = port.to_string();
-        buf.extend_from_slice(port_str.as_bytes());
-        // SAFETY: host is valid UTF-8 from the url crate, ':' is ASCII, port_str is ASCII digits
-        let host_with_port = unsafe { std::str::from_utf8_unchecked(&buf) };
+        // Build host:port string without intermediate allocations
+        let mut host_buf = SmallVec::<[u8; 64]>::new();
+        host_buf.extend_from_slice(host.as_bytes());
+        host_buf.push(b':');
+        let port_start = host_buf.len();
+        format_port_to_buffer(port, &mut host_buf);
+        // SAFETY: host is valid UTF-8 from the url crate, ':' is ASCII, port digits are ASCII
+        let host_with_port = unsafe { std::str::from_utf8_unchecked(&host_buf) };
+        let port_str = unsafe { std::str::from_utf8_unchecked(&host_buf[port_start..]) };
         set_prop!("host", host_with_port);
         set_prop!("hostname", host);
-        set_prop!("port", &port_str);
+        set_prop!("port", port_str);
     } else {
         set_prop!("host", host);
         set_prop!("hostname", host);
@@ -492,7 +518,8 @@ fn url_search_params_to_string(
     }
 
     // Pre-allocate with estimated size to reduce reallocations
-    // Estimate: 20 bytes per parameter (typical key=value pair length)
+    // Estimate: 20 bytes per parameter is reasonable for typical query strings
+    // (e.g., "key=value" is 9 bytes, encoded values are usually longer)
     let mut result = String::with_capacity(len as usize * 20);
 
     for i in 0..len {
