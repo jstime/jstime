@@ -282,9 +282,8 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js)
     echo -e "${YELLOW}Running $test_name...${NC}"
     
+    # First pass: collect all results
     for runtime in "${RUNTIMES[@]}"; do
-        printf "  %-10s: " "$runtime"
-        
         output=$(run_test "$runtime" "$PERFORMANCE_DIR/$test_file" "performance" 2>&1 || echo "$ERROR_MARKER")
         
         if echo "$output" | grep -q '"test"'; then
@@ -296,42 +295,112 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
             
             # Validate parsed values
             if [ -z "$elapsed" ] || [ -z "$ops_per_ms" ] || [ -z "$iterations" ]; then
-                echo -e "${RED}${ERROR_MARKER} (invalid JSON)${NC}"
                 set_result PERF_RESULTS "$runtime-$test_name" "$ERROR_MARKER"
-                set_result PERF_DETAILS "$runtime-$test_name" "$ERROR_DETAILS"
-            elif [ "$VERBOSE" = true ]; then
-                echo -e "${GREEN}${elapsed}ms (total)${NC}"
-                
-                # Check if sub_tests exist and parse them
-                if echo "$output" | grep -q '"sub_tests"'; then
-                    # Extract sub_tests array and parse each test
-                    # Use a temp file to avoid subshell issues with while-read
-                    echo "$output" | grep -o '{"name":"[^"]*","elapsed_ms":"[^"]*","ops_per_ms":"[^"]*"}' > /tmp/subtests_$$.txt 2>&1
-                    while IFS= read -r sub_test; do
-                        if [ -n "$sub_test" ]; then
-                            name=$(echo "$sub_test" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
-                            sub_elapsed=$(echo "$sub_test" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
-                            sub_ops=$(echo "$sub_test" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
-                            printf "      ${GREEN}%-20s: %8sms (%10s ops/ms)${NC}\n" "$name" "$sub_elapsed" "$sub_ops"
-                        fi
-                    done < /tmp/subtests_$$.txt
-                    rm -f /tmp/subtests_$$.txt 2>&1
-                fi
-                set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
-                # Store full JSON output to temp file for summary
-                echo "$output" > "/tmp/perf_details_${runtime}_${test_name}.json"
+                echo "$ERROR_DETAILS" > "/tmp/perf_details_${runtime}_${test_name}.json"
             else
-                echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
                 set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
                 # Store full JSON output to temp file for summary
                 echo "$output" > "/tmp/perf_details_${runtime}_${test_name}.json"
             fi
         else
-            echo -e "${RED}${ERROR_MARKER}${NC}"
             set_result PERF_RESULTS "$runtime-$test_name" "$ERROR_MARKER"
-            set_result PERF_DETAILS "$runtime-$test_name" "$ERROR_DETAILS"
+            echo "$ERROR_DETAILS" > "/tmp/perf_details_${runtime}_${test_name}.json"
         fi
     done
+    
+    # Second pass: display results with comparisons in verbose mode
+    for runtime in "${RUNTIMES[@]}"; do
+        printf "  %-10s: " "$runtime"
+        
+        detail_file="/tmp/perf_details_${runtime}_${test_name}.json"
+        if [ -f "$detail_file" ]; then
+            output=$(cat "$detail_file")
+            
+            if [ "$output" == "$ERROR_DETAILS" ]; then
+                echo -e "${RED}${ERROR_MARKER}${NC}"
+                continue
+            fi
+            
+            # Parse JSON output
+            elapsed=$(echo "$output" | sed 's/"sub_tests":\[.*\]//' | grep -o '"elapsed_ms":"[^"]*"' | head -1 | cut -d'"' -f4)
+            ops_per_ms=$(echo "$output" | sed 's/"sub_tests":\[.*\]//' | grep -o '"ops_per_ms":"[^"]*"' | head -1 | cut -d'"' -f4)
+            
+            if [ "$VERBOSE" = true ]; then
+                echo -e "${GREEN}${elapsed}ms (total)${NC}"
+                
+                # Check if sub_tests exist and parse them
+                if echo "$output" | grep -q '"sub_tests"'; then
+                    # Extract sub_tests array and parse each test
+                    echo "$output" | grep -o '{"name":"[^"]*","elapsed_ms":"[^"]*","ops_per_ms":"[^"]*"}' > /tmp/subtests_${runtime}_${test_name}.txt 2>&1
+                fi
+            else
+                echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
+            fi
+        else
+            echo -e "${RED}${ERROR_MARKER}${NC}"
+        fi
+    done
+    
+    # In verbose mode, show sub-test comparisons
+    if [ "$VERBOSE" = true ]; then
+        # Get list of all sub-test names
+        first_runtime="${RUNTIMES[0]}"
+        first_file="/tmp/subtests_${first_runtime}_${test_name}.txt"
+        
+        if [ -f "$first_file" ]; then
+            # Process each sub-test
+            while IFS= read -r first_subtest; do
+                if [ -n "$first_subtest" ]; then
+                    subtest_name=$(echo "$first_subtest" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+                    
+                    # Find the fastest time for this sub-test across all runtimes
+                    fastest_time=999999
+                    for runtime in "${RUNTIMES[@]}"; do
+                        subtest_file="/tmp/subtests_${runtime}_${test_name}.txt"
+                        if [ -f "$subtest_file" ]; then
+                            # Find matching sub-test
+                            matching_line=$(grep "\"name\":\"$subtest_name\"" "$subtest_file")
+                            if [ -n "$matching_line" ]; then
+                                sub_elapsed=$(echo "$matching_line" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
+                                if [ -n "$sub_elapsed" ] && (( $(echo "$sub_elapsed < $fastest_time" | bc -l 2>/dev/null || echo 0) )); then
+                                    fastest_time="$sub_elapsed"
+                                fi
+                            fi
+                        fi
+                    done
+                    
+                    # Display results for each runtime with comparison
+                    for runtime in "${RUNTIMES[@]}"; do
+                        subtest_file="/tmp/subtests_${runtime}_${test_name}.txt"
+                        if [ -f "$subtest_file" ]; then
+                            matching_line=$(grep "\"name\":\"$subtest_name\"" "$subtest_file")
+                            if [ -n "$matching_line" ]; then
+                                sub_elapsed=$(echo "$matching_line" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
+                                sub_ops=$(echo "$matching_line" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
+                                
+                                # Calculate percentage difference from fastest
+                                if [ "$sub_elapsed" == "$fastest_time" ]; then
+                                    printf "      ${GREEN}%-10s %-20s: %8sms (%10s ops/ms) ★ fastest${NC}\n" "$runtime" "$subtest_name" "$sub_elapsed" "$sub_ops"
+                                else
+                                    delta=$(echo "scale=1; ($sub_elapsed - $fastest_time) / $fastest_time * 100" | bc -l 2>/dev/null || echo "0")
+                                    # Only show delta if it's >= 0.1%
+                                    if (( $(echo "$delta >= 0.1" | bc -l 2>/dev/null || echo 0) )); then
+                                        printf "      ${YELLOW}%-10s %-20s: %8sms (%10s ops/ms) +%.1f%%${NC}\n" "$runtime" "$subtest_name" "$sub_elapsed" "$sub_ops" "$delta"
+                                    else
+                                        printf "      %-10s %-20s: %8sms (%10s ops/ms)\n" "$runtime" "$subtest_name" "$sub_elapsed" "$sub_ops"
+                                    fi
+                                fi
+                            fi
+                        fi
+                    done
+                fi
+            done < "$first_file"
+        fi
+        
+        # Clean up temp files
+        rm -f /tmp/subtests_*_${test_name}.txt 2>&1
+    fi
+    
     echo ""
 done
 
@@ -409,27 +478,76 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     
     # Show detailed breakdown in verbose mode
     if [ "$VERBOSE" = true ]; then
+        # First, collect all sub-test results to find fastest for each sub-test
+        # Extract sub-tests to temp files
         for runtime in "${RUNTIMES[@]}"; do
             detail_file="/tmp/perf_details_${runtime}_bench-${test_name}.json"
             if [ -f "$detail_file" ]; then
                 details=$(cat "$detail_file")
-                # Check if this is JSON output with sub_tests
                 if echo "$details" | grep -q '"sub_tests"'; then
-                    printf "    ${GREEN}%-10s${NC}\n" "$runtime:"
-                    # Extract and parse sub_tests using temp file
-                    echo "$details" | grep -o '{"name":"[^"]*","elapsed_ms":"[^"]*","ops_per_ms":"[^"]*"}' > /tmp/summary_subtests_$$.txt 2>&1
-                    while IFS= read -r sub_test; do
-                        if [ -n "$sub_test" ]; then
-                            name=$(echo "$sub_test" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
-                            sub_elapsed=$(echo "$sub_test" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
-                            sub_ops=$(echo "$sub_test" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
-                            printf "        %-20s: %8sms (%10s ops/ms)\n" "$name" "$sub_elapsed" "$sub_ops"
-                        fi
-                    done < /tmp/summary_subtests_$$.txt
-                    rm -f /tmp/summary_subtests_$$.txt 2>&1
+                    echo "$details" | grep -o '{"name":"[^"]*","elapsed_ms":"[^"]*","ops_per_ms":"[^"]*"}' > "/tmp/summary_subtests_${runtime}_${test_name}.txt" 2>&1
                 fi
             fi
         done
+        
+        # Get first runtime's sub-tests as the reference list
+        first_runtime="${RUNTIMES[0]}"
+        first_file="/tmp/summary_subtests_${first_runtime}_${test_name}.txt"
+        
+        if [ -f "$first_file" ]; then
+            # Process each sub-test
+            while IFS= read -r first_subtest; do
+                if [ -n "$first_subtest" ]; then
+                    subtest_name=$(echo "$first_subtest" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+                    
+                    # Find the fastest time for this sub-test across all runtimes
+                    fastest_time=999999
+                    fastest_runtime=""
+                    for runtime in "${RUNTIMES[@]}"; do
+                        subtest_file="/tmp/summary_subtests_${runtime}_${test_name}.txt"
+                        if [ -f "$subtest_file" ]; then
+                            matching_line=$(grep "\"name\":\"$subtest_name\"" "$subtest_file")
+                            if [ -n "$matching_line" ]; then
+                                sub_elapsed=$(echo "$matching_line" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
+                                if [ -n "$sub_elapsed" ] && (( $(echo "$sub_elapsed < $fastest_time" | bc -l 2>/dev/null || echo 0) )); then
+                                    fastest_time="$sub_elapsed"
+                                    fastest_runtime="$runtime"
+                                fi
+                            fi
+                        fi
+                    done
+                    
+                    # Display results for each runtime with comparison
+                    printf "    ${YELLOW}%-20s${NC}\n" "$subtest_name:"
+                    for runtime in "${RUNTIMES[@]}"; do
+                        subtest_file="/tmp/summary_subtests_${runtime}_${test_name}.txt"
+                        if [ -f "$subtest_file" ]; then
+                            matching_line=$(grep "\"name\":\"$subtest_name\"" "$subtest_file")
+                            if [ -n "$matching_line" ]; then
+                                sub_elapsed=$(echo "$matching_line" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
+                                sub_ops=$(echo "$matching_line" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
+                                
+                                # Calculate percentage difference from fastest
+                                if [ "$runtime" == "$fastest_runtime" ]; then
+                                    printf "        ${GREEN}%-10s: %8sms (%10s ops/ms) ★ fastest${NC}\n" "$runtime" "$sub_elapsed" "$sub_ops"
+                                else
+                                    delta=$(echo "scale=1; ($sub_elapsed - $fastest_time) / $fastest_time * 100" | bc -l 2>/dev/null || echo "0")
+                                    # Only show delta if it's >= 0.1%
+                                    if (( $(echo "$delta >= 0.1" | bc -l 2>/dev/null || echo 0) )); then
+                                        printf "        %-10s: %8sms (%10s ops/ms) ${YELLOW}+%.1f%%${NC}\n" "$runtime" "$sub_elapsed" "$sub_ops" "$delta"
+                                    else
+                                        printf "        %-10s: %8sms (%10s ops/ms)\n" "$runtime" "$sub_elapsed" "$sub_ops"
+                                    fi
+                                fi
+                            fi
+                        fi
+                    done
+                fi
+            done < "$first_file"
+        fi
+        
+        # Clean up temp files for this test
+        rm -f /tmp/summary_subtests_*_${test_name}.txt 2>&1
         echo ""
     fi
 done
