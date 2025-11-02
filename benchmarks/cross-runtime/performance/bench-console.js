@@ -1,7 +1,7 @@
 // Performance benchmark: Console operations
 // Measures console API performance
 
-const ITERATIONS = 100000;
+const ITERATIONS = 10000;
 
 const results = [];
 let totalElapsed = 0;
