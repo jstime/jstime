@@ -54,6 +54,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
     bindings.set(scope, name.into(), value.into());
 }
 
+#[inline]
 fn get_env(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
@@ -75,6 +76,7 @@ fn get_env(
     retval.set(env_obj.into());
 }
 
+#[inline]
 fn get_argv(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
@@ -96,6 +98,7 @@ fn get_argv(
     retval.set(array.into());
 }
 
+#[inline]
 fn get_cwd(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
@@ -116,6 +119,7 @@ fn get_cwd(
     }
 }
 
+#[inline]
 fn exit(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     let code = if args.length() > 0 {
         let code_arg = args.get(0);
@@ -131,6 +135,7 @@ fn exit(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: 
     std::process::exit(code);
 }
 
+#[inline]
 fn write_stdout(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -183,6 +188,7 @@ fn write_stdout(
     retval.set(v8::undefined(scope).into());
 }
 
+#[inline]
 fn write_stderr(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -235,6 +241,7 @@ fn write_stderr(
     retval.set(v8::undefined(scope).into());
 }
 
+#[inline]
 fn read_stdin(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,

@@ -192,6 +192,7 @@ fn url_to_components_object<'a>(
 }
 
 // URL parsing function
+#[inline]
 fn url_parse(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -223,6 +224,7 @@ fn url_parse(
     }
 }
 
+#[inline]
 fn url_set_href(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -240,6 +242,7 @@ fn url_set_href(
     }
 }
 
+#[inline]
 fn url_set_protocol(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -262,6 +265,7 @@ fn url_set_protocol(
     }
 }
 
+#[inline]
 fn url_set_username(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -282,6 +286,7 @@ fn url_set_username(
     }
 }
 
+#[inline]
 fn url_set_password(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -302,6 +307,7 @@ fn url_set_password(
     }
 }
 
+#[inline]
 fn url_set_host(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -333,6 +339,7 @@ fn url_set_host(
     }
 }
 
+#[inline]
 fn url_set_hostname(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -353,6 +360,7 @@ fn url_set_hostname(
     }
 }
 
+#[inline]
 fn url_set_port(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -377,6 +385,7 @@ fn url_set_port(
     }
 }
 
+#[inline]
 fn url_set_pathname(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -397,6 +406,7 @@ fn url_set_pathname(
     }
 }
 
+#[inline]
 fn url_set_search(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -422,6 +432,7 @@ fn url_set_search(
     }
 }
 
+#[inline]
 fn url_set_hash(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -449,6 +460,7 @@ fn url_set_hash(
 
 // URLSearchParams implementation
 
+#[inline]
 fn url_search_params_new(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -503,6 +515,7 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
     params
 }
 
+#[inline]
 fn url_search_params_to_string(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
