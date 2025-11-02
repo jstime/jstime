@@ -62,8 +62,6 @@ fn get_env(
 ) {
     let env_obj = v8::Object::new(scope);
 
-    // Pre-allocate estimated capacity for environment variables
-    // Typically systems have 20-50 env vars, but we don't want to iterate twice
     // Get all environment variables
     for (key, value) in std::env::vars() {
         let Some(k) = v8::String::new(scope, &key) else {
