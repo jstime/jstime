@@ -188,11 +188,17 @@ fn url_set_protocol(
     let url_str = to_rust_string(scope, args.get(0));
     let protocol = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        let protocol = protocol.trim_end_matches(':');
-        let _ = url.set_scheme(protocol);
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            let protocol = protocol.trim_end_matches(':');
+            let _ = url.set_scheme(protocol);
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
+        }
+        Err(_) => {
+            // If parsing fails, return null (shouldn't happen as we're parsing a valid URL)
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -204,10 +210,15 @@ fn url_set_username(
     let url_str = to_rust_string(scope, args.get(0));
     let username = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        let _ = url.set_username(&username);
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            let _ = url.set_username(&username);
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
+        }
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -219,10 +230,15 @@ fn url_set_password(
     let url_str = to_rust_string(scope, args.get(0));
     let password = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        let _ = url.set_password(Some(&password));
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            let _ = url.set_password(Some(&password));
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
+        }
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -234,21 +250,26 @@ fn url_set_host(
     let url_str = to_rust_string(scope, args.get(0));
     let host = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        // Parse host and port if present
-        if host.contains(':') {
-            let parts: SmallVec<[&str; 2]> = host.splitn(2, ':').collect();
-            if parts.len() == 2 {
-                let _ = url.set_host(Some(parts[0]));
-                if let Ok(port) = parts[1].parse::<u16>() {
-                    let _ = url.set_port(Some(port));
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            // Parse host and port if present
+            if host.contains(':') {
+                let parts: SmallVec<[&str; 2]> = host.splitn(2, ':').collect();
+                if parts.len() == 2 {
+                    let _ = url.set_host(Some(parts[0]));
+                    if let Ok(port) = parts[1].parse::<u16>() {
+                        let _ = url.set_port(Some(port));
+                    }
                 }
+            } else {
+                let _ = url.set_host(Some(&host));
             }
-        } else {
-            let _ = url.set_host(Some(&host));
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
         }
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -260,10 +281,15 @@ fn url_set_hostname(
     let url_str = to_rust_string(scope, args.get(0));
     let hostname = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        let _ = url.set_host(Some(&hostname));
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            let _ = url.set_host(Some(&hostname));
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
+        }
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -275,14 +301,19 @@ fn url_set_port(
     let url_str = to_rust_string(scope, args.get(0));
     let port_str = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        if port_str.is_empty() {
-            let _ = url.set_port(None);
-        } else if let Ok(port) = port_str.parse::<u16>() {
-            let _ = url.set_port(Some(port));
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            if port_str.is_empty() {
+                let _ = url.set_port(None);
+            } else if let Ok(port) = port_str.parse::<u16>() {
+                let _ = url.set_port(Some(port));
+            }
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
         }
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -294,10 +325,15 @@ fn url_set_pathname(
     let url_str = to_rust_string(scope, args.get(0));
     let pathname = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        url.set_path(&pathname);
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            url.set_path(&pathname);
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
+        }
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -309,15 +345,20 @@ fn url_set_search(
     let url_str = to_rust_string(scope, args.get(0));
     let search = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        let search = search.trim_start_matches('?');
-        if search.is_empty() {
-            url.set_query(None);
-        } else {
-            url.set_query(Some(search));
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            let search = search.trim_start_matches('?');
+            if search.is_empty() {
+                url.set_query(None);
+            } else {
+                url.set_query(Some(search));
+            }
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
         }
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 
@@ -329,15 +370,20 @@ fn url_set_hash(
     let url_str = to_rust_string(scope, args.get(0));
     let hash = to_rust_string(scope, args.get(1));
 
-    if let Ok(mut url) = Url::parse(&url_str) {
-        let hash = hash.trim_start_matches('#');
-        if hash.is_empty() {
-            url.set_fragment(None);
-        } else {
-            url.set_fragment(Some(hash));
+    match Url::parse(&url_str) {
+        Ok(mut url) => {
+            let hash = hash.trim_start_matches('#');
+            if hash.is_empty() {
+                url.set_fragment(None);
+            } else {
+                url.set_fragment(Some(hash));
+            }
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
         }
-        let obj = url_to_components_object(scope, &url);
-        rv.set(obj.into());
+        Err(_) => {
+            rv.set(v8::null(scope).into());
+        }
     }
 }
 

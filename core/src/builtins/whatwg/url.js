@@ -216,8 +216,10 @@
 
     set protocol(value) {
       const parsed = urlSetProtocol(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#protocol = parsed.protocol;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#protocol = parsed.protocol;
+      }
     }
 
     get username() {
@@ -226,8 +228,10 @@
 
     set username(value) {
       const parsed = urlSetUsername(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#username = parsed.username;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#username = parsed.username;
+      }
     }
 
     get password() {
@@ -236,8 +240,10 @@
 
     set password(value) {
       const parsed = urlSetPassword(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#password = parsed.password;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#password = parsed.password;
+      }
     }
 
     get host() {
@@ -246,10 +252,12 @@
 
     set host(value) {
       const parsed = urlSetHost(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#host = parsed.host;
-      this.#hostname = parsed.hostname;
-      this.#port = parsed.port;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#host = parsed.host;
+        this.#hostname = parsed.hostname;
+        this.#port = parsed.port;
+      }
     }
 
     get hostname() {
@@ -258,9 +266,11 @@
 
     set hostname(value) {
       const parsed = urlSetHostname(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#hostname = parsed.hostname;
-      this.#host = parsed.host;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#hostname = parsed.hostname;
+        this.#host = parsed.host;
+      }
     }
 
     get port() {
@@ -269,9 +279,11 @@
 
     set port(value) {
       const parsed = urlSetPort(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#port = parsed.port;
-      this.#host = parsed.host;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#port = parsed.port;
+        this.#host = parsed.host;
+      }
     }
 
     get pathname() {
@@ -280,8 +292,10 @@
 
     set pathname(value) {
       const parsed = urlSetPathname(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#pathname = parsed.pathname;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#pathname = parsed.pathname;
+      }
     }
 
     get search() {
@@ -290,9 +304,11 @@
 
     set search(value) {
       const parsed = urlSetSearch(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#search = parsed.search;
-      this.#searchParams = null; // Reset cached searchParams
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#search = parsed.search;
+        this.#searchParams = null; // Reset cached searchParams
+      }
     }
 
     get searchParams() {
@@ -310,8 +326,10 @@
           return function(...args) {
             const result = original(...args);
             const parsed = urlSetSearch(self.#href, params.toString());
-            self.#href = parsed.href;
-            self.#search = parsed.search;
+            if (parsed !== null) {
+              self.#href = parsed.href;
+              self.#search = parsed.search;
+            }
             return result;
           };
         };
@@ -331,8 +349,10 @@
 
     set hash(value) {
       const parsed = urlSetHash(this.#href, String(value));
-      this.#href = parsed.href;
-      this.#hash = parsed.hash;
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#hash = parsed.hash;
+      }
     }
 
     toString() {
