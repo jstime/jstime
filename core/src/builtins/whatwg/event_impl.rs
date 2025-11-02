@@ -133,7 +133,8 @@ fn event_target_add_event_listener(
     let length = listeners_array.length();
     listeners_array.set_index(scope, length, listener_func.into());
 
-    // Update the map (no need to set the map back on the target, it's already there)
+    // Update the array in the map. The map reference is already stored on the target
+    // object, so we only need to update the array contents within the map.
     listeners_map.set(scope, type_key.into(), listeners_array.into());
 }
 
