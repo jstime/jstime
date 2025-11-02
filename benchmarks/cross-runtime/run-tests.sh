@@ -14,22 +14,32 @@ fi
 # Don't use set -e so that test failures don't stop the script
 set +e
 
+# Constants
+ERROR_MARKER="ERROR"
+ERROR_DETAILS="ERROR||"
+
 # Parse command line arguments
 VERBOSE=false
+
+# Show usage information
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --verbose, -v    Show detailed breakdown for each performance test"
+    echo "  --help, -h       Show this help message"
+    echo ""
+    echo "The test suite will automatically detect available runtimes"
+    echo "(jstime, node, deno, bun) and run compliance and performance tests."
+}
+
 for arg in "$@"; do
     case "$arg" in
         --verbose|-v)
             VERBOSE=true
             ;;
         --help|-h)
-            echo "Usage: $0 [OPTIONS]"
-            echo ""
-            echo "Options:"
-            echo "  --verbose, -v    Show detailed breakdown for each performance test"
-            echo "  --help, -h       Show this help message"
-            echo ""
-            echo "The test suite will automatically detect available runtimes"
-            echo "(jstime, node, deno, bun) and run compliance and performance tests."
+            show_help
             exit 0
             ;;
         *)
@@ -276,7 +286,7 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         printf "  %-10s: " "$runtime"
         
-        output=$(run_test "$runtime" "$PERFORMANCE_DIR/$test_file" "performance" 2>&1 || echo "ERROR")
+        output=$(run_test "$runtime" "$PERFORMANCE_DIR/$test_file" "performance" 2>&1 || echo "$ERROR_MARKER")
         
         if echo "$output" | grep -q '"test"'; then
             # Parse JSON output
@@ -294,9 +304,9 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
             set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
             set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
         else
-            echo -e "${RED}ERROR${NC}"
-            set_result PERF_RESULTS "$runtime-$test_name" "ERROR"
-            set_result PERF_DETAILS "$runtime-$test_name" "ERROR||"
+            echo -e "${RED}${ERROR_MARKER}${NC}"
+            set_result PERF_RESULTS "$runtime-$test_name" "$ERROR_MARKER"
+            set_result PERF_DETAILS "$runtime-$test_name" "$ERROR_DETAILS"
         fi
     done
     echo ""
@@ -349,7 +359,7 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     worst_time=0
     for runtime in "${RUNTIMES[@]}"; do
         time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
-        if [ "$time" != "ERROR" ] && [ -n "$time" ]; then
+        if [ "$time" != "$ERROR_MARKER" ] && [ -n "$time" ]; then
             if (( $(echo "$time < $best_time" | bc -l 2>/dev/null || echo 0) )); then
                 best_time="$time"
             fi
@@ -361,7 +371,7 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     
     for runtime in "${RUNTIMES[@]}"; do
         time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
-        if [ "$time" != "ERROR" ] && [ -n "$time" ]; then
+        if [ "$time" != "$ERROR_MARKER" ] && [ -n "$time" ]; then
             # Mark the fastest runtime in green, slowest in red, others in yellow
             if [ "$time" == "$best_time" ]; then
                 printf " ${GREEN}%-10s${NC}" "$runtime:${time}ms★"
@@ -378,7 +388,7 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     if [ "$VERBOSE" = true ]; then
         for runtime in "${RUNTIMES[@]}"; do
             details=$(get_result PERF_DETAILS "$runtime-bench-$test_name")
-            if [ "$details" != "ERROR||" ] && [ -n "$details" ]; then
+            if [ "$details" != "$ERROR_DETAILS" ] && [ -n "$details" ]; then
                 elapsed=$(echo "$details" | cut -d'|' -f1)
                 ops_per_ms=$(echo "$details" | cut -d'|' -f2)
                 iterations=$(echo "$details" | cut -d'|' -f3)
