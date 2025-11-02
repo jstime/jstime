@@ -141,7 +141,10 @@ fn crypto_get_random_values(
 #[inline]
 const fn byte_to_hex(byte: u8) -> (u8, u8) {
     const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-    (HEX_CHARS[(byte >> 4) as usize], HEX_CHARS[(byte & 0x0f) as usize])
+    (
+        HEX_CHARS[(byte >> 4) as usize],
+        HEX_CHARS[(byte & 0x0f) as usize],
+    )
 }
 
 // crypto.randomUUID()
@@ -172,14 +175,14 @@ fn crypto_random_uuid(
     // Pre-allocate buffer with exact size to avoid allocations
     let mut uuid_buf = [0u8; 36];
     let mut pos = 0;
-    
+
     // Format each byte as two hex chars, with hyphens at positions 8, 13, 18, 23
     for (i, &byte) in bytes.iter().enumerate() {
         let (hi, lo) = byte_to_hex(byte);
         uuid_buf[pos] = hi;
         uuid_buf[pos + 1] = lo;
         pos += 2;
-        
+
         // Add hyphen after positions 8, 12, 16, 20 (bytes 3, 5, 7, 9)
         if i == 3 || i == 5 || i == 7 || i == 9 {
             uuid_buf[pos] = b'-';
