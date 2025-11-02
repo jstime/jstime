@@ -366,18 +366,18 @@ fn event_target_dispatch_event(
     let event_arg = [event];
     
     for i in 0..length {
-        // Check if immediate propagation was stopped
-        if let Some(stop_val) = event_obj.get(scope, stop_immediate_key.into()) {
-            if stop_val.is_true() {
-                break;
-            }
-        }
-
         // Get listener at index i and call it if it's a function
         if let Some(item) = listeners_array.get_index(scope, i) {
             if item.is_function() {
                 let listener_func = v8::Local::<v8::Function>::try_from(item).unwrap();
                 listener_func.call(scope, target, &event_arg);
+                
+                // Check if immediate propagation was stopped after the call
+                if let Some(stop_val) = event_obj.get(scope, stop_immediate_key.into()) {
+                    if stop_val.is_true() {
+                        break;
+                    }
+                }
             }
         }
     }
