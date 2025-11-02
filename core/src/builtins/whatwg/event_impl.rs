@@ -81,8 +81,18 @@ fn event_target_add_event_listener(
         }
     };
 
+    // Get cached strings from the isolate state
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
     // Get or create the __listeners__ internal slot
-    let listeners_key = v8::String::new(scope, "__listeners__").unwrap();
+    let listeners_key =
+        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
+
+    drop(cache);
+    drop(string_cache);
+
     let target_obj = match v8::Local::<v8::Object>::try_from(target) {
         Ok(obj) => obj,
         Err(_) => return,
@@ -148,7 +158,17 @@ fn event_target_remove_event_listener(
         }
     };
 
-    let listeners_key = v8::String::new(scope, "__listeners__").unwrap();
+    // Get cached strings from the isolate state
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
+    let listeners_key =
+        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
+
+    drop(cache);
+    drop(string_cache);
+
     let target_obj = match v8::Local::<v8::Object>::try_from(target) {
         Ok(obj) => obj,
         Err(_) => return,
@@ -210,19 +230,25 @@ fn event_target_dispatch_event(
         }
     };
 
+    // Get cached strings from the isolate state
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow_mut().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
     // Set currentTarget on the event
-    let current_target_key = v8::String::new(scope, "__currentTarget__").unwrap();
+    let current_target_key =
+        crate::get_or_create_cached_string!(scope, cache, current_target, "__currentTarget__");
     event_obj.set(scope, current_target_key.into(), target);
 
     // Set target on the event if not already set
-    let target_key = v8::String::new(scope, "__target__").unwrap();
+    let target_key = crate::get_or_create_cached_string!(scope, cache, target, "__target__");
     let existing_target = event_obj.get(scope, target_key.into());
     if existing_target.is_none() || existing_target.unwrap().is_null_or_undefined() {
         event_obj.set(scope, target_key.into(), target);
     }
 
     // Get event type
-    let type_key = v8::String::new(scope, "type").unwrap();
+    let type_key = crate::get_or_create_cached_string!(scope, cache, type_, "type");
     let type_val = match event_obj.get(scope, type_key.into()) {
         Some(val) => val,
         None => {
@@ -245,7 +271,8 @@ fn event_target_dispatch_event(
     };
 
     // Get listeners for this event type
-    let listeners_key = v8::String::new(scope, "__listeners__").unwrap();
+    let listeners_key =
+        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
     let target_obj = match v8::Local::<v8::Object>::try_from(target) {
         Ok(obj) => obj,
         Err(_) => {
@@ -262,8 +289,9 @@ fn event_target_dispatch_event(
         }
     };
 
-    let type_key = v8::String::new(scope, &type_str).unwrap();
-    let listeners_array = match listeners_map.get(scope, type_key.into()) {
+    // Create the type key for looking up listeners (not cached since it's dynamic)
+    let type_key_lookup = v8::String::new(scope, &type_str).unwrap();
+    let listeners_array = match listeners_map.get(scope, type_key_lookup.into()) {
         Some(val) if val.is_array() => v8::Local::<v8::Array>::try_from(val).unwrap(),
         _ => {
             rv.set(v8::Boolean::new(scope, true).into());
@@ -272,7 +300,16 @@ fn event_target_dispatch_event(
     };
 
     // Check if propagation was stopped immediately
-    let stop_immediate_key = v8::String::new(scope, "__stopImmediatePropagation__").unwrap();
+    let stop_immediate_key = crate::get_or_create_cached_string!(
+        scope,
+        cache,
+        stop_immediate_propagation,
+        "__stopImmediatePropagation__"
+    );
+
+    // Release the cache borrow before calling listener functions (which may access the cache)
+    drop(cache);
+    drop(string_cache);
 
     // Call each listener
     let length = listeners_array.length();
@@ -294,8 +331,18 @@ fn event_target_dispatch_event(
         }
     }
 
+    // Re-borrow the cache for the final check
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
     // Return !defaultPrevented
-    let default_prevented_key = v8::String::new(scope, "__defaultPrevented__").unwrap();
+    let default_prevented_key = crate::get_or_create_cached_string!(
+        scope,
+        cache,
+        default_prevented,
+        "__defaultPrevented__"
+    );
     let default_prevented = event_obj
         .get(scope, default_prevented_key.into())
         .map(|v| v.is_true())
@@ -320,7 +367,13 @@ fn event_stop_propagation(
         Err(_) => return,
     };
 
-    let key = v8::String::new(scope, "__stopPropagation__").unwrap();
+    // Get cached strings from the isolate state
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
+    let key =
+        crate::get_or_create_cached_string!(scope, cache, stop_propagation, "__stopPropagation__");
     let value = v8::Boolean::new(scope, true);
     event_obj.set(scope, key.into(), value.into());
 }
@@ -341,12 +394,23 @@ fn event_stop_immediate_propagation(
         Err(_) => return,
     };
 
-    let key = v8::String::new(scope, "__stopImmediatePropagation__").unwrap();
+    // Get cached strings from the isolate state
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
+    let key = crate::get_or_create_cached_string!(
+        scope,
+        cache,
+        stop_immediate_propagation,
+        "__stopImmediatePropagation__"
+    );
     let value = v8::Boolean::new(scope, true);
     event_obj.set(scope, key.into(), value.into());
 
     // Also stop propagation
-    let prop_key = v8::String::new(scope, "__stopPropagation__").unwrap();
+    let prop_key =
+        crate::get_or_create_cached_string!(scope, cache, stop_propagation, "__stopPropagation__");
     event_obj.set(scope, prop_key.into(), value.into());
 }
 
@@ -366,15 +430,26 @@ fn event_prevent_default(
         Err(_) => return,
     };
 
+    // Get cached strings from the isolate state
+    let isolate_state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+
     // Only allow preventDefault if cancelable
-    let cancelable_key = v8::String::new(scope, "cancelable").unwrap();
+    let cancelable_key =
+        crate::get_or_create_cached_string!(scope, cache, cancelable, "cancelable");
     let is_cancelable = event_obj
         .get(scope, cancelable_key.into())
         .map(|v| v.is_true())
         .unwrap_or(false);
 
     if is_cancelable {
-        let key = v8::String::new(scope, "__defaultPrevented__").unwrap();
+        let key = crate::get_or_create_cached_string!(
+            scope,
+            cache,
+            default_prevented,
+            "__defaultPrevented__"
+        );
         let value = v8::Boolean::new(scope, true);
         event_obj.set(scope, key.into(), value.into());
     }
