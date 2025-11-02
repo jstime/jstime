@@ -7,39 +7,6 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
             function: v8::MapFnTo::map_fn_to(url_parse),
         },
         v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_href),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_origin),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_protocol),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_username),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_password),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_host),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_hostname),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_port),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_pathname),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_search),
-        },
-        v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_get_hash),
-        },
-        v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(url_set_href),
         },
         v8::ExternalReference {
@@ -70,9 +37,6 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
             function: v8::MapFnTo::map_fn_to(url_set_hash),
         },
         v8::ExternalReference {
-            function: v8::MapFnTo::map_fn_to(url_to_json),
-        },
-        v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(url_search_params_new),
         },
         v8::ExternalReference {
@@ -91,17 +55,6 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
     }
 
     binding!("urlParse", url_parse);
-    binding!("urlGetHref", url_get_href);
-    binding!("urlGetOrigin", url_get_origin);
-    binding!("urlGetProtocol", url_get_protocol);
-    binding!("urlGetUsername", url_get_username);
-    binding!("urlGetPassword", url_get_password);
-    binding!("urlGetHost", url_get_host);
-    binding!("urlGetHostname", url_get_hostname);
-    binding!("urlGetPort", url_get_port);
-    binding!("urlGetPathname", url_get_pathname);
-    binding!("urlGetSearch", url_get_search);
-    binding!("urlGetHash", url_get_hash);
     binding!("urlSetHref", url_set_href);
     binding!("urlSetProtocol", url_set_protocol);
     binding!("urlSetUsername", url_set_username);
@@ -112,7 +65,6 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
     binding!("urlSetPathname", url_set_pathname);
     binding!("urlSetSearch", url_set_search);
     binding!("urlSetHash", url_set_hash);
-    binding!("urlToJson", url_to_json);
     binding!("urlSearchParamsNew", url_search_params_new);
     binding!("urlSearchParamsToString", url_search_params_to_string);
 }
@@ -127,6 +79,56 @@ fn to_rust_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Stri
 #[inline]
 fn to_v8_string<'a>(scope: &mut v8::PinScope<'a, '_>, s: &str) -> v8::Local<'a, v8::String> {
     v8::String::new(scope, s).unwrap()
+}
+
+// Helper to create a URL components object
+#[inline]
+fn url_to_components_object<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    url: &Url,
+) -> v8::Local<'a, v8::Object> {
+    let obj = v8::Object::new(scope);
+
+    // Helper macro to set object properties
+    macro_rules! set_prop {
+        ($name:expr, $value:expr) => {
+            let key = v8::String::new(scope, $name).unwrap();
+            let val = to_v8_string(scope, $value);
+            obj.set(scope, key.into(), val.into());
+        };
+    }
+
+    set_prop!("href", url.as_str());
+    set_prop!("origin", &url.origin().ascii_serialization());
+    set_prop!("protocol", &format!("{}:", url.scheme()));
+    set_prop!("username", url.username());
+    set_prop!("password", url.password().unwrap_or(""));
+
+    let host = url.host_str().unwrap_or("");
+    let host_with_port = if let Some(port) = url.port() {
+        format!("{}:{}", host, port)
+    } else {
+        host.to_string()
+    };
+    set_prop!("host", &host_with_port);
+    set_prop!("hostname", host);
+    set_prop!(
+        "port",
+        &url.port().map(|p| p.to_string()).unwrap_or_default()
+    );
+    set_prop!("pathname", url.path());
+    set_prop!(
+        "search",
+        &url.query().map(|q| format!("?{}", q)).unwrap_or_default()
+    );
+    set_prop!(
+        "hash",
+        &url.fragment()
+            .map(|f| format!("#{}", f))
+            .unwrap_or_default()
+    );
+
+    obj
 }
 
 // URL parsing function
@@ -152,161 +154,12 @@ fn url_parse(
 
     match parsed {
         Ok(url) => {
-            let url_str = url.to_string();
-            let v8_str = to_v8_string(scope, &url_str);
-            rv.set(v8_str.into());
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
         }
         Err(_) => {
             rv.set(v8::null(scope).into());
         }
-    }
-}
-
-fn url_get_href(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_origin(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let origin = url.origin().ascii_serialization();
-        let v8_str = to_v8_string(scope, &origin);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_protocol(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let protocol = format!("{}:", url.scheme());
-        let v8_str = to_v8_string(scope, &protocol);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_username(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let v8_str = to_v8_string(scope, url.username());
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_password(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let password = url.password().unwrap_or("");
-        let v8_str = to_v8_string(scope, password);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_host(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let host = url.host_str().unwrap_or("");
-        let host_with_port = if let Some(port) = url.port() {
-            format!("{}:{}", host, port)
-        } else {
-            host.to_string()
-        };
-        let v8_str = to_v8_string(scope, &host_with_port);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_hostname(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let hostname = url.host_str().unwrap_or("");
-        let v8_str = to_v8_string(scope, hostname);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_port(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let port = url.port().map(|p| p.to_string()).unwrap_or_default();
-        let v8_str = to_v8_string(scope, &port);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_pathname(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let v8_str = to_v8_string(scope, url.path());
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_search(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let search = url.query().map(|q| format!("?{}", q)).unwrap_or_default();
-        let v8_str = to_v8_string(scope, &search);
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_get_hash(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let hash = url
-            .fragment()
-            .map(|f| format!("#{}", f))
-            .unwrap_or_default();
-        let v8_str = to_v8_string(scope, &hash);
-        rv.set(v8_str.into());
     }
 }
 
@@ -318,8 +171,8 @@ fn url_set_href(
     let new_url_str = to_rust_string(scope, args.get(1));
     match Url::parse(&new_url_str) {
         Ok(url) => {
-            let v8_str = to_v8_string(scope, url.as_str());
-            rv.set(v8_str.into());
+            let obj = url_to_components_object(scope, &url);
+            rv.set(obj.into());
         }
         Err(_) => {
             rv.set(v8::null(scope).into());
@@ -338,8 +191,8 @@ fn url_set_protocol(
     if let Ok(mut url) = Url::parse(&url_str) {
         let protocol = protocol.trim_end_matches(':');
         let _ = url.set_scheme(protocol);
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -353,8 +206,8 @@ fn url_set_username(
 
     if let Ok(mut url) = Url::parse(&url_str) {
         let _ = url.set_username(&username);
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -368,8 +221,8 @@ fn url_set_password(
 
     if let Ok(mut url) = Url::parse(&url_str) {
         let _ = url.set_password(Some(&password));
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -394,8 +247,8 @@ fn url_set_host(
         } else {
             let _ = url.set_host(Some(&host));
         }
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -409,8 +262,8 @@ fn url_set_hostname(
 
     if let Ok(mut url) = Url::parse(&url_str) {
         let _ = url.set_host(Some(&hostname));
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -428,8 +281,8 @@ fn url_set_port(
         } else if let Ok(port) = port_str.parse::<u16>() {
             let _ = url.set_port(Some(port));
         }
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -443,8 +296,8 @@ fn url_set_pathname(
 
     if let Ok(mut url) = Url::parse(&url_str) {
         url.set_path(&pathname);
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -463,8 +316,8 @@ fn url_set_search(
         } else {
             url.set_query(Some(search));
         }
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
@@ -483,20 +336,8 @@ fn url_set_hash(
         } else {
             url.set_fragment(Some(hash));
         }
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
-    }
-}
-
-fn url_to_json(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let url_str = to_rust_string(scope, args.get(0));
-    if let Ok(url) = Url::parse(&url_str) {
-        let v8_str = to_v8_string(scope, url.as_str());
-        rv.set(v8_str.into());
+        let obj = url_to_components_object(scope, &url);
+        rv.set(obj.into());
     }
 }
 
