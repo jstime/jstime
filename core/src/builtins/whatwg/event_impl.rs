@@ -210,6 +210,9 @@ fn event_target_remove_event_listener(
 }
 
 // EventTarget.dispatchEvent(event)
+// NOTE: This function is no longer the primary dispatch path.
+// Event dispatching now happens in JavaScript (event.js) for better performance.
+// This function is kept for backwards compatibility and snapshot support.
 #[inline]
 fn event_target_dispatch_event(
     scope: &mut v8::PinScope,

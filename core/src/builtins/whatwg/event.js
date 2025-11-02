@@ -193,6 +193,7 @@
           } catch (e) {
             // According to spec, errors in event listeners should not stop other listeners
             // In browsers, they're reported to the console but don't throw
+            // console is a built-in in jstime, so this is safe
             console.error('Error in event listener:', e);
           }
         }
