@@ -159,8 +159,47 @@
         throw new TypeError('Failed to execute \'dispatchEvent\' on \'EventTarget\': parameter 1 is not of type \'Event\'.');
       }
 
-      // Call Rust implementation
-      return eventTargetDispatchEvent(this, event);
+      // Set event targets
+      event.__currentTarget__ = this;
+      if (event.__target__ === null || event.__target__ === undefined) {
+        event.__target__ = this;
+      }
+
+      // Get event type (use cached if available)
+      const type = event.type;
+      
+      // Get listeners for this event type
+      const listenersMap = this.__listeners__;
+      if (!listenersMap || !(listenersMap instanceof Map)) {
+        return !event.__defaultPrevented__;
+      }
+
+      const listeners = listenersMap.get(type);
+      if (!listeners || !Array.isArray(listeners) || listeners.length === 0) {
+        return !event.__defaultPrevented__;
+      }
+
+      // Call each listener
+      for (let i = 0; i < listeners.length; i++) {
+        // Check if immediate propagation was stopped
+        if (event.__stopImmediatePropagation__) {
+          break;
+        }
+
+        const listener = listeners[i];
+        if (typeof listener === 'function') {
+          try {
+            listener.call(this, event);
+          } catch (e) {
+            // According to spec, errors in event listeners should not stop other listeners
+            // In browsers, they're reported to the console but don't throw
+            // console is a built-in in jstime, so this is safe
+            console.error('Error in event listener:', e);
+          }
+        }
+      }
+
+      return !event.__defaultPrevented__;
     }
   }
 
