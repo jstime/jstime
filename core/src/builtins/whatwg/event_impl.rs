@@ -69,10 +69,17 @@ fn event_target_add_event_listener(
     let type_arg = args.get(1);
     let listener = args.get(2);
 
-    // Validate inputs
+    // Validate inputs early - fast rejection path
     if !listener.is_function() {
         return;
     }
+
+    let target_obj = match v8::Local::<v8::Object>::try_from(target) {
+        Ok(obj) => obj,
+        Err(_) => return,
+    };
+
+    let listener_func = v8::Local::<v8::Function>::try_from(listener).unwrap();
 
     // Convert type to a V8 string directly, without going through Rust String
     let type_key = {
@@ -83,59 +90,48 @@ fn event_target_add_event_listener(
         }
     };
 
-    // Get cached strings from the isolate state
-    let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow().string_cache.clone();
-    let mut cache = string_cache.borrow_mut();
-
-    // Get or create the __listeners__ internal slot
-    let listeners_key =
-        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
-
-    drop(cache);
-    drop(string_cache);
-
-    let target_obj = match v8::Local::<v8::Object>::try_from(target) {
-        Ok(obj) => obj,
-        Err(_) => return,
+    // Get cached __listeners__ key string from the isolate state
+    let listeners_key = {
+        let isolate_state = crate::isolate_state::IsolateState::get(scope);
+        let string_cache = isolate_state.borrow().string_cache.clone();
+        let mut cache = string_cache.borrow_mut();
+        let key = crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
+        drop(cache);
+        drop(string_cache);
+        key
     };
 
-    // Get or create the listeners map
-    let listeners_map = if let Some(existing) = target_obj.get(scope, listeners_key.into()) {
-        if existing.is_map() {
-            v8::Local::<v8::Map>::try_from(existing).unwrap()
-        } else {
-            // If __listeners__ exists but isn't a Map, create a new one and set it
+    // Get or create the listeners map - optimized for the common case
+    match target_obj.get(scope, listeners_key.into()) {
+        Some(existing) if existing.is_map() => {
+            // Fast path: listeners map already exists
+            let map = v8::Local::<v8::Map>::try_from(existing).unwrap();
+
+            // Get or create the array of listeners for this event type
+            match map.get(scope, type_key.into()) {
+                Some(arr) if arr.is_array() => {
+                    // Fast path: array exists, just append
+                    let array = v8::Local::<v8::Array>::try_from(arr).unwrap();
+                    let length = array.length();
+                    array.set_index(scope, length, listener_func.into());
+                }
+                _ => {
+                    // Create new array for this event type
+                    let array = v8::Array::new(scope, 1);
+                    array.set_index(scope, 0, listener_func.into());
+                    map.set(scope, type_key.into(), array.into());
+                }
+            }
+        }
+        _ => {
+            // Slow path: create new map, array, and set everything up
             let new_map = v8::Map::new(scope);
+            let new_array = v8::Array::new(scope, 1);
+            new_array.set_index(scope, 0, listener_func.into());
+            new_map.set(scope, type_key.into(), new_array.into());
             target_obj.set(scope, listeners_key.into(), new_map.into());
-            new_map
         }
-    } else {
-        // Create new map and set it on the target
-        let new_map = v8::Map::new(scope);
-        target_obj.set(scope, listeners_key.into(), new_map.into());
-        new_map
-    };
-
-    // Get the array of listeners for this event type
-    let listeners_array = if let Some(existing) = listeners_map.get(scope, type_key.into()) {
-        if existing.is_array() {
-            v8::Local::<v8::Array>::try_from(existing).unwrap()
-        } else {
-            v8::Array::new(scope, 0)
-        }
-    } else {
-        v8::Array::new(scope, 0)
-    };
-
-    // Add the listener to the array
-    let listener_func = v8::Local::<v8::Function>::try_from(listener).unwrap();
-    let length = listeners_array.length();
-    listeners_array.set_index(scope, length, listener_func.into());
-
-    // Update the array in the map. The map reference is already stored on the target
-    // object, so we only need to update the array contents within the map.
-    listeners_map.set(scope, type_key.into(), listeners_array.into());
+    }
 }
 
 // EventTarget.removeEventListener(type, listener, options)
@@ -153,9 +149,15 @@ fn event_target_remove_event_listener(
     let type_arg = args.get(1);
     let listener = args.get(2);
 
+    // Validate inputs early
     if !listener.is_function() {
         return;
     }
+
+    let target_obj = match v8::Local::<v8::Object>::try_from(target) {
+        Ok(obj) => obj,
+        Err(_) => return,
+    };
 
     // Convert type to a V8 string directly, without going through Rust String
     let type_key = {
@@ -166,22 +168,18 @@ fn event_target_remove_event_listener(
         }
     };
 
-    // Get cached strings from the isolate state
-    let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow().string_cache.clone();
-    let mut cache = string_cache.borrow_mut();
-
-    let listeners_key =
-        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
-
-    drop(cache);
-    drop(string_cache);
-
-    let target_obj = match v8::Local::<v8::Object>::try_from(target) {
-        Ok(obj) => obj,
-        Err(_) => return,
+    // Get cached __listeners__ key string from the isolate state
+    let listeners_key = {
+        let isolate_state = crate::isolate_state::IsolateState::get(scope);
+        let string_cache = isolate_state.borrow().string_cache.clone();
+        let mut cache = string_cache.borrow_mut();
+        let key = crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
+        drop(cache);
+        drop(string_cache);
+        key
     };
 
+    // Early return if no listeners exist
     let listeners_map = match target_obj.get(scope, listeners_key.into()) {
         Some(val) if val.is_map() => v8::Local::<v8::Map>::try_from(val).unwrap(),
         _ => return,

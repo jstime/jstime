@@ -113,7 +113,8 @@
   class EventTarget {
     constructor() {
       // Internal storage for event listeners (managed by Rust side)
-      this.__listeners__ = null;
+      // Initialize as a Map to avoid lazy creation overhead in addEventListener
+      this.__listeners__ = new Map();
     }
 
     addEventListener(type, listener, options = {}) {
