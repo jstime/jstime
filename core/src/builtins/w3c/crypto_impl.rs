@@ -333,6 +333,7 @@ fn get_buffer_data<'a, 'b>(
 }
 
 // crypto.subtle.sign(algorithm, key, data)
+#[inline]
 fn crypto_subtle_sign(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -342,6 +343,17 @@ fn crypto_subtle_sign(
         return;
     }
 
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
+    let algorithm_key = crate::get_or_create_cached_string!(scope, cache, algorithm, "algorithm");
+    let hash_key = crate::get_or_create_cached_string!(scope, cache, hash, "hash");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    drop(cache);
+    drop(string_cache);
+
     // Get algorithm
     let algorithm = args.get(0);
     let algorithm_name = if algorithm.is_string() {
@@ -349,7 +361,6 @@ fn crypto_subtle_sign(
         algorithm.to_string(tc).unwrap().to_rust_string_lossy(tc)
     } else if algorithm.is_object() {
         let obj = v8::Local::<v8::Object>::try_from(algorithm).unwrap();
-        let name_key = v8::String::new(scope, "name").unwrap();
         let name_value = obj.get(scope, name_key.into()).unwrap();
         v8::tc_scope!(let tc, scope);
         name_value.to_string(tc).unwrap().to_rust_string_lossy(tc)
@@ -366,8 +377,7 @@ fn crypto_subtle_sign(
     }
 
     let key_obj = v8::Local::<v8::Object>::try_from(key).unwrap();
-    let key_data_prop = v8::String::new(scope, "_keyData").unwrap();
-    let key_data_val = key_obj.get(scope, key_data_prop.into()).unwrap();
+    let key_data_val = key_obj.get(scope, key_data_key.into()).unwrap();
 
     let key_bytes = match get_buffer_data(scope, key_data_val) {
         Some(bytes) => bytes,
@@ -391,8 +401,7 @@ fn crypto_subtle_sign(
     let signature = match algorithm_name.as_str() {
         "HMAC" => {
             // Get hash algorithm from key
-            let key_alg_prop = v8::String::new(scope, "algorithm").unwrap();
-            let key_alg_obj = key_obj.get(scope, key_alg_prop.into()).unwrap();
+            let key_alg_obj = key_obj.get(scope, algorithm_key.into()).unwrap();
 
             if !key_alg_obj.is_object() {
                 crate::error::throw_error(scope, "Invalid key algorithm");
@@ -400,15 +409,13 @@ fn crypto_subtle_sign(
             }
 
             let key_alg = v8::Local::<v8::Object>::try_from(key_alg_obj).unwrap();
-            let hash_prop = v8::String::new(scope, "hash").unwrap();
-            let hash_obj = key_alg.get(scope, hash_prop.into()).unwrap();
+            let hash_obj = key_alg.get(scope, hash_key.into()).unwrap();
 
             let hash_name = if hash_obj.is_string() {
                 v8::tc_scope!(let tc, scope);
                 hash_obj.to_string(tc).unwrap().to_rust_string_lossy(tc)
             } else if hash_obj.is_object() {
                 let hash_obj = v8::Local::<v8::Object>::try_from(hash_obj).unwrap();
-                let name_key = v8::String::new(scope, "name").unwrap();
                 let name_val = hash_obj.get(scope, name_key.into()).unwrap();
                 v8::tc_scope!(let tc, scope);
                 name_val.to_string(tc).unwrap().to_rust_string_lossy(tc)
@@ -453,6 +460,7 @@ fn crypto_subtle_sign(
 }
 
 // crypto.subtle.verify(algorithm, key, signature, data)
+#[inline]
 fn crypto_subtle_verify(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -462,6 +470,17 @@ fn crypto_subtle_verify(
         return;
     }
 
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
+    let algorithm_key = crate::get_or_create_cached_string!(scope, cache, algorithm, "algorithm");
+    let hash_key = crate::get_or_create_cached_string!(scope, cache, hash, "hash");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    drop(cache);
+    drop(string_cache);
+
     // Get algorithm
     let algorithm = args.get(0);
     let algorithm_name = if algorithm.is_string() {
@@ -469,7 +488,6 @@ fn crypto_subtle_verify(
         algorithm.to_string(tc).unwrap().to_rust_string_lossy(tc)
     } else if algorithm.is_object() {
         let obj = v8::Local::<v8::Object>::try_from(algorithm).unwrap();
-        let name_key = v8::String::new(scope, "name").unwrap();
         let name_value = obj.get(scope, name_key.into()).unwrap();
         v8::tc_scope!(let tc, scope);
         name_value.to_string(tc).unwrap().to_rust_string_lossy(tc)
@@ -486,8 +504,7 @@ fn crypto_subtle_verify(
     }
 
     let key_obj = v8::Local::<v8::Object>::try_from(key).unwrap();
-    let key_data_prop = v8::String::new(scope, "_keyData").unwrap();
-    let key_data_val = key_obj.get(scope, key_data_prop.into()).unwrap();
+    let key_data_val = key_obj.get(scope, key_data_key.into()).unwrap();
 
     let key_bytes = match get_buffer_data(scope, key_data_val) {
         Some(bytes) => bytes,
@@ -524,8 +541,7 @@ fn crypto_subtle_verify(
     let is_valid = match algorithm_name.as_str() {
         "HMAC" => {
             // Get hash algorithm from key
-            let key_alg_prop = v8::String::new(scope, "algorithm").unwrap();
-            let key_alg_obj = key_obj.get(scope, key_alg_prop.into()).unwrap();
+            let key_alg_obj = key_obj.get(scope, algorithm_key.into()).unwrap();
 
             if !key_alg_obj.is_object() {
                 crate::error::throw_error(scope, "Invalid key algorithm");
@@ -533,15 +549,13 @@ fn crypto_subtle_verify(
             }
 
             let key_alg = v8::Local::<v8::Object>::try_from(key_alg_obj).unwrap();
-            let hash_prop = v8::String::new(scope, "hash").unwrap();
-            let hash_obj = key_alg.get(scope, hash_prop.into()).unwrap();
+            let hash_obj = key_alg.get(scope, hash_key.into()).unwrap();
 
             let hash_name = if hash_obj.is_string() {
                 v8::tc_scope!(let tc, scope);
                 hash_obj.to_string(tc).unwrap().to_rust_string_lossy(tc)
             } else if hash_obj.is_object() {
                 let hash_obj = v8::Local::<v8::Object>::try_from(hash_obj).unwrap();
-                let name_key = v8::String::new(scope, "name").unwrap();
                 let name_val = hash_obj.get(scope, name_key.into()).unwrap();
                 v8::tc_scope!(let tc, scope);
                 name_val.to_string(tc).unwrap().to_rust_string_lossy(tc)
@@ -582,6 +596,7 @@ fn crypto_subtle_verify(
 }
 
 // crypto.subtle.encrypt(algorithm, key, data)
+#[inline]
 fn crypto_subtle_encrypt(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -591,6 +606,18 @@ fn crypto_subtle_encrypt(
         return;
     }
 
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    let iv_key = crate::get_or_create_cached_string!(scope, cache, iv, "iv");
+    let additional_data_key =
+        crate::get_or_create_cached_string!(scope, cache, additional_data, "additionalData");
+    drop(cache);
+    drop(string_cache);
+
     // Get algorithm
     let algorithm = args.get(0);
     if !algorithm.is_object() {
@@ -599,7 +626,6 @@ fn crypto_subtle_encrypt(
     }
 
     let alg_obj = v8::Local::<v8::Object>::try_from(algorithm).unwrap();
-    let name_key = v8::String::new(scope, "name").unwrap();
     let name_value = alg_obj.get(scope, name_key.into()).unwrap();
     let algorithm_name = {
         v8::tc_scope!(let tc, scope);
@@ -614,8 +640,7 @@ fn crypto_subtle_encrypt(
     }
 
     let key_obj = v8::Local::<v8::Object>::try_from(key).unwrap();
-    let key_data_prop = v8::String::new(scope, "_keyData").unwrap();
-    let key_data_val = key_obj.get(scope, key_data_prop.into()).unwrap();
+    let key_data_val = key_obj.get(scope, key_data_key.into()).unwrap();
 
     let key_bytes = match get_buffer_data(scope, key_data_val) {
         Some(bytes) => bytes,
@@ -639,7 +664,6 @@ fn crypto_subtle_encrypt(
     let encrypted_data = match algorithm_name.as_str() {
         "AES-GCM" => {
             // Get IV from algorithm
-            let iv_key = v8::String::new(scope, "iv").unwrap();
             let iv_value = alg_obj.get(scope, iv_key.into()).unwrap();
             let iv_bytes = match get_buffer_data(scope, iv_value) {
                 Some(bytes) => bytes,
@@ -653,8 +677,7 @@ fn crypto_subtle_encrypt(
             };
 
             // Get optional additional data
-            let ad_key = v8::String::new(scope, "additionalData").unwrap();
-            let ad_value = alg_obj.get(scope, ad_key.into());
+            let ad_value = alg_obj.get(scope, additional_data_key.into());
             let ad_bytes = if let Some(ad_val) = ad_value {
                 get_buffer_data(scope, ad_val).unwrap_or(&[])
             } else {
@@ -694,10 +717,12 @@ fn crypto_subtle_encrypt(
 
             let mut sealing_key = aead::SealingKey::new(unbound_key, SingleNonce(Some(nonce)));
 
-            // Prepare data for encryption (need mutable buffer with space for tag)
-            let mut in_out = data_bytes.to_vec();
+            // Pre-allocate buffer with exact size needed (data + tag)
             let tag_len = aead::AES_256_GCM.tag_len();
-            in_out.resize(in_out.len() + tag_len, 0);
+            let total_len = data_bytes.len() + tag_len;
+            let mut in_out = Vec::with_capacity(total_len);
+            in_out.extend_from_slice(data_bytes);
+            in_out.resize(total_len, 0);
 
             // Encrypt
             let aad = aead::Aad::from(ad_bytes);
@@ -737,6 +762,7 @@ fn crypto_subtle_encrypt(
 }
 
 // crypto.subtle.decrypt(algorithm, key, data)
+#[inline]
 fn crypto_subtle_decrypt(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -746,6 +772,18 @@ fn crypto_subtle_decrypt(
         return;
     }
 
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    let iv_key = crate::get_or_create_cached_string!(scope, cache, iv, "iv");
+    let additional_data_key =
+        crate::get_or_create_cached_string!(scope, cache, additional_data, "additionalData");
+    drop(cache);
+    drop(string_cache);
+
     // Get algorithm
     let algorithm = args.get(0);
     if !algorithm.is_object() {
@@ -754,7 +792,6 @@ fn crypto_subtle_decrypt(
     }
 
     let alg_obj = v8::Local::<v8::Object>::try_from(algorithm).unwrap();
-    let name_key = v8::String::new(scope, "name").unwrap();
     let name_value = alg_obj.get(scope, name_key.into()).unwrap();
     let algorithm_name = {
         v8::tc_scope!(let tc, scope);
@@ -769,8 +806,7 @@ fn crypto_subtle_decrypt(
     }
 
     let key_obj = v8::Local::<v8::Object>::try_from(key).unwrap();
-    let key_data_prop = v8::String::new(scope, "_keyData").unwrap();
-    let key_data_val = key_obj.get(scope, key_data_prop.into()).unwrap();
+    let key_data_val = key_obj.get(scope, key_data_key.into()).unwrap();
 
     let key_bytes = match get_buffer_data(scope, key_data_val) {
         Some(bytes) => bytes,
@@ -794,7 +830,6 @@ fn crypto_subtle_decrypt(
     let decrypted_data = match algorithm_name.as_str() {
         "AES-GCM" => {
             // Get IV from algorithm
-            let iv_key = v8::String::new(scope, "iv").unwrap();
             let iv_value = alg_obj.get(scope, iv_key.into()).unwrap();
             let iv_bytes = match get_buffer_data(scope, iv_value) {
                 Some(bytes) => bytes,
@@ -808,8 +843,7 @@ fn crypto_subtle_decrypt(
             };
 
             // Get optional additional data
-            let ad_key = v8::String::new(scope, "additionalData").unwrap();
-            let ad_value = alg_obj.get(scope, ad_key.into());
+            let ad_value = alg_obj.get(scope, additional_data_key.into());
             let ad_bytes = if let Some(ad_val) = ad_value {
                 get_buffer_data(scope, ad_val).unwrap_or(&[])
             } else {
@@ -849,8 +883,9 @@ fn crypto_subtle_decrypt(
 
             let mut opening_key = aead::OpeningKey::new(unbound_key, SingleNonce(Some(nonce)));
 
-            // Prepare data for decryption (need mutable buffer)
-            let mut in_out = data_bytes.to_vec();
+            // Pre-allocate buffer with exact size for decryption
+            let mut in_out = Vec::with_capacity(data_bytes.len());
+            in_out.extend_from_slice(data_bytes);
 
             // Decrypt
             let aad = aead::Aad::from(ad_bytes);
@@ -884,6 +919,7 @@ fn crypto_subtle_decrypt(
 }
 
 // crypto.subtle.generateKey(algorithm, extractable, keyUsages)
+#[inline]
 fn crypto_subtle_generate_key(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -893,6 +929,23 @@ fn crypto_subtle_generate_key(
         return;
     }
 
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
+    let algorithm_key = crate::get_or_create_cached_string!(scope, cache, algorithm, "algorithm");
+    let hash_key = crate::get_or_create_cached_string!(scope, cache, hash, "hash");
+    let extractable_key =
+        crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
+    let usages_key = crate::get_or_create_cached_string!(scope, cache, usages, "usages");
+    let type_key = crate::get_or_create_cached_string!(scope, cache, type_, "type");
+    let secret_key = crate::get_or_create_cached_string!(scope, cache, secret, "secret");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    let length_key = crate::get_or_create_cached_string!(scope, cache, length, "length");
+    drop(cache);
+    drop(string_cache);
+
     // Get algorithm
     let algorithm = args.get(0);
     if !algorithm.is_object() {
@@ -901,7 +954,6 @@ fn crypto_subtle_generate_key(
     }
 
     let alg_obj = v8::Local::<v8::Object>::try_from(algorithm).unwrap();
-    let name_key = v8::String::new(scope, "name").unwrap();
     let name_value = alg_obj.get(scope, name_key.into()).unwrap();
     let algorithm_name = {
         v8::tc_scope!(let tc, scope);
@@ -922,7 +974,6 @@ fn crypto_subtle_generate_key(
     let key_data = match algorithm_name.as_str() {
         "AES-GCM" => {
             // Get length from algorithm
-            let length_key = v8::String::new(scope, "length").unwrap();
             let length_value = alg_obj.get(scope, length_key.into()).unwrap();
             let length = length_value.uint32_value(scope).unwrap_or(256);
 
@@ -945,7 +996,6 @@ fn crypto_subtle_generate_key(
         }
         "HMAC" => {
             // Get hash algorithm
-            let hash_key = v8::String::new(scope, "hash").unwrap();
             let hash_value = alg_obj.get(scope, hash_key.into()).unwrap();
 
             let hash_name = if hash_value.is_string() {
@@ -953,7 +1003,6 @@ fn crypto_subtle_generate_key(
                 hash_value.to_string(tc).unwrap().to_rust_string_lossy(tc)
             } else if hash_value.is_object() {
                 let hash_obj = v8::Local::<v8::Object>::try_from(hash_value).unwrap();
-                let name_key = v8::String::new(scope, "name").unwrap();
                 let name_val = hash_obj.get(scope, name_key.into()).unwrap();
                 v8::tc_scope!(let tc, scope);
                 name_val.to_string(tc).unwrap().to_rust_string_lossy(tc)
@@ -963,7 +1012,6 @@ fn crypto_subtle_generate_key(
             };
 
             // Get optional length
-            let length_key = v8::String::new(scope, "length").unwrap();
             let length_value = alg_obj.get(scope, length_key.into());
             let byte_length = if let Some(len_val) = length_value {
                 if len_val.is_number() {
@@ -1015,25 +1063,20 @@ fn crypto_subtle_generate_key(
     let key_obj = v8::Object::new(scope);
 
     // Set algorithm
-    let alg_key = v8::String::new(scope, "algorithm").unwrap();
-    key_obj.set(scope, alg_key.into(), algorithm);
+    key_obj.set(scope, algorithm_key.into(), algorithm);
 
     // Set extractable
-    let ext_key = v8::String::new(scope, "extractable").unwrap();
     let ext_val = v8::Boolean::new(scope, extractable);
-    key_obj.set(scope, ext_key.into(), ext_val.into());
+    key_obj.set(scope, extractable_key.into(), ext_val.into());
 
     // Set usages
-    let usages_key = v8::String::new(scope, "usages").unwrap();
     key_obj.set(scope, usages_key.into(), usages);
 
     // Set type
-    let type_key = v8::String::new(scope, "type").unwrap();
-    let type_val = v8::String::new(scope, "secret").unwrap();
-    key_obj.set(scope, type_key.into(), type_val.into());
+    // Use cached "secret" string as type value
+    key_obj.set(scope, type_key.into(), secret_key.into());
 
     // Set key data (private property)
-    let key_data_key = v8::String::new(scope, "_keyData").unwrap();
     key_obj.set(scope, key_data_key.into(), key_buffer.into());
 
     // Create and resolve promise
@@ -1045,6 +1088,7 @@ fn crypto_subtle_generate_key(
 }
 
 // crypto.subtle.importKey(format, keyData, algorithm, extractable, keyUsages)
+#[inline]
 fn crypto_subtle_import_key(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -1053,6 +1097,20 @@ fn crypto_subtle_import_key(
     if !crate::error::check_arg_count(scope, &args, 5, "crypto.subtle.importKey") {
         return;
     }
+
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let algorithm_key = crate::get_or_create_cached_string!(scope, cache, algorithm, "algorithm");
+    let extractable_key =
+        crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
+    let usages_key = crate::get_or_create_cached_string!(scope, cache, usages, "usages");
+    let type_key = crate::get_or_create_cached_string!(scope, cache, type_, "type");
+    let secret_key = crate::get_or_create_cached_string!(scope, cache, secret, "secret");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    drop(cache);
+    drop(string_cache);
 
     // Get format
     let format = args.get(0);
@@ -1110,25 +1168,20 @@ fn crypto_subtle_import_key(
     let key_obj = v8::Object::new(scope);
 
     // Set algorithm
-    let alg_key = v8::String::new(scope, "algorithm").unwrap();
-    key_obj.set(scope, alg_key.into(), algorithm);
+    key_obj.set(scope, algorithm_key.into(), algorithm);
 
     // Set extractable
-    let ext_key = v8::String::new(scope, "extractable").unwrap();
     let ext_val = v8::Boolean::new(scope, extractable);
-    key_obj.set(scope, ext_key.into(), ext_val.into());
+    key_obj.set(scope, extractable_key.into(), ext_val.into());
 
     // Set usages
-    let usages_key = v8::String::new(scope, "usages").unwrap();
     key_obj.set(scope, usages_key.into(), usages);
 
     // Set type
-    let type_key = v8::String::new(scope, "type").unwrap();
-    let type_val = v8::String::new(scope, "secret").unwrap();
-    key_obj.set(scope, type_key.into(), type_val.into());
+    // Use cached "secret" string as type value
+    key_obj.set(scope, type_key.into(), secret_key.into());
 
     // Set key data (private property)
-    let key_data_key = v8::String::new(scope, "_keyData").unwrap();
     key_obj.set(scope, key_data_key.into(), key_buffer.into());
 
     // Create and resolve promise
@@ -1140,6 +1193,7 @@ fn crypto_subtle_import_key(
 }
 
 // crypto.subtle.exportKey(format, key)
+#[inline]
 fn crypto_subtle_export_key(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -1148,6 +1202,16 @@ fn crypto_subtle_export_key(
     if !crate::error::check_arg_count(scope, &args, 2, "crypto.subtle.exportKey") {
         return;
     }
+
+    // Get cached strings
+    let state = crate::isolate_state::IsolateState::get(scope);
+    let string_cache = state.borrow().string_cache.clone();
+    let mut cache = string_cache.borrow_mut();
+    let extractable_key =
+        crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
+    let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
+    drop(cache);
+    drop(string_cache);
 
     // Get format
     let format = args.get(0);
@@ -1166,8 +1230,7 @@ fn crypto_subtle_export_key(
     let key_obj = v8::Local::<v8::Object>::try_from(key).unwrap();
 
     // Check if key is extractable
-    let ext_key = v8::String::new(scope, "extractable").unwrap();
-    let ext_value = key_obj.get(scope, ext_key.into()).unwrap();
+    let ext_value = key_obj.get(scope, extractable_key.into()).unwrap();
     if !ext_value.boolean_value(scope) {
         crate::error::throw_error(scope, "Key is not extractable");
         return;
@@ -1186,8 +1249,7 @@ fn crypto_subtle_export_key(
     }
 
     // Get key data
-    let key_data_prop = v8::String::new(scope, "_keyData").unwrap();
-    let key_data_val = key_obj.get(scope, key_data_prop.into()).unwrap();
+    let key_data_val = key_obj.get(scope, key_data_key.into()).unwrap();
 
     let key_bytes = match get_buffer_data(scope, key_data_val) {
         Some(bytes) => bytes.to_vec(),
