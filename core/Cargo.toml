@@ -35,3 +35,7 @@ tag = false
 [[bench]]
 name = "module_cache_bench"
 harness = false
+
+[[bench]]
+name = "crypto_bench"
+harness = false

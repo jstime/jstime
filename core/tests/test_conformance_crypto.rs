@@ -366,3 +366,12 @@ fn test_crypto_subtle_aes_gcm_with_additional_data() {
     let result = jstime.import("./tests/fixtures/crypto/test_aes_gcm_with_aad.js");
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_crypto_get_random_values_byte_offset() {
+    let _setup_guard = common::setup();
+    let options = jstime::Options::default();
+    let mut jstime = jstime::JSTime::new(options);
+    let result = jstime.import("./tests/fixtures/crypto/test_byte_offset.js");
+    assert!(result.is_ok());
+}

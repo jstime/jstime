@@ -104,8 +104,16 @@ fn crypto_get_random_values(
 
     let typed_array = v8::Local::<v8::TypedArray>::try_from(array).unwrap();
 
+    let byte_length = typed_array.byte_length();
+
+    // Early return for empty arrays
+    if byte_length == 0 {
+        rv.set(array);
+        return;
+    }
+
     // Check size (spec says max 65536 bytes)
-    if typed_array.byte_length() > 65536 {
+    if byte_length > 65536 {
         crate::error::throw_error(
             scope,
             "crypto.getRandomValues: array size exceeds 65536 bytes",
@@ -116,10 +124,15 @@ fn crypto_get_random_values(
     // Get the underlying ArrayBuffer and fill it with random data
     let buffer = typed_array.buffer(scope).unwrap();
     let backing_store = buffer.get_backing_store();
+    let byte_offset = typed_array.byte_offset();
+
+    // Get mutable slice to the typed array data, considering byte_offset
+    // SAFETY: V8 guarantees that byte_offset + byte_length <= backing_store.byte_length()
+    // for valid typed arrays, so this pointer arithmetic is safe
     let data = unsafe {
         std::slice::from_raw_parts_mut(
-            backing_store.data().unwrap().as_ptr() as *mut u8,
-            typed_array.byte_length(),
+            (backing_store.data().unwrap().as_ptr() as *mut u8).add(byte_offset),
+            byte_length,
         )
     };
 
@@ -173,23 +186,40 @@ fn crypto_random_uuid(
 
     // Format as UUID string: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 bytes)
     // Pre-allocate buffer with exact size to avoid allocations
+    // Use manual unrolled loop for better performance
     let mut uuid_buf = [0u8; 36];
-    let mut pos = 0;
 
-    // Format each byte as two hex chars, with hyphens after bytes at indices 3, 5, 7, 9
-    // (which produces hyphens at character positions 8, 13, 18, 23 in the final string)
-    for (i, &byte) in bytes.iter().enumerate() {
-        let (hi, lo) = byte_to_hex(byte);
-        uuid_buf[pos] = hi;
-        uuid_buf[pos + 1] = lo;
-        pos += 2;
-
-        // Add hyphen after byte indices 3, 5, 7, and 9 (character positions 8, 13, 18, 23 in final string)
-        if i == 3 || i == 5 || i == 7 || i == 9 {
-            uuid_buf[pos] = b'-';
-            pos += 1;
-        }
+    // Unrolled formatting for optimal performance
+    // Use a macro to avoid repetitive code while keeping the loop fully unrolled at compile time
+    // This eliminates branches and makes the code more maintainable than 16 separate calls
+    macro_rules! write_hex {
+        ($pos:expr, $byte:expr) => {{
+            let (hi, lo) = byte_to_hex($byte);
+            uuid_buf[$pos] = hi;
+            uuid_buf[$pos + 1] = lo;
+        }};
     }
+
+    write_hex!(0, bytes[0]);
+    write_hex!(2, bytes[1]);
+    write_hex!(4, bytes[2]);
+    write_hex!(6, bytes[3]);
+    uuid_buf[8] = b'-';
+    write_hex!(9, bytes[4]);
+    write_hex!(11, bytes[5]);
+    uuid_buf[13] = b'-';
+    write_hex!(14, bytes[6]);
+    write_hex!(16, bytes[7]);
+    uuid_buf[18] = b'-';
+    write_hex!(19, bytes[8]);
+    write_hex!(21, bytes[9]);
+    uuid_buf[23] = b'-';
+    write_hex!(24, bytes[10]);
+    write_hex!(26, bytes[11]);
+    write_hex!(28, bytes[12]);
+    write_hex!(30, bytes[13]);
+    write_hex!(32, bytes[14]);
+    write_hex!(34, bytes[15]);
 
     // SAFETY: uuid_buf contains only valid ASCII hex digits and hyphens
     let uuid_str = unsafe { std::str::from_utf8_unchecked(&uuid_buf) };
