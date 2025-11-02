@@ -277,7 +277,6 @@ PERFORMANCE_TESTS=(
 
 # Store performance results (bash 3.2 compatible)
 PERF_RESULTS=""
-PERF_DETAILS=""  # Store detailed results for verbose mode
 
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js)
@@ -290,9 +289,10 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
         
         if echo "$output" | grep -q '"test"'; then
             # Parse JSON output
-            elapsed=$(echo "$output" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
-            ops_per_ms=$(echo "$output" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
-            iterations=$(echo "$output" | grep -o '"iterations":[0-9]*' | cut -d':' -f2)
+            # Extract only the top-level values, not from sub_tests
+            elapsed=$(echo "$output" | sed 's/"sub_tests":\[.*\]//' | grep -o '"elapsed_ms":"[^"]*"' | head -1 | cut -d'"' -f4)
+            ops_per_ms=$(echo "$output" | sed 's/"sub_tests":\[.*\]//' | grep -o '"ops_per_ms":"[^"]*"' | head -1 | cut -d'"' -f4)
+            iterations=$(echo "$output" | sed 's/"sub_tests":\[.*\]//' | grep -o '"iterations":[0-9]*' | head -1 | cut -d':' -f2)
             
             # Validate parsed values
             if [ -z "$elapsed" ] || [ -z "$ops_per_ms" ] || [ -z "$iterations" ]; then
@@ -300,14 +300,31 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
                 set_result PERF_RESULTS "$runtime-$test_name" "$ERROR_MARKER"
                 set_result PERF_DETAILS "$runtime-$test_name" "$ERROR_DETAILS"
             elif [ "$VERBOSE" = true ]; then
-                echo -e "${GREEN}${elapsed}ms${NC}"
-                echo -e "    ${GREEN}Iterations: ${iterations}, Ops/ms: ${ops_per_ms}${NC}"
+                echo -e "${GREEN}${elapsed}ms (total)${NC}"
+                
+                # Check if sub_tests exist and parse them
+                if echo "$output" | grep -q '"sub_tests"'; then
+                    # Extract sub_tests array and parse each test
+                    # Use a temp file to avoid subshell issues with while-read
+                    echo "$output" | grep -o '{"name":"[^"]*","elapsed_ms":"[^"]*","ops_per_ms":"[^"]*"}' > /tmp/subtests_$$.txt 2>&1
+                    while IFS= read -r sub_test; do
+                        if [ -n "$sub_test" ]; then
+                            name=$(echo "$sub_test" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+                            sub_elapsed=$(echo "$sub_test" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
+                            sub_ops=$(echo "$sub_test" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
+                            printf "      ${GREEN}%-20s: %8sms (%10s ops/ms)${NC}\n" "$name" "$sub_elapsed" "$sub_ops"
+                        fi
+                    done < /tmp/subtests_$$.txt
+                    rm -f /tmp/subtests_$$.txt 2>&1
+                fi
                 set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
-                set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
+                # Store full JSON output to temp file for summary
+                echo "$output" > "/tmp/perf_details_${runtime}_${test_name}.json"
             else
                 echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
                 set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
-                set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
+                # Store full JSON output to temp file for summary
+                echo "$output" > "/tmp/perf_details_${runtime}_${test_name}.json"
             fi
         else
             echo -e "${RED}${ERROR_MARKER}${NC}"
@@ -393,13 +410,24 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     # Show detailed breakdown in verbose mode
     if [ "$VERBOSE" = true ]; then
         for runtime in "${RUNTIMES[@]}"; do
-            details=$(get_result PERF_DETAILS "$runtime-bench-$test_name")
-            if [ "$details" != "$ERROR_DETAILS" ] && [ -n "$details" ]; then
-                elapsed=$(echo "$details" | cut -d'|' -f1)
-                ops_per_ms=$(echo "$details" | cut -d'|' -f2)
-                iterations=$(echo "$details" | cut -d'|' -f3)
-                printf "    ${GREEN}%-10s${NC}" "$runtime:"
-                echo -e "elapsed=${elapsed}ms, iterations=${iterations}, ops_per_ms=${ops_per_ms}"
+            detail_file="/tmp/perf_details_${runtime}_bench-${test_name}.json"
+            if [ -f "$detail_file" ]; then
+                details=$(cat "$detail_file")
+                # Check if this is JSON output with sub_tests
+                if echo "$details" | grep -q '"sub_tests"'; then
+                    printf "    ${GREEN}%-10s${NC}\n" "$runtime:"
+                    # Extract and parse sub_tests using temp file
+                    echo "$details" | grep -o '{"name":"[^"]*","elapsed_ms":"[^"]*","ops_per_ms":"[^"]*"}' > /tmp/summary_subtests_$$.txt 2>&1
+                    while IFS= read -r sub_test; do
+                        if [ -n "$sub_test" ]; then
+                            name=$(echo "$sub_test" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)
+                            sub_elapsed=$(echo "$sub_test" | grep -o '"elapsed_ms":"[^"]*"' | cut -d'"' -f4)
+                            sub_ops=$(echo "$sub_test" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
+                            printf "        %-20s: %8sms (%10s ops/ms)\n" "$name" "$sub_elapsed" "$sub_ops"
+                        fi
+                    done < /tmp/summary_subtests_$$.txt
+                    rm -f /tmp/summary_subtests_$$.txt 2>&1
+                fi
             fi
         done
         echo ""
@@ -408,3 +436,6 @@ done
 
 echo ""
 echo -e "${BLUE}=== Test Complete ===${NC}"
+
+# Clean up temporary files
+rm -f /tmp/perf_details_*.json /tmp/subtests_*.txt /tmp/summary_subtests_*.txt 2>/dev/null
