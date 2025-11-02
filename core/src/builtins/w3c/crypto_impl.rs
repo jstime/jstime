@@ -104,8 +104,16 @@ fn crypto_get_random_values(
 
     let typed_array = v8::Local::<v8::TypedArray>::try_from(array).unwrap();
 
+    let byte_length = typed_array.byte_length();
+
+    // Early return for empty arrays
+    if byte_length == 0 {
+        rv.set(array);
+        return;
+    }
+
     // Check size (spec says max 65536 bytes)
-    if typed_array.byte_length() > 65536 {
+    if byte_length > 65536 {
         crate::error::throw_error(
             scope,
             "crypto.getRandomValues: array size exceeds 65536 bytes",
@@ -117,8 +125,7 @@ fn crypto_get_random_values(
     let buffer = typed_array.buffer(scope).unwrap();
     let backing_store = buffer.get_backing_store();
     let byte_offset = typed_array.byte_offset();
-    let byte_length = typed_array.byte_length();
-    
+
     // Get mutable slice to the typed array data, considering byte_offset
     let data = unsafe {
         std::slice::from_raw_parts_mut(
@@ -179,7 +186,7 @@ fn crypto_random_uuid(
     // Pre-allocate buffer with exact size to avoid allocations
     // Use manual unrolled loop for better performance
     let mut uuid_buf = [0u8; 36];
-    
+
     // Unrolled formatting for optimal performance
     macro_rules! write_hex {
         ($pos:expr, $byte:expr) => {{
@@ -188,7 +195,7 @@ fn crypto_random_uuid(
             uuid_buf[$pos + 1] = lo;
         }};
     }
-    
+
     write_hex!(0, bytes[0]);
     write_hex!(2, bytes[1]);
     write_hex!(4, bytes[2]);
