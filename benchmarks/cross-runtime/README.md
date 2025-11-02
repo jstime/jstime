@@ -29,10 +29,10 @@ The test runner will:
 
 ### Command Line Options
 
-- `--verbose` or `-v`: Show detailed breakdown for each performance test, including:
-  - Individual elapsed time for each runtime
-  - Number of iterations
-  - Operations per millisecond
+- `--verbose` or `-v`: Show detailed breakdown for each performance test
+  - During test execution: Shows iterations and ops/ms on separate lines for each runtime
+  - In summary section: Shows full breakdown with elapsed time, iterations, and ops/ms
+  - Helps identify performance bottlenecks and target improvements
 - `--help` or `-h`: Show usage information
 
 ### Requirements

@@ -294,15 +294,21 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
             ops_per_ms=$(echo "$output" | grep -o '"ops_per_ms":"[^"]*"' | cut -d'"' -f4)
             iterations=$(echo "$output" | grep -o '"iterations":[0-9]*' | cut -d':' -f2)
             
-            if [ "$VERBOSE" = true ]; then
+            # Validate parsed values
+            if [ -z "$elapsed" ] || [ -z "$ops_per_ms" ] || [ -z "$iterations" ]; then
+                echo -e "${RED}${ERROR_MARKER} (invalid JSON)${NC}"
+                set_result PERF_RESULTS "$runtime-$test_name" "$ERROR_MARKER"
+                set_result PERF_DETAILS "$runtime-$test_name" "$ERROR_DETAILS"
+            elif [ "$VERBOSE" = true ]; then
                 echo -e "${GREEN}${elapsed}ms${NC}"
                 echo -e "    ${GREEN}Iterations: ${iterations}, Ops/ms: ${ops_per_ms}${NC}"
+                set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
+                set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
             else
                 echo -e "${GREEN}${elapsed}ms (${ops_per_ms} ops/ms)${NC}"
+                set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
+                set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
             fi
-            
-            set_result PERF_RESULTS "$runtime-$test_name" "$elapsed"
-            set_result PERF_DETAILS "$runtime-$test_name" "$elapsed|$ops_per_ms|$iterations"
         else
             echo -e "${RED}${ERROR_MARKER}${NC}"
             set_result PERF_RESULTS "$runtime-$test_name" "$ERROR_MARKER"
