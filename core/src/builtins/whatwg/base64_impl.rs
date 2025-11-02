@@ -64,16 +64,9 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         }
     };
 
-    // Convert bytes to Latin-1 string (each byte becomes a character)
-    // This matches browser behavior for atob
-    // Optimize by pre-allocating and avoiding iterator overhead
-    let mut result_str = String::with_capacity(decoded.len());
-    for &byte in decoded.iter() {
-        // SAFETY: Latin-1 bytes map directly to Unicode code points 0-255
-        result_str.push(byte as char);
-    }
-
-    let result = v8::String::new(scope, &result_str).unwrap();
+    // Convert bytes to Latin-1 string using V8's optimized one-byte string creation
+    // This is much faster than converting to Rust String and pushing chars one by one
+    let result = v8::String::new_from_one_byte(scope, decoded, v8::NewStringType::Normal).unwrap();
     rv.set(result.into());
 }
 
@@ -85,33 +78,47 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
     let input = args.get(0);
 
-    // Convert input to string using tc_scope
-    let input_str = {
-        v8::tc_scope!(let tc, scope);
-        match input.to_string(tc) {
-            Some(s) => s.to_rust_string_lossy(tc),
-            None => String::new(), // Return empty string on failure, check below
-        }
-    };
-
-    // Check if conversion failed (skip for legitimate empty strings)
-    if input.is_null_or_undefined() || input_str.is_empty() && !input.is_string() {
+    // Check if conversion would fail
+    if input.is_null_or_undefined() {
         crate::error::throw_type_error(scope, "Failed to convert argument to string");
         return;
     }
 
-    // Check if string contains characters outside the Latin-1 range
-    // and convert to bytes simultaneously
-    // Use bytes() instead of chars() for better performance since we're checking ASCII/Latin-1
-    let input_bytes = input_str.as_bytes();
-    let mut bytes = Vec::with_capacity(input_bytes.len());
+    // Convert input to string using tc_scope
+    let input_str = {
+        v8::tc_scope!(let tc, scope);
+        input.to_string(tc)
+    };
 
-    // Fast path: if input is already ASCII, just copy it
-    if input_str.is_ascii() {
-        bytes.extend_from_slice(input_bytes);
+    let input_str = match input_str {
+        Some(s) => s,
+        None => {
+            crate::error::throw_type_error(scope, "Failed to convert argument to string");
+            return;
+        }
+    };
+
+    let v8_str_len = input_str.length() as usize;
+
+    // Fast path: if string contains only one-byte (Latin-1) characters, read directly
+    if input_str.contains_only_onebyte() {
+        // For one-byte strings, the V8 string length equals the byte count
+        let mut bytes = vec![0u8; v8_str_len];
+        input_str.write_one_byte_v2(scope, 0, &mut bytes, v8::WriteFlags::empty());
+
+        // Encode to base64 using SIMD-optimized encoder
+        let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
+
+        let result = v8::String::new(scope, &encoded).unwrap();
+        rv.set(result.into());
     } else {
-        // Slow path: validate UTF-8 characters are in Latin-1 range
-        for ch in input_str.chars() {
+        // Slow path: string contains multi-byte characters, validate Latin-1 range
+        let input_str_rust = input_str.to_rust_string_lossy(scope);
+        // Reserve capacity for the byte vector. For Latin-1 strings, this will be
+        // the character count, but we use str_len as a reasonable upper bound
+        let mut bytes = Vec::with_capacity(v8_str_len);
+
+        for ch in input_str_rust.chars() {
             if ch as u32 > 0xFF {
                 crate::error::throw_error(
                     scope,
@@ -121,11 +128,11 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
             }
             bytes.push(ch as u8);
         }
+
+        // Encode to base64 using SIMD-optimized encoder
+        let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
+
+        let result = v8::String::new(scope, &encoded).unwrap();
+        rv.set(result.into());
     }
-
-    // Encode to base64 using SIMD-optimized encoder
-    let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
-
-    let result = v8::String::new(scope, &encoded).unwrap();
-    rv.set(result.into());
 }
