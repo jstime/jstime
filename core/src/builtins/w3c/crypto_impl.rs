@@ -613,7 +613,8 @@ fn crypto_subtle_encrypt(
     let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
     let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
     let iv_key = crate::get_or_create_cached_string!(scope, cache, iv, "iv");
-    let additional_data_key = crate::get_or_create_cached_string!(scope, cache, additional_data, "additionalData");
+    let additional_data_key =
+        crate::get_or_create_cached_string!(scope, cache, additional_data, "additionalData");
     drop(cache);
     drop(string_cache);
 
@@ -778,7 +779,8 @@ fn crypto_subtle_decrypt(
     let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
     let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
     let iv_key = crate::get_or_create_cached_string!(scope, cache, iv, "iv");
-    let additional_data_key = crate::get_or_create_cached_string!(scope, cache, additional_data, "additionalData");
+    let additional_data_key =
+        crate::get_or_create_cached_string!(scope, cache, additional_data, "additionalData");
     drop(cache);
     drop(string_cache);
 
@@ -934,7 +936,8 @@ fn crypto_subtle_generate_key(
     let name_key = crate::get_or_create_cached_string!(scope, cache, name, "name");
     let algorithm_key = crate::get_or_create_cached_string!(scope, cache, algorithm, "algorithm");
     let hash_key = crate::get_or_create_cached_string!(scope, cache, hash, "hash");
-    let extractable_key = crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
+    let extractable_key =
+        crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
     let usages_key = crate::get_or_create_cached_string!(scope, cache, usages, "usages");
     let type_key = crate::get_or_create_cached_string!(scope, cache, type_, "type");
     let secret_key = crate::get_or_create_cached_string!(scope, cache, secret, "secret");
@@ -1100,7 +1103,8 @@ fn crypto_subtle_import_key(
     let string_cache = state.borrow().string_cache.clone();
     let mut cache = string_cache.borrow_mut();
     let algorithm_key = crate::get_or_create_cached_string!(scope, cache, algorithm, "algorithm");
-    let extractable_key = crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
+    let extractable_key =
+        crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
     let usages_key = crate::get_or_create_cached_string!(scope, cache, usages, "usages");
     let type_key = crate::get_or_create_cached_string!(scope, cache, type_, "type");
     let secret_key = crate::get_or_create_cached_string!(scope, cache, secret, "secret");
@@ -1203,7 +1207,8 @@ fn crypto_subtle_export_key(
     let state = crate::isolate_state::IsolateState::get(scope);
     let string_cache = state.borrow().string_cache.clone();
     let mut cache = string_cache.borrow_mut();
-    let extractable_key = crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
+    let extractable_key =
+        crate::get_or_create_cached_string!(scope, cache, extractable, "extractable");
     let key_data_key = crate::get_or_create_cached_string!(scope, cache, key_data, "_keyData");
     drop(cache);
     drop(string_cache);
