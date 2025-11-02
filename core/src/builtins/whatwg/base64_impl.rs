@@ -98,11 +98,12 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         }
     };
 
-    let str_len = input_str.length() as usize;
+    let v8_str_len = input_str.length() as usize;
 
     // Fast path: if string contains only one-byte (Latin-1) characters, read directly
     if input_str.contains_only_onebyte() {
-        let mut bytes = vec![0u8; str_len];
+        // For one-byte strings, the V8 string length equals the byte count
+        let mut bytes = vec![0u8; v8_str_len];
         input_str.write_one_byte_v2(scope, 0, &mut bytes, v8::WriteFlags::empty());
 
         // Encode to base64 using SIMD-optimized encoder
@@ -113,7 +114,9 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     } else {
         // Slow path: string contains multi-byte characters, validate Latin-1 range
         let input_str_rust = input_str.to_rust_string_lossy(scope);
-        let mut bytes = Vec::with_capacity(str_len);
+        // Reserve capacity for the byte vector. For Latin-1 strings, this will be
+        // the character count, but we use str_len as a reasonable upper bound
+        let mut bytes = Vec::with_capacity(v8_str_len);
 
         for ch in input_str_rust.chars() {
             if ch as u32 > 0xFF {
