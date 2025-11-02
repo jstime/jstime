@@ -382,10 +382,11 @@ fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
             let state = crate::isolate_state::IsolateState::get(scope);
             let string_cache = state.borrow().string_cache.clone();
             let mut cache = string_cache.borrow_mut();
-            let recursive_key = crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
+            let recursive_key =
+                crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
             drop(cache);
             drop(string_cache);
-            
+
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -434,10 +435,11 @@ fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
             let state = crate::isolate_state::IsolateState::get(scope);
             let string_cache = state.borrow().string_cache.clone();
             let mut cache = string_cache.borrow_mut();
-            let recursive_key = crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
+            let recursive_key =
+                crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
             drop(cache);
             drop(string_cache);
-            
+
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -558,13 +560,19 @@ fn stat(
             let state = crate::isolate_state::IsolateState::get(scope);
             let string_cache = state.borrow().string_cache.clone();
             let mut cache = string_cache.borrow_mut();
-            
+
             let is_file_key = crate::get_or_create_cached_string!(scope, cache, is_file, "isFile");
-            let is_dir_key = crate::get_or_create_cached_string!(scope, cache, is_directory, "isDirectory");
-            let is_symlink_key = crate::get_or_create_cached_string!(scope, cache, is_symbolic_link, "isSymbolicLink");
+            let is_dir_key =
+                crate::get_or_create_cached_string!(scope, cache, is_directory, "isDirectory");
+            let is_symlink_key = crate::get_or_create_cached_string!(
+                scope,
+                cache,
+                is_symbolic_link,
+                "isSymbolicLink"
+            );
             let size_key = crate::get_or_create_cached_string!(scope, cache, size, "size");
             let mtime_key = crate::get_or_create_cached_string!(scope, cache, mtime_ms, "mtimeMs");
-            
+
             drop(cache);
             drop(string_cache);
 
@@ -636,10 +644,11 @@ fn rm(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8
             let state = crate::isolate_state::IsolateState::get(scope);
             let string_cache = state.borrow().string_cache.clone();
             let mut cache = string_cache.borrow_mut();
-            let recursive_key = crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
+            let recursive_key =
+                crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
             drop(cache);
             drop(string_cache);
-            
+
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -944,13 +953,19 @@ fn lstat(
             let state = crate::isolate_state::IsolateState::get(scope);
             let string_cache = state.borrow().string_cache.clone();
             let mut cache = string_cache.borrow_mut();
-            
+
             let is_file_key = crate::get_or_create_cached_string!(scope, cache, is_file, "isFile");
-            let is_dir_key = crate::get_or_create_cached_string!(scope, cache, is_directory, "isDirectory");
-            let is_symlink_key = crate::get_or_create_cached_string!(scope, cache, is_symbolic_link, "isSymbolicLink");
+            let is_dir_key =
+                crate::get_or_create_cached_string!(scope, cache, is_directory, "isDirectory");
+            let is_symlink_key = crate::get_or_create_cached_string!(
+                scope,
+                cache,
+                is_symbolic_link,
+                "isSymbolicLink"
+            );
             let size_key = crate::get_or_create_cached_string!(scope, cache, size, "size");
             let mtime_key = crate::get_or_create_cached_string!(scope, cache, mtime_ms, "mtimeMs");
-            
+
             drop(cache);
             drop(string_cache);
 
