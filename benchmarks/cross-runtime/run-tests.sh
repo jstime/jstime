@@ -20,12 +20,20 @@ ERROR_DETAILS="ERROR||"
 
 # Parse command line arguments
 VERBOSE=false
+SELECTED_APIS=""
 
 # Show usage information
 show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
+    echo "  --api <apis>     Run tests only for specific APIs (comma-separated)"
+    echo "                   Use 'all' to run all tests (default)"
+    echo "                   Available APIs:"
+    echo "                     console, timers, url, crypto, performance, base64,"
+    echo "                     json, text-encoding, event, streams, structured-clone,"
+    echo "                     microtask, arithmetic, strings, arrays, objects"
+    echo "                   Example: --api crypto,url,json"
     echo "  --verbose, -v    Show detailed breakdown for each performance test"
     echo "  --help, -h       Show this help message"
     echo ""
@@ -33,22 +41,36 @@ show_help() {
     echo "(jstime, node, deno, bun) and run compliance and performance tests."
 }
 
-for arg in "$@"; do
-    case "$arg" in
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --api)
+            if [ -z "$2" ] || [[ "$2" == --* ]]; then
+                echo "Error: --api requires a value"
+                exit 1
+            fi
+            SELECTED_APIS="$2"
+            shift 2
+            ;;
         --verbose|-v)
             VERBOSE=true
+            shift
             ;;
         --help|-h)
             show_help
             exit 0
             ;;
         *)
-            echo "Unknown option: $arg"
+            echo "Unknown option: $1"
             echo "Use --help to see available options"
             exit 1
             ;;
     esac
 done
+
+# Set default to all APIs if not specified
+if [ -z "$SELECTED_APIS" ]; then
+    SELECTED_APIS="all"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -169,6 +191,23 @@ for runtime in "${RUNTIMES[@]}"; do
 done
 echo ""
 
+# Function to check if an API should be tested
+should_test_api() {
+    local api_name=$1
+    
+    # If "all" is specified, test everything
+    if [ "$SELECTED_APIS" == "all" ]; then
+        return 0
+    fi
+    
+    # Check if the API is in the selected list
+    if echo "$SELECTED_APIS" | grep -qE "(^|,)${api_name}(,|$)"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Function to run a test file with a specific runtime
 run_test() {
     local runtime=$1
@@ -217,8 +256,14 @@ COMPLIANCE_RESULTS=""
 
 
 for test_file in "${COMPLIANCE_TESTS[@]}"; do
-    test_name=$(basename "$test_file" .js)
-    echo -e "${YELLOW}Running $test_name...${NC}"
+    test_name=$(basename "$test_file" .js | sed 's/^test-//')
+    
+    # Check if this API should be tested
+    if ! should_test_api "$test_name"; then
+        continue
+    fi
+    
+    echo -e "${YELLOW}Running test-$test_name...${NC}"
     
     for runtime in "${RUNTIMES[@]}"; do
         printf "  %-10s: " "$runtime"
@@ -285,8 +330,14 @@ PERFORMANCE_TESTS=(
 PERF_RESULTS=""
 
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
-    test_name=$(basename "$test_file" .js)
-    echo -e "${YELLOW}Running $test_name...${NC}"
+    test_name=$(basename "$test_file" .js | sed 's/^bench-//')
+    
+    # Check if this API should be tested
+    if ! should_test_api "$test_name"; then
+        continue
+    fi
+    
+    echo -e "${YELLOW}Running bench-$test_name...${NC}"
     
     # First pass: collect all results
     for runtime in "${RUNTIMES[@]}"; do
@@ -420,7 +471,13 @@ for runtime in "${RUNTIMES[@]}"; do
     failed=0
     
     for test_file in "${COMPLIANCE_TESTS[@]}"; do
-        test_name=$(basename "$test_file" .js)
+        test_name=$(basename "$test_file" .js | sed 's/^test-//')
+        
+        # Check if this API was tested
+        if ! should_test_api "$test_name"; then
+            continue
+        fi
+        
         result=$(get_result COMPLIANCE_RESULTS "$runtime-$test_name")
         if [ "$result" == "PASSED" ]; then
             ((passed++))
@@ -429,12 +486,15 @@ for runtime in "${RUNTIMES[@]}"; do
         fi
     done
     
-    total=$((passed + failed))
-    printf "  %-10s: %d/%d passed" "$runtime" "$passed" "$total"
-    if [ $failed -eq 0 ]; then
-        echo -e " ${GREEN}✓${NC}"
-    else
-        echo -e " ${RED}($failed failed)${NC}"
+    # Only show summary if we ran any tests
+    if [ $((passed + failed)) -gt 0 ]; then
+        total=$((passed + failed))
+        printf "  %-10s: %d/%d passed" "$runtime" "$passed" "$total"
+        if [ $failed -eq 0 ]; then
+            echo -e " ${GREEN}✓${NC}"
+        else
+            echo -e " ${RED}($failed failed)${NC}"
+        fi
     fi
 done
 
@@ -450,13 +510,19 @@ echo ""
 # Print performance comparison table
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
     test_name=$(basename "$test_file" .js | sed 's/bench-//')
+    
+    # Check if this API was tested
+    if ! should_test_api "$test_name"; then
+        continue
+    fi
+    
     printf "  %-20s" "$test_name:"
     
     # Find the best (lowest) time and worst (highest) time
     best_time=999999
     worst_time=0
     for runtime in "${RUNTIMES[@]}"; do
-        time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
+        time=$(get_result PERF_RESULTS "$runtime-$test_name")
         if [ "$time" != "$ERROR_MARKER" ] && [ -n "$time" ]; then
             if (( $(echo "$time < $best_time" | bc -l 2>/dev/null || echo 0) )); then
                 best_time="$time"
@@ -468,7 +534,7 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     done
     
     for runtime in "${RUNTIMES[@]}"; do
-        time=$(get_result PERF_RESULTS "$runtime-bench-$test_name")
+        time=$(get_result PERF_RESULTS "$runtime-$test_name")
         if [ "$time" != "$ERROR_MARKER" ] && [ -n "$time" ]; then
             # Mark the fastest runtime in green, slowest in red, others in yellow
             if [ "$time" == "$best_time" ]; then
@@ -487,7 +553,7 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
         # First, collect all sub-test results to find fastest for each sub-test
         # Extract sub-tests to temp files
         for runtime in "${RUNTIMES[@]}"; do
-            detail_file="/tmp/perf_details_${runtime}_bench-${test_name}.json"
+            detail_file="/tmp/perf_details_${runtime}_${test_name}.json"
             if [ -f "$detail_file" ]; then
                 details=$(cat "$detail_file")
                 if echo "$details" | grep -q '"sub_tests"'; then

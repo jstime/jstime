@@ -29,6 +29,12 @@ The test runner will:
 
 ### Command Line Options
 
+- `--api <apis>`: Run tests only for specific APIs (comma-separated)
+  - Use `all` to run all tests (default behavior when flag is omitted)
+  - Available APIs: console, timers, url, crypto, performance, base64, json, text-encoding, event, streams, structured-clone, microtask, arithmetic, strings, arrays, objects
+  - Example: `--api crypto,url,json` runs only crypto, url, and json tests
+  - Useful for focused testing during development or debugging specific APIs
+  - Can be combined with `--verbose` flag
 - `--verbose` or `-v`: Show detailed breakdown for each performance test
   - Shows individual sub-test results (e.g., for strings: concatenation, template literals, repeat, split/join)
   - Displays elapsed time and operations per millisecond for each sub-test
@@ -108,6 +114,30 @@ Benchmarks measure execution speed for common operations. Each benchmark include
   - Sub-tests: validate, module_sync, instantiate_sync, memory_creation, table_creation
 
 Each benchmark outputs JSON with timing results including aggregate totals and individual sub-test metrics.
+
+## Running Selective Tests
+
+You can run tests for specific APIs using the `--api` flag:
+
+```bash
+# Test only crypto and url APIs
+./benchmarks/cross-runtime/run-tests.sh --api crypto,url
+
+# Test a single API
+./benchmarks/cross-runtime/run-tests.sh --api json
+
+# Combine with verbose mode for detailed output
+./benchmarks/cross-runtime/run-tests.sh --api crypto,base64 --verbose
+
+# Test multiple related APIs
+./benchmarks/cross-runtime/run-tests.sh --api arithmetic,strings,arrays,objects
+```
+
+This is useful for:
+- Focused testing during development
+- Debugging specific API implementations
+- Faster iteration when working on particular features
+- CI/CD pipelines that only need to validate certain APIs
 
 ## Running Individual Tests
 

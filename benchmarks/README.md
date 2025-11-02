@@ -9,11 +9,19 @@ This directory contains performance benchmarks for jstime.
 ### Quick Start
 
 ```bash
+# Run all tests
 ./benchmarks/cross-runtime/run-tests.sh
+
+# Run specific APIs only
+./benchmarks/cross-runtime/run-tests.sh --api crypto,url,json
+
+# Detailed output with sub-test breakdown
+./benchmarks/cross-runtime/run-tests.sh --verbose
 ```
 
 This test suite:
 - **Auto-detects** available runtimes (jstime, node, deno, bun)
+- **Selective testing**: Run specific APIs with `--api` flag
 - **Compliance tests**: Verifies API compatibility across runtimes
 - **Performance benchmarks**: Compares execution speed
 - **Graceful handling**: Works with whatever runtimes are installed
