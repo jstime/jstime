@@ -4,7 +4,7 @@
 'use strict';
 
 // eslint-disable-next-line no-unused-expressions
-(({ urlParse, urlGetHref, urlGetOrigin, urlGetProtocol, urlGetUsername, urlGetPassword, urlGetHost, urlGetHostname, urlGetPort, urlGetPathname, urlGetSearch, urlGetHash, urlSetHref, urlSetProtocol, urlSetUsername, urlSetPassword, urlSetHost, urlSetHostname, urlSetPort, urlSetPathname, urlSetSearch, urlSetHash, urlToJson, urlSearchParamsNew, urlSearchParamsAppend, urlSearchParamsDelete, urlSearchParamsGet, urlSearchParamsGetAll, urlSearchParamsHas, urlSearchParamsSet, urlSearchParamsSort, urlSearchParamsToString, urlSearchParamsEntries }) => {
+(({ urlParse, urlSetHref, urlSetProtocol, urlSetUsername, urlSetPassword, urlSetHost, urlSetHostname, urlSetPort, urlSetPathname, urlSetSearch, urlSetHash, urlSearchParamsNew, urlSearchParamsToString }) => {
   
   // URLSearchParams class
   class URLSearchParams {
@@ -146,108 +146,174 @@
 
   // URL class
   class URL {
-    #handle;
+    #href;
+    #origin;
+    #protocol;
+    #username;
+    #password;
+    #host;
+    #hostname;
+    #port;
+    #pathname;
+    #search;
+    #hash;
     #searchParams;
 
     constructor(url, base) {
-      if (base !== undefined) {
-        this.#handle = urlParse(String(url), String(base));
-      } else {
-        this.#handle = urlParse(String(url));
-      }
+      const parsed = base !== undefined 
+        ? urlParse(String(url), String(base))
+        : urlParse(String(url));
       
-      if (this.#handle === null) {
+      if (parsed === null) {
         throw new TypeError('Invalid URL');
       }
       
+      // Cache all URL components
+      this.#href = parsed.href;
+      this.#origin = parsed.origin;
+      this.#protocol = parsed.protocol;
+      this.#username = parsed.username;
+      this.#password = parsed.password;
+      this.#host = parsed.host;
+      this.#hostname = parsed.hostname;
+      this.#port = parsed.port;
+      this.#pathname = parsed.pathname;
+      this.#search = parsed.search;
+      this.#hash = parsed.hash;
       this.#searchParams = null;
     }
 
     get href() {
-      return urlGetHref(this.#handle);
+      return this.#href;
     }
 
     set href(value) {
-      const newHandle = urlSetHref(this.#handle, String(value));
-      if (newHandle === null) {
+      const parsed = urlSetHref(this.#href, String(value));
+      if (parsed === null) {
         throw new TypeError('Invalid URL');
       }
-      this.#handle = newHandle;
+      this.#href = parsed.href;
+      this.#origin = parsed.origin;
+      this.#protocol = parsed.protocol;
+      this.#username = parsed.username;
+      this.#password = parsed.password;
+      this.#host = parsed.host;
+      this.#hostname = parsed.hostname;
+      this.#port = parsed.port;
+      this.#pathname = parsed.pathname;
+      this.#search = parsed.search;
+      this.#hash = parsed.hash;
       this.#searchParams = null; // Reset cached searchParams
     }
 
     get origin() {
-      return urlGetOrigin(this.#handle);
+      return this.#origin;
     }
 
     get protocol() {
-      return urlGetProtocol(this.#handle);
+      return this.#protocol;
     }
 
     set protocol(value) {
-      this.#handle = urlSetProtocol(this.#handle, String(value));
+      const parsed = urlSetProtocol(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#protocol = parsed.protocol;
+      }
     }
 
     get username() {
-      return urlGetUsername(this.#handle);
+      return this.#username;
     }
 
     set username(value) {
-      this.#handle = urlSetUsername(this.#handle, String(value));
+      const parsed = urlSetUsername(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#username = parsed.username;
+      }
     }
 
     get password() {
-      return urlGetPassword(this.#handle);
+      return this.#password;
     }
 
     set password(value) {
-      this.#handle = urlSetPassword(this.#handle, String(value));
+      const parsed = urlSetPassword(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#password = parsed.password;
+      }
     }
 
     get host() {
-      return urlGetHost(this.#handle);
+      return this.#host;
     }
 
     set host(value) {
-      this.#handle = urlSetHost(this.#handle, String(value));
+      const parsed = urlSetHost(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#host = parsed.host;
+        this.#hostname = parsed.hostname;
+        this.#port = parsed.port;
+      }
     }
 
     get hostname() {
-      return urlGetHostname(this.#handle);
+      return this.#hostname;
     }
 
     set hostname(value) {
-      this.#handle = urlSetHostname(this.#handle, String(value));
+      const parsed = urlSetHostname(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#hostname = parsed.hostname;
+        this.#host = parsed.host;
+      }
     }
 
     get port() {
-      return urlGetPort(this.#handle);
+      return this.#port;
     }
 
     set port(value) {
-      this.#handle = urlSetPort(this.#handle, String(value));
+      const parsed = urlSetPort(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#port = parsed.port;
+        this.#host = parsed.host;
+      }
     }
 
     get pathname() {
-      return urlGetPathname(this.#handle);
+      return this.#pathname;
     }
 
     set pathname(value) {
-      this.#handle = urlSetPathname(this.#handle, String(value));
+      const parsed = urlSetPathname(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#pathname = parsed.pathname;
+      }
     }
 
     get search() {
-      return urlGetSearch(this.#handle);
+      return this.#search;
     }
 
     set search(value) {
-      this.#handle = urlSetSearch(this.#handle, String(value));
-      this.#searchParams = null; // Reset cached searchParams
+      const parsed = urlSetSearch(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#search = parsed.search;
+        this.#searchParams = null; // Reset cached searchParams
+      }
     }
 
     get searchParams() {
       if (!this.#searchParams) {
-        const search = this.search;
+        const search = this.#search;
         this.#searchParams = new URLSearchParams(search);
         
         // Create a wrapper that updates the URL when the params change
@@ -259,7 +325,11 @@
           const original = params[method].bind(params);
           return function(...args) {
             const result = original(...args);
-            self.search = params.toString();
+            const parsed = urlSetSearch(self.#href, params.toString());
+            if (parsed !== null) {
+              self.#href = parsed.href;
+              self.#search = parsed.search;
+            }
             return result;
           };
         };
@@ -274,19 +344,23 @@
     }
 
     get hash() {
-      return urlGetHash(this.#handle);
+      return this.#hash;
     }
 
     set hash(value) {
-      this.#handle = urlSetHash(this.#handle, String(value));
+      const parsed = urlSetHash(this.#href, String(value));
+      if (parsed !== null) {
+        this.#href = parsed.href;
+        this.#hash = parsed.hash;
+      }
     }
 
     toString() {
-      return this.href;
+      return this.#href;
     }
 
     toJSON() {
-      return urlToJson(this.#handle);
+      return this.#href;
     }
   }
 
