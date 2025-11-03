@@ -79,7 +79,7 @@ Each test outputs: `API_NAME: X passed, Y failed`
 Benchmarks measure execution speed for common operations. Each benchmark includes multiple sub-tests to provide granular performance metrics:
 
 - **bench-arithmetic.js** - Arithmetic operations (100K iterations)
-  - Sub-tests: addition, subtraction, multiplication, division, mixed operations
+  - Sub-tests (16): integer and float addition/subtraction/multiplication/division, modulo, exponentiation, bitwise operations (AND, OR, XOR), bit shifts (left, right), mixed operations
 - **bench-strings.js** - String operations (10K iterations)
   - Sub-tests: concatenation, template literals, repeat, split/join
 - **bench-arrays.js** - Array operations (1K iterations, 1K elements)
@@ -87,19 +87,19 @@ Benchmarks measure execution speed for common operations. Each benchmark include
 - **bench-objects.js** - Object operations (100K iterations)
   - Sub-tests: creation, property access, property assignment, spread
 - **bench-json.js** - JSON operations (100K iterations)
-  - Sub-tests: stringify (small), parse (small), roundtrip (small)
+  - Sub-tests (13): stringify for small/medium/large objects, arrays of numbers/strings, nested objects; parse for various object types; roundtrip operations
 - **bench-base64.js** - Base64 operations (100K iterations)
-  - Sub-tests: encode, decode, roundtrip
+  - Sub-tests (9): encode short/medium/long strings, decode short/medium/long strings, roundtrip short/medium/long strings
 - **bench-url.js** - URL operations (100K iterations)
-  - Sub-tests: parse, searchparams, property access
+  - Sub-tests (9): parse simple/complex URLs, URLSearchParams from string/object, searchParams operations, toString, property access/modification, searchParams via URL
 - **bench-crypto.js** - Crypto operations (10K iterations)
-  - Sub-tests: randomUUID, getRandomValues (small), getRandomValues (large)
+  - Sub-tests (11): randomUUID, getRandomValues with various sizes (16/256/1024/4096 bytes, Uint32Array), digest SHA-256 (small/medium/large data), digest SHA-384, digest SHA-512
 - **bench-text-encoding.js** - Text encoding operations (10K iterations)
-  - Sub-tests: encode, decode, roundtrip
+  - Sub-tests (14): encode ASCII short/medium/long, encode UTF-8 short/medium/long, encode mixed, decode ASCII short/medium/long, decode UTF-8 short/medium/long, roundtrip
 - **bench-structured-clone.js** - Structured cloning (10K iterations)
   - Sub-tests: simple, complex, array
 - **bench-event.js** - Event operations (100K iterations)
-  - Sub-tests: creation, addEventListener, dispatch
+  - Sub-tests (9): creation simple/with options, EventTarget creation, addEventListener single/multiple listeners, removeEventListener, dispatch single/multiple listeners, dispatch with new event
 - **bench-console.js** - Console API operations (100K iterations)
   - Sub-tests: log, error, warn, info
 - **bench-performance.js** - Performance API operations (1M iterations)
