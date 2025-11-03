@@ -490,7 +490,7 @@ for runtime in "${RUNTIMES[@]}"; do
     failed=0
     
     for test_file in "${COMPLIANCE_TESTS[@]}"; do
-        test_name=$(basename "$test_file" .js | sed 's/^test-//')
+        test_name=$(basename "$test_file" | sed 's/^test-//' | sed 's/\..*//')
         
         # Check if this API was tested
         if ! should_test_api "$test_name"; then
@@ -528,7 +528,7 @@ echo ""
 
 # Print performance comparison table
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
-    test_name=$(basename "$test_file" .js | sed 's/bench-//')
+    test_name=$(basename "$test_file" | sed 's/^bench-//' | sed 's/\..*//')
     
     # Check if this API was tested
     if ! should_test_api "$test_name"; then

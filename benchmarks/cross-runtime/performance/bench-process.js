@@ -14,6 +14,8 @@ if (typeof process === 'undefined') {
   if (typeof Deno !== 'undefined') {
     Deno.exit(0);
   }
+  // For other runtimes without process or Deno, throw to stop execution
+  throw new Error('Process API not available');
 }
 
 const ITERATIONS = 100000;

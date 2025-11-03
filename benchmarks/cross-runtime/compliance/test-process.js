@@ -8,7 +8,9 @@ if (typeof process === 'undefined') {
     // Exit successfully for Deno - this API is not expected to be available
     Deno.exit(0);
   }
-  process.exit(0);
+  // For other runtimes without process or Deno, just end execution
+  // The script will naturally exit
+  throw new Error('Process API not available');
 }
 
 let passed = 0;
