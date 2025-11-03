@@ -1,369 +1,194 @@
-// URL
-// https://url.spec.whatwg.org/
-
-'use strict';
-
-// eslint-disable-next-line no-unused-expressions
-(({ urlParse, urlSetHref, urlSetProtocol, urlSetUsername, urlSetPassword, urlSetHost, urlSetHostname, urlSetPort, urlSetPathname, urlSetSearch, urlSetHash, urlSearchParamsNew, urlSearchParamsToString }) => {
+// High-performance URL implementation with Rust-side storage
+// Property access is lazy - only calls Rust when property is accessed
+(function(bindings) {
+  'use strict';
   
-  // URLSearchParams class
+  const { urlParse, urlGetProperty, urlSetProperty } = bindings;
+  
+  class URL {
+    #id;
+    
+    constructor(url, base) {
+      const urlStr = String(url);
+      const baseStr = base !== undefined ? String(base) : undefined;
+      
+      const id = urlParse(urlStr, baseStr);
+      if (id === null) {
+        throw new TypeError('Invalid URL');
+      }
+      
+      this.#id = id;
+    }
+    
+    get href() {
+      return urlGetProperty(this.#id, 'href');
+    }
+    
+    set href(value) {
+      const newId = urlParse(String(value));
+      if (newId !== null) {
+        this.#id = newId;
+      }
+    }
+    
+    get origin() {
+      return urlGetProperty(this.#id, 'origin');
+    }
+    
+    get protocol() {
+      return urlGetProperty(this.#id, 'protocol');
+    }
+    
+    set protocol(value) {
+      urlSetProperty(this.#id, 'protocol', String(value));
+    }
+    
+    get username() {
+      return urlGetProperty(this.#id, 'username');
+    }
+    
+    get password() {
+      return urlGetProperty(this.#id, 'password');
+    }
+    
+    get host() {
+      return urlGetProperty(this.#id, 'host');
+    }
+    
+    get hostname() {
+      return urlGetProperty(this.#id, 'hostname');
+    }
+    
+    get port() {
+      return urlGetProperty(this.#id, 'port');
+    }
+    
+    get pathname() {
+      return urlGetProperty(this.#id, 'pathname');
+    }
+    
+    set pathname(value) {
+      urlSetProperty(this.#id, 'pathname', String(value));
+    }
+    
+    get search() {
+      return urlGetProperty(this.#id, 'search');
+    }
+    
+    set search(value) {
+      urlSetProperty(this.#id, 'search', String(value));
+    }
+    
+    get hash() {
+      return urlGetProperty(this.#id, 'hash');
+    }
+    
+    set hash(value) {
+      urlSetProperty(this.#id, 'hash', String(value));
+    }
+    
+    get searchParams() {
+      // TODO: Implement URLSearchParams
+      return new URLSearchParams(this.search);
+    }
+    
+    toString() {
+      return this.href;
+    }
+    
+    toJSON() {
+      return this.href;
+    }
+  }
+  
+  // Simple URLSearchParams implementation
   class URLSearchParams {
     #params;
-
-    constructor(init = '') {
-      this.#params = [];
+    
+    constructor(init) {
+      this.#params = new Map();
       
-      if (init instanceof URLSearchParams) {
-        for (const [key, value] of init) {
-          this.#params.push([key, value]);
-        }
-      } else if (typeof init === 'object' && init !== null) {
-        for (const key of Object.keys(init)) {
-          const value = init[key];
-          if (Array.isArray(value)) {
-            for (const val of value) {
-              this.#params.push([key, String(val)]);
-            }
-          } else {
-            this.#params.push([key, String(value)]);
-          }
-        }
-      } else {
-        const str = String(init);
-        // Remove leading '?' if present
-        const query = str.startsWith('?') ? str.slice(1) : str;
-        if (query) {
-          this.#params = urlSearchParamsNew(query);
+      if (typeof init === 'string') {
+        const search = init.startsWith('?') ? init.slice(1) : init;
+        if (search) {
+          search.split('&').forEach(pair => {
+            const [key, value = ''] = pair.split('=').map(decodeURIComponent);
+            this.append(key, value);
+          });
         }
       }
     }
-
+    
     append(name, value) {
-      this.#params.push([String(name), String(value)]);
+      const key = String(name);
+      const val = String(value);
+      if (!this.#params.has(key)) {
+        this.#params.set(key, []);
+      }
+      this.#params.get(key).push(val);
     }
-
+    
     delete(name) {
-      const nameStr = String(name);
-      this.#params = this.#params.filter(([key]) => key !== nameStr);
+      this.#params.delete(String(name));
     }
-
+    
     get(name) {
-      const nameStr = String(name);
-      for (const [key, value] of this.#params) {
-        if (key === nameStr) {
-          return value;
-        }
-      }
-      return null;
+      const values = this.#params.get(String(name));
+      return values && values.length > 0 ? values[0] : null;
     }
-
+    
     getAll(name) {
-      const nameStr = String(name);
-      const results = [];
-      for (const [key, value] of this.#params) {
-        if (key === nameStr) {
-          results.push(value);
-        }
-      }
-      return results;
+      return this.#params.get(String(name)) || [];
     }
-
+    
     has(name) {
-      const nameStr = String(name);
-      for (const [key] of this.#params) {
-        if (key === nameStr) {
-          return true;
-        }
-      }
-      return false;
+      return this.#params.has(String(name));
     }
-
+    
     set(name, value) {
-      const nameStr = String(name);
-      const valueStr = String(value);
-      let found = false;
-      const newParams = [];
-      
-      for (const [key, val] of this.#params) {
-        if (key === nameStr) {
-          if (!found) {
-            newParams.push([key, valueStr]);
-            found = true;
-          }
-          // Skip other occurrences
-        } else {
-          newParams.push([key, val]);
+      this.#params.set(String(name), [String(value)]);
+    }
+    
+    sort() {
+      const sorted = new Map([...this.#params.entries()].sort());
+      this.#params = sorted;
+    }
+    
+    toString() {
+      const parts = [];
+      for (const [key, values] of this.#params) {
+        for (const value of values) {
+          parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
         }
       }
-      
-      if (!found) {
-        newParams.push([nameStr, valueStr]);
-      }
-      
-      this.#params = newParams;
+      return parts.join('&');
     }
-
-    sort() {
-      this.#params.sort((a, b) => {
-        if (a[0] < b[0]) return -1;
-        if (a[0] > b[0]) return 1;
-        return 0;
-      });
-    }
-
-    toString() {
-      return urlSearchParamsToString(this.#params);
-    }
-
+    
     *entries() {
-      for (const entry of this.#params) {
-        yield entry.slice();
+      for (const [key, values] of this.#params) {
+        for (const value of values) {
+          yield [key, value];
+        }
       }
     }
-
+    
     *keys() {
-      for (const [key] of this.#params) {
+      for (const [key] of this.entries()) {
         yield key;
       }
     }
-
+    
     *values() {
-      for (const [, value] of this.#params) {
+      for (const [, value] of this.entries()) {
         yield value;
       }
     }
-
+    
     [Symbol.iterator]() {
       return this.entries();
     }
-
-    forEach(callbackfn, thisArg) {
-      for (const [key, value] of this.#params) {
-        callbackfn.call(thisArg, value, key, this);
-      }
-    }
   }
-
-  // URL class
-  class URL {
-    #href;
-    #origin;
-    #protocol;
-    #username;
-    #password;
-    #host;
-    #hostname;
-    #port;
-    #pathname;
-    #search;
-    #hash;
-    #searchParams;
-
-    constructor(url, base) {
-      const parsed = base !== undefined 
-        ? urlParse(String(url), String(base))
-        : urlParse(String(url));
-      
-      if (parsed === null) {
-        throw new TypeError('Invalid URL');
-      }
-      
-      // Cache all URL components
-      this.#href = parsed.href;
-      this.#origin = parsed.origin;
-      this.#protocol = parsed.protocol;
-      this.#username = parsed.username;
-      this.#password = parsed.password;
-      this.#host = parsed.host;
-      this.#hostname = parsed.hostname;
-      this.#port = parsed.port;
-      this.#pathname = parsed.pathname;
-      this.#search = parsed.search;
-      this.#hash = parsed.hash;
-      this.#searchParams = null;
-    }
-
-    get href() {
-      return this.#href;
-    }
-
-    set href(value) {
-      const parsed = urlSetHref(this.#href, String(value));
-      if (parsed === null) {
-        throw new TypeError('Invalid URL');
-      }
-      this.#href = parsed.href;
-      this.#origin = parsed.origin;
-      this.#protocol = parsed.protocol;
-      this.#username = parsed.username;
-      this.#password = parsed.password;
-      this.#host = parsed.host;
-      this.#hostname = parsed.hostname;
-      this.#port = parsed.port;
-      this.#pathname = parsed.pathname;
-      this.#search = parsed.search;
-      this.#hash = parsed.hash;
-      this.#searchParams = null; // Reset cached searchParams
-    }
-
-    get origin() {
-      return this.#origin;
-    }
-
-    get protocol() {
-      return this.#protocol;
-    }
-
-    set protocol(value) {
-      const parsed = urlSetProtocol(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#protocol = parsed.protocol;
-      }
-    }
-
-    get username() {
-      return this.#username;
-    }
-
-    set username(value) {
-      const parsed = urlSetUsername(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#username = parsed.username;
-      }
-    }
-
-    get password() {
-      return this.#password;
-    }
-
-    set password(value) {
-      const parsed = urlSetPassword(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#password = parsed.password;
-      }
-    }
-
-    get host() {
-      return this.#host;
-    }
-
-    set host(value) {
-      const parsed = urlSetHost(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#host = parsed.host;
-        this.#hostname = parsed.hostname;
-        this.#port = parsed.port;
-      }
-    }
-
-    get hostname() {
-      return this.#hostname;
-    }
-
-    set hostname(value) {
-      const parsed = urlSetHostname(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#hostname = parsed.hostname;
-        this.#host = parsed.host;
-      }
-    }
-
-    get port() {
-      return this.#port;
-    }
-
-    set port(value) {
-      const parsed = urlSetPort(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#port = parsed.port;
-        this.#host = parsed.host;
-      }
-    }
-
-    get pathname() {
-      return this.#pathname;
-    }
-
-    set pathname(value) {
-      const parsed = urlSetPathname(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#pathname = parsed.pathname;
-      }
-    }
-
-    get search() {
-      return this.#search;
-    }
-
-    set search(value) {
-      const parsed = urlSetSearch(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#search = parsed.search;
-        this.#searchParams = null; // Reset cached searchParams
-      }
-    }
-
-    get searchParams() {
-      if (!this.#searchParams) {
-        const search = this.#search;
-        this.#searchParams = new URLSearchParams(search);
-        
-        // Create a wrapper that updates the URL when the params change
-        const self = this;
-        const params = this.#searchParams;
-        
-        // Wrap methods that modify the params
-        const wrapMethod = (method) => {
-          const original = params[method].bind(params);
-          return function(...args) {
-            const result = original(...args);
-            const parsed = urlSetSearch(self.#href, params.toString());
-            if (parsed !== null) {
-              self.#href = parsed.href;
-              self.#search = parsed.search;
-            }
-            return result;
-          };
-        };
-        
-        params.append = wrapMethod('append');
-        params.delete = wrapMethod('delete');
-        params.set = wrapMethod('set');
-        params.sort = wrapMethod('sort');
-      }
-      
-      return this.#searchParams;
-    }
-
-    get hash() {
-      return this.#hash;
-    }
-
-    set hash(value) {
-      const parsed = urlSetHash(this.#href, String(value));
-      if (parsed !== null) {
-        this.#href = parsed.href;
-        this.#hash = parsed.hash;
-      }
-    }
-
-    toString() {
-      return this.#href;
-    }
-
-    toJSON() {
-      return this.#href;
-    }
-  }
-
+  
   globalThis.URL = URL;
   globalThis.URLSearchParams = URLSearchParams;
 });
