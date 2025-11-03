@@ -290,12 +290,36 @@ fn resolve<'a>(
 
     let js_src = if is_json {
         // For JSON files, read the content and wrap it in a module that exports it as default
-        let json_content = read_source_cached(&requested_abs_path)
-            .expect("Something went wrong reading the JSON file");
-        // Create a synthetic module that exports the JSON as the default export
-        format!("export default {};", json_content)
+        match read_source_cached(&requested_abs_path) {
+            Ok(json_content) => {
+                // Create a synthetic module that exports the JSON as the default export
+                format!("export default {};", json_content)
+            }
+            Err(e) => {
+                let msg = v8::String::new(
+                    scope,
+                    &format!("Cannot read JSON file '{}': {}", requested_abs_path, e),
+                )
+                .unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+                return None;
+            }
+        }
     } else {
-        read_source_cached(&requested_abs_path).expect("Something went wrong reading the file")
+        match read_source_cached(&requested_abs_path) {
+            Ok(content) => content,
+            Err(e) => {
+                let msg = v8::String::new(
+                    scope,
+                    &format!("Cannot read file '{}': {}", requested_abs_path, e),
+                )
+                .unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+                return None;
+            }
+        }
     };
 
     let code = v8::String::new(scope, &js_src).unwrap();
@@ -392,9 +416,21 @@ fn normalize_path(referrer_path: &str, requested: &str) -> String {
     if req_path.is_absolute() {
         return requested.to_string();
     }
-    let ref_dir = Path::new(referrer_path).parent().unwrap();
-    let normalized = ref_dir.join(req_path).canonicalize();
-    normalized.unwrap().to_str().unwrap().to_string()
+
+    // Get the parent directory of the referrer, or use current directory if no parent
+    let ref_dir = Path::new(referrer_path)
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
+
+    // Join and canonicalize the path
+    let joined = ref_dir.join(req_path);
+    match joined.canonicalize() {
+        Ok(normalized) => normalized.to_str().unwrap_or(requested).to_string(),
+        Err(_) => {
+            // If canonicalize fails (e.g., file doesn't exist yet), return the joined path
+            joined.to_str().unwrap_or(requested).to_string()
+        }
+    }
 }
 
 fn module_resolve_callback<'a>(
@@ -422,6 +458,100 @@ fn module_resolve_callback<'a>(
     let isolate: &v8::Isolate = scope;
     let requested_rel_path = specifier.to_rust_string_lossy(isolate);
     resolve(scope, &referrer_path, &requested_rel_path)
+}
+
+pub(crate) fn host_import_module_dynamically_callback<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    _host_defined_options: v8::Local<'s, v8::Data>,
+    resource_name: v8::Local<'s, v8::Value>,
+    specifier: v8::Local<'s, v8::String>,
+    _import_attributes: v8::Local<'s, v8::FixedArray>,
+) -> Option<v8::Local<'s, v8::Promise>> {
+    // Create a promise resolver
+    let resolver = v8::PromiseResolver::new(scope)?;
+    let promise = resolver.get_promise(scope);
+
+    // Get the referrer path from the resource_name
+    // Try to cast it to a string first
+    let referrer = match v8::Local::<v8::String>::try_from(resource_name) {
+        Ok(resource_str) => resource_str.to_rust_string_lossy(scope),
+        Err(_) => {
+            // If it's not a string, use empty string as referrer
+            // This will cause relative imports to be resolved from current directory
+            String::new()
+        }
+    };
+
+    let specifier_str = specifier.to_rust_string_lossy(scope);
+
+    // Use a TryCatch scope to properly handle exceptions
+    v8::tc_scope!(let tc, scope);
+
+    // Try to resolve and load the module
+    match resolve(tc, &referrer, &specifier_str) {
+        Some(module) => {
+            // Instantiate the module if not already instantiated
+            let status = module.get_status();
+            if status == v8::ModuleStatus::Uninstantiated {
+                match module.instantiate_module(tc, module_resolve_callback) {
+                    Some(_) => {
+                        // Instantiation successful, continue
+                    }
+                    None => {
+                        // Instantiation failed, reject the promise
+                        let exception = if tc.has_caught() {
+                            tc.exception().unwrap()
+                        } else {
+                            let msg = v8::String::new(tc, "Module instantiation failed").unwrap();
+                            v8::Exception::error(tc, msg)
+                        };
+                        resolver.reject(tc, exception);
+                        return Some(promise);
+                    }
+                }
+            }
+
+            // Evaluate the module if not already evaluated
+            let status = module.get_status();
+            if status == v8::ModuleStatus::Instantiated {
+                match module.evaluate(tc) {
+                    Some(_) => {
+                        // Evaluation successful, continue
+                    }
+                    None => {
+                        // Evaluation failed, reject the promise
+                        let exception = if tc.has_caught() {
+                            tc.exception().unwrap()
+                        } else {
+                            let msg = v8::String::new(tc, "Module evaluation failed").unwrap();
+                            v8::Exception::error(tc, msg)
+                        };
+                        resolver.reject(tc, exception);
+                        return Some(promise);
+                    }
+                }
+            }
+
+            // Get the module namespace object
+            let module_namespace = module.get_module_namespace();
+
+            // Resolve the promise with the module namespace
+            resolver.resolve(tc, module_namespace);
+        }
+        None => {
+            // Module resolution failed, reject the promise
+            let exception = if tc.has_caught() {
+                tc.exception().unwrap()
+            } else {
+                let msg = v8::String::new(tc, &format!("Cannot find module '{}'", specifier_str))
+                    .unwrap();
+                v8::Exception::error(tc, msg)
+            };
+            resolver.reject(tc, exception);
+        }
+    }
+
+    Some(promise)
 }
 
 pub(crate) unsafe extern "C" fn host_initialize_import_meta_object_callback(
