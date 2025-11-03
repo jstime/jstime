@@ -91,7 +91,7 @@ results.push({
 });
 
 // Clean up
-await fs.rmdir(tmpDir, { recursive: true });
+await fs.rm(tmpDir, { recursive: true });
 
 console.log(JSON.stringify({
   test: 'fs',

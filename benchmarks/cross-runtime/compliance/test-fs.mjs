@@ -146,13 +146,13 @@ await test('readdir', async () => {
 });
 
 await test('remove directory recursively', async () => {
-  await fs.rmdir(testDirPath, { recursive: true });
+  await fs.rm(testDirPath, { recursive: true });
   try {
     await fs.access(testDirPath);
-    throw new Error('Directory should not exist after recursive rmdir');
+    throw new Error('Directory should not exist after recursive rm');
   } catch (e) {
     // Expected to fail
-    if (e.message === 'Directory should not exist after recursive rmdir') throw e;
+    if (e.message === 'Directory should not exist after recursive rm') throw e;
   }
 });
 

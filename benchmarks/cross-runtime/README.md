@@ -73,7 +73,7 @@ Tests verify that standard JavaScript APIs work correctly:
 - **test-microtask.js** - Microtask API (queueMicrotask)
 - **test-fetch.js** - Fetch API (Headers, Request, Response classes)
 - **test-webassembly.js** - WebAssembly API (Module, Instance, Memory, Table)
-- **test-fs.js** - File System API (node:fs/promises - readFile, writeFile, mkdir, etc.)
+- **test-fs.mjs** - File System API (node:fs/promises - readFile, writeFile, mkdir, etc.)
 - **test-process.js** - Process API (process.env, process.argv, process.cwd, process.exit)
 
 Each test outputs: `API_NAME: X passed, Y failed`
@@ -116,7 +116,7 @@ Benchmarks measure execution speed for common operations. Each benchmark include
   - Sub-tests: headers_creation, headers_from_object, request_creation, response_creation
 - **bench-webassembly.js** - WebAssembly API operations (1K iterations)
   - Sub-tests: validate, module_sync, instantiate_sync, memory_creation, table_creation
-- **bench-fs.js** - File System API operations (1K iterations)
+- **bench-fs.mjs** - File System API operations (1K iterations)
   - Sub-tests: write_small, read_small, stat, append, readdir
 - **bench-process.js** - Process API operations (100K iterations)
   - Sub-tests: env_access, argv_access, cwd_call, stdout_access, env_keys
