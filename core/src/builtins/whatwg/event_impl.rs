@@ -116,17 +116,18 @@ fn event_target_add_event_listener(
                     array.set_index(scope, length, listener_func.into());
                 }
                 _ => {
-                    // Create new array for this event type
-                    let array = v8::Array::new(scope, 1);
+                    // Create new array for this event type with realistic initial capacity
+                    // Most event types have 1-3 listeners, so start with capacity of 2
+                    let array = v8::Array::new(scope, 2);
                     array.set_index(scope, 0, listener_func.into());
                     map.set(scope, type_key.into(), array.into());
                 }
             }
         }
         _ => {
-            // Slow path: create new map, array, and set everything up
+            // Slow path: create new map with realistic capacity
             let new_map = v8::Map::new(scope);
-            let new_array = v8::Array::new(scope, 1);
+            let new_array = v8::Array::new(scope, 2);
             new_array.set_index(scope, 0, listener_func.into());
             new_map.set(scope, type_key.into(), new_array.into());
             target_obj.set(scope, listeners_key.into(), new_map.into());
@@ -190,27 +191,43 @@ fn event_target_remove_event_listener(
         _ => return,
     };
 
-    // Find and remove the listener
+    // Find and remove the listener - optimize by removing in-place
     let listener_func = v8::Local::<v8::Function>::try_from(listener).unwrap();
     let length = listeners_array.length();
-    let new_array = v8::Array::new(scope, 0);
-    let mut new_index = 0;
 
+    // Fast path: check if listener exists first (avoid unnecessary work)
+    let mut found_index = None;
     for i in 0..length {
         if let Some(item) = listeners_array.get_index(scope, i)
             && item.is_function()
         {
             let item_func = v8::Local::<v8::Function>::try_from(item).unwrap();
-            // Compare function references
-            if !item_func.strict_equals(listener_func.into()) {
-                new_array.set_index(scope, new_index, item);
-                new_index += 1;
+            if item_func.strict_equals(listener_func.into()) {
+                found_index = Some(i);
+                break;
             }
         }
     }
 
-    // Update the map with the new array
-    listeners_map.set(scope, type_key.into(), new_array.into());
+    // Only rebuild array if listener was found
+    if let Some(remove_idx) = found_index {
+        // Pre-allocate array with exact size needed
+        let new_length = (length - 1) as i32;
+        let new_array = v8::Array::new(scope, new_length);
+        let mut new_index = 0;
+
+        for i in 0..length {
+            if i != remove_idx
+                && let Some(item) = listeners_array.get_index(scope, i)
+            {
+                new_array.set_index(scope, new_index, item);
+                new_index += 1;
+            }
+        }
+
+        // Update the map with the new array
+        listeners_map.set(scope, type_key.into(), new_array.into());
+    }
 }
 
 // EventTarget.dispatchEvent(event)
