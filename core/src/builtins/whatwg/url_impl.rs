@@ -1,8 +1,7 @@
+use ada_url::Url;
 use rustc_hash::FxHashMap;
-use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use url::Url;
 
 thread_local! {
     // Cache of parsed URLs to avoid reparsing the same URL string
@@ -37,8 +36,8 @@ fn get_or_parse_url(url_str: &str) -> Result<Url, ()> {
             return Ok(cached_url.clone());
         }
 
-        // Parse URL
-        match Url::parse(url_str) {
+        // Parse URL (ada-url requires base parameter, use None for absolute URLs)
+        match Url::parse(url_str, None) {
             Ok(url) => {
                 evict_cache_if_full(&mut cache_map);
                 cache_map.insert(url_str.to_string(), url.clone());
@@ -140,31 +139,6 @@ fn to_v8_string<'a>(scope: &mut v8::PinScope<'a, '_>, s: &str) -> v8::Local<'a, 
     v8::String::new(scope, s).unwrap()
 }
 
-// Helper to format a u16 port number directly to a buffer
-#[inline]
-fn format_port_to_buffer(port: u16, buf: &mut SmallVec<[u8; 64]>) {
-    // Port numbers are max 5 digits (65535)
-    let mut digits = [0u8; 5];
-    let mut n = port;
-    let mut i = 0;
-
-    // Extract digits in reverse order
-    loop {
-        digits[i] = b'0' + (n % 10) as u8;
-        n /= 10;
-        i += 1;
-        if n == 0 {
-            break;
-        }
-    }
-
-    // Write digits in correct order
-    while i > 0 {
-        i -= 1;
-        buf.push(digits[i]);
-    }
-}
-
 // Helper to create a URL components object
 #[inline]
 fn url_to_components_object<'a>(
@@ -173,7 +147,7 @@ fn url_to_components_object<'a>(
 ) -> v8::Local<'a, v8::Object> {
     let obj = v8::Object::new(scope);
 
-    // Helper macro to set object properties with pre-computed keys
+    // Helper macro to set object properties
     macro_rules! set_prop {
         ($name:expr, $value:expr) => {
             let key = v8::String::new(scope, $name).unwrap();
@@ -182,69 +156,18 @@ fn url_to_components_object<'a>(
         };
     }
 
-    // Reuse string references where possible to avoid allocations
+    // ada-url provides all components directly
     set_prop!("href", url.as_str());
-    set_prop!("origin", &url.origin().ascii_serialization());
-
-    // Avoid format! for protocol - use SmallVec as stack buffer
-    // URL schemes are guaranteed to be ASCII by the URL spec
-    let scheme = url.scheme();
-    let mut protocol_buf = SmallVec::<[u8; 16]>::new();
-    protocol_buf.extend_from_slice(scheme.as_bytes());
-    protocol_buf.push(b':');
-    // SAFETY: URL schemes are guaranteed to be valid ASCII
-    let protocol = unsafe { std::str::from_utf8_unchecked(&protocol_buf) };
-    set_prop!("protocol", protocol);
-
-    set_prop!("username", url.username());
-    set_prop!("password", url.password().unwrap_or(""));
-
-    // Optimize host with port - avoid allocation when no port
-    let host = url.host_str().unwrap_or("");
-    if let Some(port) = url.port() {
-        // Build host:port string without intermediate allocations
-        let mut host_buf = SmallVec::<[u8; 64]>::new();
-        host_buf.extend_from_slice(host.as_bytes());
-        host_buf.push(b':');
-        let port_start = host_buf.len();
-        format_port_to_buffer(port, &mut host_buf);
-        // SAFETY: host is valid UTF-8 from the url crate, ':' is ASCII, port digits are ASCII
-        let host_with_port = unsafe { std::str::from_utf8_unchecked(&host_buf) };
-        let port_str = unsafe { std::str::from_utf8_unchecked(&host_buf[port_start..]) };
-        set_prop!("host", host_with_port);
-        set_prop!("hostname", host);
-        set_prop!("port", port_str);
-    } else {
-        set_prop!("host", host);
-        set_prop!("hostname", host);
-        set_prop!("port", "");
-    }
-
-    set_prop!("pathname", url.path());
-
-    // Optimize search - avoid format! when no query
-    if let Some(query) = url.query() {
-        let mut search_buf = SmallVec::<[u8; 128]>::new();
-        search_buf.push(b'?');
-        search_buf.extend_from_slice(query.as_bytes());
-        // SAFETY: query is valid UTF-8 from the url crate, '?' is ASCII
-        let search = unsafe { std::str::from_utf8_unchecked(&search_buf) };
-        set_prop!("search", search);
-    } else {
-        set_prop!("search", "");
-    }
-
-    // Optimize hash - avoid format! when no fragment
-    if let Some(fragment) = url.fragment() {
-        let mut hash_buf = SmallVec::<[u8; 64]>::new();
-        hash_buf.push(b'#');
-        hash_buf.extend_from_slice(fragment.as_bytes());
-        // SAFETY: fragment is valid UTF-8 from the url crate, '#' is ASCII
-        let hash = unsafe { std::str::from_utf8_unchecked(&hash_buf) };
-        set_prop!("hash", hash);
-    } else {
-        set_prop!("hash", "");
-    }
+    set_prop!("origin", &url.origin());
+    set_prop!("protocol", &url.protocol());
+    set_prop!("username", &url.username());
+    set_prop!("password", &url.password());
+    set_prop!("host", &url.host());
+    set_prop!("hostname", &url.hostname());
+    set_prop!("port", &url.port());
+    set_prop!("pathname", &url.pathname());
+    set_prop!("search", &url.search());
+    set_prop!("hash", &url.hash());
 
     obj
 }
@@ -257,17 +180,12 @@ fn url_parse(
 ) {
     let url_str = to_rust_string(scope, args.get(0));
 
+    // ada-url uses an Option<&str> for the base parameter
     let parsed = if args.length() > 1 && !args.get(1).is_undefined() {
         let base_str = to_rust_string(scope, args.get(1));
-        match Url::parse(&base_str) {
-            Ok(base) => base.join(&url_str),
-            Err(_) => {
-                rv.set(v8::null(scope).into());
-                return;
-            }
-        }
+        Url::parse(&url_str, Some(&base_str))
     } else {
-        Url::parse(&url_str)
+        Url::parse(&url_str, None)
     };
 
     match parsed {
@@ -287,7 +205,7 @@ fn url_set_href(
     mut rv: v8::ReturnValue,
 ) {
     let new_url_str = to_rust_string(scope, args.get(1));
-    match Url::parse(&new_url_str) {
+    match Url::parse(&new_url_str, None) {
         Ok(url) => {
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
@@ -308,8 +226,7 @@ fn url_set_protocol(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            let protocol = protocol.trim_end_matches(':');
-            let _ = url.set_scheme(protocol);
+            let _ = url.set_protocol(&protocol);
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
@@ -330,7 +247,7 @@ fn url_set_username(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            let _ = url.set_username(&username);
+            let _ = url.set_username(Some(&username));
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
@@ -372,18 +289,7 @@ fn url_set_host(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            // Parse host and port if present
-            if host.contains(':') {
-                let parts: SmallVec<[&str; 2]> = host.splitn(2, ':').collect();
-                if parts.len() == 2 {
-                    let _ = url.set_host(Some(parts[0]));
-                    if let Ok(port) = parts[1].parse::<u16>() {
-                        let _ = url.set_port(Some(port));
-                    }
-                }
-            } else {
-                let _ = url.set_host(Some(&host));
-            }
+            let _ = url.set_host(Some(&host));
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
@@ -404,7 +310,7 @@ fn url_set_hostname(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            let _ = url.set_host(Some(&hostname));
+            let _ = url.set_hostname(Some(&hostname));
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
@@ -427,8 +333,8 @@ fn url_set_port(
         Ok(mut url) => {
             if port_str.is_empty() {
                 let _ = url.set_port(None);
-            } else if let Ok(port) = port_str.parse::<u16>() {
-                let _ = url.set_port(Some(port));
+            } else {
+                let _ = url.set_port(Some(&port_str));
             }
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
@@ -450,7 +356,7 @@ fn url_set_pathname(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            url.set_path(&pathname);
+            let _ = url.set_pathname(Some(&pathname));
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
             rv.set(obj.into());
@@ -471,11 +377,10 @@ fn url_set_search(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            let search = search.trim_start_matches('?');
-            if search.is_empty() {
-                url.set_query(None);
+            if search.is_empty() || search == "?" {
+                url.set_search(None);
             } else {
-                url.set_query(Some(search));
+                url.set_search(Some(&search));
             }
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
@@ -497,11 +402,10 @@ fn url_set_hash(
 
     match get_or_parse_url(&url_str) {
         Ok(mut url) => {
-            let hash = hash.trim_start_matches('#');
-            if hash.is_empty() {
-                url.set_fragment(None);
+            if hash.is_empty() || hash == "#" {
+                url.set_hash(None);
             } else {
-                url.set_fragment(Some(hash));
+                url.set_hash(Some(&hash));
             }
             update_url_cache(&url);
             let obj = url_to_components_object(scope, &url);
