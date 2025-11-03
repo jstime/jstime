@@ -821,6 +821,7 @@ dependencies = [
  "base64-simd",
  "criterion",
  "filetime",
+ "getrandom",
  "lazy_static",
  "ring",
  "rustc-hash",

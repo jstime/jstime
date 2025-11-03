@@ -12,16 +12,12 @@
 //! This optimization significantly improves crypto.getRandomValues() performance
 //! for typical use cases (small to medium arrays) while maintaining cryptographic security.
 
-use ring::rand::{SecureRandom, SystemRandom};
-
-/// Buffer size for random data caching (8KB)
+/// Buffer size for random data caching (64KB)
 /// This size balances memory usage and syscall reduction.
-/// Larger buffers reduce syscalls but use more memory.
-const BUFFER_SIZE: usize = 8192;
+/// Node.js and other runtimes use similar large buffers for optimal throughput.
+const BUFFER_SIZE: usize = 65536;
 
 pub struct BufferedRandom {
-    /// System random number generator (CSRNG)
-    system_random: SystemRandom,
     /// Buffer for caching random data
     buffer: [u8; BUFFER_SIZE],
     /// Current position in the buffer (how many bytes have been consumed)
@@ -34,7 +30,6 @@ impl BufferedRandom {
     /// Creates a new buffered random number generator
     pub fn new() -> Self {
         Self {
-            system_random: SystemRandom::new(),
             buffer: [0u8; BUFFER_SIZE],
             position: 0,
             available: 0,
@@ -51,14 +46,14 @@ impl BufferedRandom {
     ///
     /// # Returns
     /// * `Ok(())` on success
-    /// * `Err(ring::error::Unspecified)` if the system RNG fails
+    /// * `Err(getrandom::Error)` if the system RNG fails
     #[inline]
-    pub fn fill(&mut self, dest: &mut [u8]) -> Result<(), ring::error::Unspecified> {
+    pub fn fill(&mut self, dest: &mut [u8]) -> Result<(), getrandom::Error> {
         let requested = dest.len();
 
         // For large requests, bypass the buffer and use system RNG directly
         if requested >= BUFFER_SIZE {
-            return self.system_random.fill(dest);
+            return getrandom::getrandom(dest);
         }
 
         let mut offset = 0;
@@ -86,8 +81,8 @@ impl BufferedRandom {
 
     /// Refills the internal buffer from the system RNG
     #[inline]
-    fn refill_buffer(&mut self) -> Result<(), ring::error::Unspecified> {
-        self.system_random.fill(&mut self.buffer)?;
+    fn refill_buffer(&mut self) -> Result<(), getrandom::Error> {
+        getrandom::getrandom(&mut self.buffer)?;
         self.position = 0;
         self.available = BUFFER_SIZE;
         Ok(())
