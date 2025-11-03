@@ -26,11 +26,11 @@ mod node {
     pub(crate) mod process_impl;
 }
 
-pub(crate) fn get_external_references() -> SmallVec<[v8::ExternalReference; 79]> {
-    // Pre-allocate with exact capacity to avoid reallocation
-    // Total: 2 (base64) + 1 (console) + 6 (event) + 1 (queue_microtask) + 25 (url) + 3 (timers)
+pub(crate) fn get_external_references() -> SmallVec<[v8::ExternalReference; 128]> {
+    // Pre-allocate with capacity to avoid reallocation
+    // Total: 2 (base64) + 1 (console) + 6 (event) + 1 (queue_microtask) + 3 (url lazy) + 3 (timers)
     //        + 1 (fetch) + 3 (streams) + 1 (structured_clone) + 3 (text_encoding)
-    //        + 3 (crypto) + 2 (performance) + 21 (fs) + 7 (process) = 79
+    //        + 3 (crypto) + 2 (performance) + 21 (fs) + 7 (process) = 57
     let mut refs = SmallVec::new();
 
     // WHATWG
@@ -68,7 +68,7 @@ impl Builtins {
         whatwg::console_impl::register_bindings(scope, bindings);
         whatwg::event_impl::register_bindings(scope, bindings);
         whatwg::queue_microtask_impl::register_bindings(scope, bindings);
-        whatwg::url_impl::register_bindings(scope, bindings);
+        whatwg::url_impl::register_bindings(scope, bindings); // V8-native URL with property accessors
         whatwg::timers_impl::register_bindings(scope, bindings);
         whatwg::fetch_impl::register_bindings(scope, bindings);
         whatwg::streams_impl::register_bindings(scope, bindings);
@@ -102,7 +102,7 @@ impl Builtins {
         builtin!("./whatwg/console.js");
         builtin!("./whatwg/event.js");
         builtin!("./whatwg/queue_microtask.js");
-        builtin!("./whatwg/url.js");
+        builtin!("./whatwg/url.js"); // Lazy-loading wrapper with Rust-side storage
         builtin!("./whatwg/timers.js");
         builtin!("./whatwg/fetch.js");
         builtin!("./whatwg/streams.js");
