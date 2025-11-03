@@ -129,6 +129,13 @@
             this.append(key, value);
           });
         }
+      } else if (init && typeof init === 'object') {
+        // Support object initialization
+        for (const key in init) {
+          if (Object.prototype.hasOwnProperty.call(init, key)) {
+            this.append(key, init[key]);
+          }
+        }
       }
     }
     
