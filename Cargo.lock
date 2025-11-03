@@ -784,6 +784,7 @@ dependencies = [
  "base64-simd",
  "criterion",
  "filetime",
+ "getrandom 0.2.16",
  "ring",
  "rustc-hash",
  "serde_json",
