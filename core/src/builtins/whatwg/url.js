@@ -7,6 +7,7 @@
   
   class URL {
     #id;
+    #searchParams;
     
     constructor(url, base) {
       const urlStr = String(url);
@@ -18,6 +19,7 @@
       }
       
       this.#id = id;
+      this.#searchParams = null;
     }
     
     get href() {
@@ -28,6 +30,7 @@
       const newId = urlParse(String(value));
       if (newId !== null) {
         this.#id = newId;
+        this.#searchParams = null; // Invalidate cached searchParams
       }
     }
     
@@ -77,6 +80,7 @@
     
     set search(value) {
       urlSetProperty(this.#id, 'search', String(value));
+      this.#searchParams = null; // Invalidate cached searchParams
     }
     
     get hash() {
@@ -88,8 +92,15 @@
     }
     
     get searchParams() {
-      // TODO: Implement URLSearchParams
-      return new URLSearchParams(this.search);
+      if (!this.#searchParams) {
+        this.#searchParams = new URLSearchParams(this.search, this);
+      }
+      return this.#searchParams;
+    }
+    
+    // Internal method called by URLSearchParams to update search
+    _updateSearch(newSearch) {
+      urlSetProperty(this.#id, 'search', newSearch);
     }
     
     toString() {
@@ -104,9 +115,11 @@
   // Simple URLSearchParams implementation
   class URLSearchParams {
     #params;
+    #url;
     
-    constructor(init) {
+    constructor(init, url) {
       this.#params = new Map();
+      this.#url = url || null;
       
       if (typeof init === 'string') {
         const search = init.startsWith('?') ? init.slice(1) : init;
@@ -119,6 +132,13 @@
       }
     }
     
+    #updateURL() {
+      if (this.#url) {
+        const search = this.toString();
+        this.#url._updateSearch(search ? '?' + search : '');
+      }
+    }
+    
     append(name, value) {
       const key = String(name);
       const val = String(value);
@@ -126,10 +146,12 @@
         this.#params.set(key, []);
       }
       this.#params.get(key).push(val);
+      this.#updateURL();
     }
     
     delete(name) {
       this.#params.delete(String(name));
+      this.#updateURL();
     }
     
     get(name) {
@@ -147,11 +169,13 @@
     
     set(name, value) {
       this.#params.set(String(name), [String(value)]);
+      this.#updateURL();
     }
     
     sort() {
       const sorted = new Map([...this.#params.entries()].sort());
       this.#params = sorted;
+      this.#updateURL();
     }
     
     toString() {
