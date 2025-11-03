@@ -132,8 +132,19 @@
         return;
       }
 
-      // Call Rust implementation
-      eventTargetAddEventListener(this, String(type), callback, options);
+      // Inline implementation for better performance
+      const typeStr = String(type);
+      const listenersMap = this.__listeners__;
+      
+      // Get or create array for this event type
+      let listeners = listenersMap.get(typeStr);
+      if (!listeners) {
+        listeners = [];
+        listenersMap.set(typeStr, listeners);
+      }
+      
+      // Add listener
+      listeners.push(callback);
     }
 
     removeEventListener(type, listener, options = {}) {
@@ -151,8 +162,20 @@
         return;
       }
 
-      // Call Rust implementation
-      eventTargetRemoveEventListener(this, String(type), callback, options);
+      // Inline implementation for better performance
+      const typeStr = String(type);
+      const listenersMap = this.__listeners__;
+      const listeners = listenersMap.get(typeStr);
+      
+      if (!listeners) {
+        return;
+      }
+      
+      // Find and remove the first matching listener
+      const index = listeners.indexOf(callback);
+      if (index !== -1) {
+        listeners.splice(index, 1);
+      }
     }
 
     dispatchEvent(event) {
