@@ -1,9 +1,8 @@
 use crate::IsolateState;
-use lazy_static::lazy_static;
 use rustc_hash::FxHashMap;
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::RwLock;
+use std::sync::{OnceLock, RwLock};
 
 // Global source code cache shared across all JSTime instances
 // Maps absolute file path to source code content
@@ -16,22 +15,24 @@ use std::sync::RwLock;
 // This is acceptable for most use cases where modules don't change during runtime.
 // For development scenarios where file changes are expected, consider restarting
 // the application or using the clear_source_cache() function.
-lazy_static! {
-    static ref SOURCE_CACHE: RwLock<FxHashMap<String, String>> = RwLock::new(FxHashMap::default());
+static SOURCE_CACHE: OnceLock<RwLock<FxHashMap<String, String>>> = OnceLock::new();
+
+fn get_source_cache() -> &'static RwLock<FxHashMap<String, String>> {
+    SOURCE_CACHE.get_or_init(|| RwLock::new(FxHashMap::default()))
 }
 
 /// Clear the global source code cache.
 /// This is useful in testing or development scenarios where modules may change.
 #[allow(dead_code)]
 pub(crate) fn clear_source_cache() {
-    SOURCE_CACHE.write().unwrap().clear();
+    get_source_cache().write().unwrap().clear();
 }
 
 /// Read source code from file, using cache if available
 fn read_source_cached(path: &str) -> std::io::Result<String> {
     // Try to read from cache first
     {
-        let cache = SOURCE_CACHE.read().unwrap();
+        let cache = get_source_cache().read().unwrap();
         if let Some(source) = cache.get(path) {
             return Ok(source.clone());
         }
@@ -42,7 +43,7 @@ fn read_source_cached(path: &str) -> std::io::Result<String> {
 
     // Store in cache
     {
-        let mut cache = SOURCE_CACHE.write().unwrap();
+        let mut cache = get_source_cache().write().unwrap();
         cache.insert(path.to_string(), source.clone());
     }
 

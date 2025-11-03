@@ -8,15 +8,11 @@
 // don't want to run any tests until the runtime is
 // rip roaring and ready to execute JS
 
-use lazy_static::lazy_static;
-
-use std::sync::Mutex;
+use std::sync::Once;
 
 use jstime_core as jstime;
 
-lazy_static! {
-    static ref INIT_LOCK: Mutex<u32> = Mutex::new(0);
-}
+static INIT: Once = Once::new();
 
 #[must_use]
 pub struct SetupGuard {}
@@ -28,11 +24,9 @@ impl Drop for SetupGuard {
 }
 
 pub fn setup() -> SetupGuard {
-    let mut g = INIT_LOCK.lock().unwrap();
-    *g += 1;
-    if *g == 1 {
+    INIT.call_once(|| {
         jstime::init(None);
-    }
+    });
     SetupGuard {}
 }
 
