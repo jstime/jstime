@@ -6,9 +6,9 @@ import * as fs from 'node:fs/promises';
 let passed = 0;
 let failed = 0;
 
-function test(name, fn) {
+async function test(name, fn) {
   try {
-    fn();
+    await fn();
     passed++;
   } catch (e) {
     console.error(`FAIL: ${name} - ${e.message}`);
@@ -85,13 +85,13 @@ test('constants exists', () => {
 const testFilePath = '/tmp/jstime-fs-test-' + Date.now() + '.txt';
 const testContent = 'Hello, World!';
 
-test('write and read file', async () => {
+await test('write and read file', async () => {
   await fs.writeFile(testFilePath, testContent, 'utf-8');
   const content = await fs.readFile(testFilePath, 'utf-8');
   if (content !== testContent) throw new Error(`Expected "${testContent}", got "${content}"`);
 });
 
-test('stat file', async () => {
+await test('stat file', async () => {
   const stats = await fs.stat(testFilePath);
   // Handle both jstime (boolean properties) and Node.js (functions)
   const isFile = typeof stats.isFile === 'function' ? stats.isFile() : stats.isFile;
@@ -101,7 +101,7 @@ test('stat file', async () => {
   if (stats.size !== testContent.length) throw new Error(`Expected size ${testContent.length}, got ${stats.size}`);
 });
 
-test('append to file', async () => {
+await test('append to file', async () => {
   const appendText = '\nAppended line';
   await fs.appendFile(testFilePath, appendText, 'utf-8');
   const content = await fs.readFile(testFilePath, 'utf-8');
@@ -109,7 +109,7 @@ test('append to file', async () => {
   if (content !== expected) throw new Error(`Expected "${expected}", got "${content}"`);
 });
 
-test('unlink file', async () => {
+await test('unlink file', async () => {
   await fs.unlink(testFilePath);
   try {
     await fs.access(testFilePath);
@@ -123,7 +123,7 @@ test('unlink file', async () => {
 // Test directory operations
 const testDirPath = '/tmp/jstime-fs-test-dir-' + Date.now();
 
-test('create directory', async () => {
+await test('create directory', async () => {
   await fs.mkdir(testDirPath);
   const stats = await fs.stat(testDirPath);
   // Handle both jstime (boolean properties) and Node.js (functions)
@@ -131,21 +131,21 @@ test('create directory', async () => {
   if (!isDirectory) throw new Error('stat.isDirectory should be true for directory');
 });
 
-test('write file in directory', async () => {
+await test('write file in directory', async () => {
   const filePath = testDirPath + '/test.txt';
   await fs.writeFile(filePath, 'test content', 'utf-8');
   const content = await fs.readFile(filePath, 'utf-8');
   if (content !== 'test content') throw new Error('Failed to read file from directory');
 });
 
-test('readdir', async () => {
+await test('readdir', async () => {
   const files = await fs.readdir(testDirPath);
   if (!Array.isArray(files)) throw new Error('readdir should return an array');
   if (files.length !== 1) throw new Error(`Expected 1 file, got ${files.length}`);
   if (files[0] !== 'test.txt') throw new Error(`Expected 'test.txt', got '${files[0]}'`);
 });
 
-test('remove directory recursively', async () => {
+await test('remove directory recursively', async () => {
   await fs.rmdir(testDirPath, { recursive: true });
   try {
     await fs.access(testDirPath);
