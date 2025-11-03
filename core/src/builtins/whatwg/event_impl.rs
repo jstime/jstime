@@ -122,6 +122,8 @@ fn event_target_add_event_listener(
         }
         _ => {
             // Create new array for this event type with room for growth
+            // Pre-allocate 4 slots to reduce reallocations for common cases
+            // where multiple listeners are added to the same event type
             let array = v8::Array::new(scope, 4);
             array.set_index(scope, 0, listener_func.into());
             listeners_map.set(scope, type_key.into(), array.into());

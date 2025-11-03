@@ -6,8 +6,6 @@
 
 // eslint-disable-next-line no-unused-expressions
 (({ 
-  eventTargetAddEventListener,
-  eventTargetRemoveEventListener,
   eventTargetDispatchEvent,
   eventStopPropagation,
   eventStopImmediatePropagation,
@@ -122,13 +120,9 @@
         return;
       }
 
-      // Convert listener to a function if it has handleEvent method
-      let callback = listener;
-      if (typeof listener === 'object' && typeof listener.handleEvent === 'function') {
-        callback = listener.handleEvent.bind(listener);
-      }
-
-      if (typeof callback !== 'function') {
+      // Validate that listener is callable or has handleEvent
+      if (typeof listener !== 'function' && 
+          (typeof listener !== 'object' || typeof listener.handleEvent !== 'function')) {
         return;
       }
 
@@ -143,8 +137,9 @@
         listenersMap.set(typeStr, listeners);
       }
       
-      // Add listener
-      listeners.push(callback);
+      // Store the original listener (not a bound function)
+      // This allows proper removal later
+      listeners.push(listener);
     }
 
     removeEventListener(type, listener, options = {}) {
@@ -152,13 +147,9 @@
         return;
       }
 
-      // Convert listener to a function if it has handleEvent method
-      let callback = listener;
-      if (typeof listener === 'object' && typeof listener.handleEvent === 'function') {
-        callback = listener.handleEvent.bind(listener);
-      }
-
-      if (typeof callback !== 'function') {
+      // Validate that listener is callable or has handleEvent
+      if (typeof listener !== 'function' && 
+          (typeof listener !== 'object' || typeof listener.handleEvent !== 'function')) {
         return;
       }
 
@@ -172,7 +163,8 @@
       }
       
       // Find and remove the first matching listener
-      const index = listeners.indexOf(callback);
+      // Use strict equality to match the exact listener object
+      const index = listeners.indexOf(listener);
       if (index !== -1) {
         listeners.splice(index, 1);
       }
@@ -211,15 +203,18 @@
         }
 
         const listener = listeners[i];
-        if (typeof listener === 'function') {
-          try {
+        try {
+          // Handle both function listeners and object listeners with handleEvent
+          if (typeof listener === 'function') {
             listener.call(this, event);
-          } catch (e) {
-            // According to spec, errors in event listeners should not stop other listeners
-            // In browsers, they're reported to the console but don't throw
-            // console is a built-in in jstime, so this is safe
-            console.error('Error in event listener:', e);
+          } else if (typeof listener === 'object' && typeof listener.handleEvent === 'function') {
+            listener.handleEvent.call(listener, event);
           }
+        } catch (e) {
+          // According to spec, errors in event listeners should not stop other listeners
+          // In browsers, they're reported to the console but don't throw
+          // console is a built-in in jstime, so this is safe
+          console.error('Error in event listener:', e);
         }
       }
 
