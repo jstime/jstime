@@ -1,3 +1,4 @@
+mod buffered_random;
 mod builtins;
 mod error;
 mod event_loop;

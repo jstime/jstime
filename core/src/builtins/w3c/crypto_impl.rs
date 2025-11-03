@@ -1,6 +1,5 @@
 use ring::aead::BoundKey;
 use ring::digest;
-use ring::rand::SecureRandom;
 use ring::{aead, hmac};
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
@@ -136,14 +135,17 @@ fn crypto_get_random_values(
         )
     };
 
-    // Fill with random bytes using cached SystemRandom
+    // Fill with random bytes using buffered random generator
     let state = crate::isolate_state::IsolateState::get(scope);
     let state_ref = state.borrow();
-    if state_ref.system_random.fill(data).is_err() {
+    let mut buffered_random = state_ref.buffered_random.borrow_mut();
+    if buffered_random.fill(data).is_err() {
+        drop(buffered_random);
         drop(state_ref);
         crate::error::throw_error(scope, "Failed to generate random values");
         return;
     }
+    drop(buffered_random);
     drop(state_ref);
 
     // Return the same array
@@ -170,13 +172,16 @@ fn crypto_random_uuid(
 ) {
     let state = crate::isolate_state::IsolateState::get(scope);
     let state_ref = state.borrow();
+    let mut buffered_random = state_ref.buffered_random.borrow_mut();
 
     let mut bytes = [0u8; 16];
-    if state_ref.system_random.fill(&mut bytes).is_err() {
+    if buffered_random.fill(&mut bytes).is_err() {
+        drop(buffered_random);
         drop(state_ref);
         crate::error::throw_error(scope, "Failed to generate random UUID");
         return;
     }
+    drop(buffered_random);
     drop(state_ref);
 
     // Set version to 4 (random)
@@ -1016,11 +1021,14 @@ fn crypto_subtle_generate_key(
             let mut key_bytes = vec![0u8; byte_length];
             let state = crate::isolate_state::IsolateState::get(scope);
             let state_ref = state.borrow();
-            if state_ref.system_random.fill(&mut key_bytes).is_err() {
+            let mut buffered_random = state_ref.buffered_random.borrow_mut();
+            if buffered_random.fill(&mut key_bytes).is_err() {
+                drop(buffered_random);
                 drop(state_ref);
                 crate::error::throw_error(scope, "Failed to generate random key");
                 return;
             }
+            drop(buffered_random);
             drop(state_ref);
             key_bytes
         }
@@ -1068,11 +1076,14 @@ fn crypto_subtle_generate_key(
             let mut key_bytes = vec![0u8; byte_length];
             let state = crate::isolate_state::IsolateState::get(scope);
             let state_ref = state.borrow();
-            if state_ref.system_random.fill(&mut key_bytes).is_err() {
+            let mut buffered_random = state_ref.buffered_random.borrow_mut();
+            if buffered_random.fill(&mut key_bytes).is_err() {
+                drop(buffered_random);
                 drop(state_ref);
                 crate::error::throw_error(scope, "Failed to generate random key");
                 return;
             }
+            drop(buffered_random);
             drop(state_ref);
             key_bytes
         }
