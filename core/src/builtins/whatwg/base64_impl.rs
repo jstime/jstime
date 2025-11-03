@@ -20,6 +20,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 }
 
 // atob: decode base64 string to binary string
+#[inline]
 fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "atob") {
         return;
@@ -71,6 +72,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 }
 
 // btoa: encode binary string to base64
+#[inline]
 fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "btoa") {
         return;

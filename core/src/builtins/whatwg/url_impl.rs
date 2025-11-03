@@ -45,11 +45,13 @@ fn update_url(id: u32, url: Url) {
 }
 
 // Helper to convert Rust string to V8 string
+#[inline]
 fn to_v8_string<'s>(scope: &mut v8::PinScope<'s, '_>, s: &str) -> v8::Local<'s, v8::String> {
     v8::String::new(scope, s).unwrap()
 }
 
 // Helper to convert V8 value to Rust string
+#[inline]
 fn to_rust_string(scope: &mut v8::PinScope, val: v8::Local<v8::Value>) -> String {
     val.to_string(scope)
         .unwrap()
@@ -154,7 +156,7 @@ fn url_set_property(
                 }
             }
             "protocol" => {
-                url.set_protocol(&value);
+                let _ = url.set_protocol(&value);
                 update_url(id, url);
                 rv.set(v8::Boolean::new(scope, true).into());
                 return;
@@ -207,15 +209,16 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
 }
 
 pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8::Object>) {
-    let key = to_v8_string(scope, "urlParse");
-    let val = v8::Function::new(scope, url_parse).unwrap();
-    bindings.set(scope, key.into(), val.into());
+    // Macro for binding functions
+    macro_rules! binding {
+        ($name:expr, $func:expr) => {
+            let key = to_v8_string(scope, $name);
+            let val = v8::Function::new(scope, $func).unwrap();
+            bindings.set(scope, key.into(), val.into());
+        };
+    }
 
-    let key = to_v8_string(scope, "urlGetProperty");
-    let val = v8::Function::new(scope, url_get_property).unwrap();
-    bindings.set(scope, key.into(), val.into());
-
-    let key = to_v8_string(scope, "urlSetProperty");
-    let val = v8::Function::new(scope, url_set_property).unwrap();
-    bindings.set(scope, key.into(), val.into());
+    binding!("urlParse", url_parse);
+    binding!("urlGetProperty", url_get_property);
+    binding!("urlSetProperty", url_set_property);
 }
