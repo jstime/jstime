@@ -53,7 +53,7 @@ impl BufferedRandom {
 
         // For large requests, bypass the buffer and use system RNG directly
         if requested >= BUFFER_SIZE {
-            return getrandom::getrandom(dest);
+            return getrandom::fill(dest);
         }
 
         let mut offset = 0;
@@ -82,7 +82,7 @@ impl BufferedRandom {
     /// Refills the internal buffer from the system RNG
     #[inline]
     fn refill_buffer(&mut self) -> Result<(), getrandom::Error> {
-        getrandom::getrandom(&mut self.buffer)?;
+        getrandom::fill(&mut self.buffer)?;
         self.position = 0;
         self.available = BUFFER_SIZE;
         Ok(())
