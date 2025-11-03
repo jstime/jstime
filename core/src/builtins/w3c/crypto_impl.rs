@@ -137,16 +137,16 @@ fn crypto_get_random_values(
 
     // Fill with random bytes using buffered random generator
     let state = crate::isolate_state::IsolateState::get(scope);
-    let state_ref = state.borrow();
-    let mut buffered_random = state_ref.buffered_random.borrow_mut();
-    if buffered_random.fill(data).is_err() {
-        drop(buffered_random);
-        drop(state_ref);
+    let result = {
+        let state_ref = state.borrow();
+        let mut buffered_random = state_ref.buffered_random.borrow_mut();
+        buffered_random.fill(data)
+    };
+    
+    if result.is_err() {
         crate::error::throw_error(scope, "Failed to generate random values");
         return;
     }
-    drop(buffered_random);
-    drop(state_ref);
 
     // Return the same array
     rv.set(array);
@@ -170,19 +170,18 @@ fn crypto_random_uuid(
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    let state = crate::isolate_state::IsolateState::get(scope);
-    let state_ref = state.borrow();
-    let mut buffered_random = state_ref.buffered_random.borrow_mut();
-
     let mut bytes = [0u8; 16];
-    if buffered_random.fill(&mut bytes).is_err() {
-        drop(buffered_random);
-        drop(state_ref);
-        crate::error::throw_error(scope, "Failed to generate random UUID");
-        return;
+    {
+        let state = crate::isolate_state::IsolateState::get(scope);
+        let state_ref = state.borrow();
+        let mut buffered_random = state_ref.buffered_random.borrow_mut();
+        if buffered_random.fill(&mut bytes).is_err() {
+            drop(buffered_random);
+            drop(state_ref);
+            crate::error::throw_error(scope, "Failed to generate random UUID");
+            return;
+        }
     }
-    drop(buffered_random);
-    drop(state_ref);
 
     // Set version to 4 (random)
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -1019,17 +1018,17 @@ fn crypto_subtle_generate_key(
 
             let byte_length = (length / 8) as usize;
             let mut key_bytes = vec![0u8; byte_length];
-            let state = crate::isolate_state::IsolateState::get(scope);
-            let state_ref = state.borrow();
-            let mut buffered_random = state_ref.buffered_random.borrow_mut();
-            if buffered_random.fill(&mut key_bytes).is_err() {
-                drop(buffered_random);
-                drop(state_ref);
-                crate::error::throw_error(scope, "Failed to generate random key");
-                return;
+            {
+                let state = crate::isolate_state::IsolateState::get(scope);
+                let state_ref = state.borrow();
+                let mut buffered_random = state_ref.buffered_random.borrow_mut();
+                if buffered_random.fill(&mut key_bytes).is_err() {
+                    drop(buffered_random);
+                    drop(state_ref);
+                    crate::error::throw_error(scope, "Failed to generate random key");
+                    return;
+                }
             }
-            drop(buffered_random);
-            drop(state_ref);
             key_bytes
         }
         "HMAC" => {
@@ -1074,17 +1073,17 @@ fn crypto_subtle_generate_key(
             };
 
             let mut key_bytes = vec![0u8; byte_length];
-            let state = crate::isolate_state::IsolateState::get(scope);
-            let state_ref = state.borrow();
-            let mut buffered_random = state_ref.buffered_random.borrow_mut();
-            if buffered_random.fill(&mut key_bytes).is_err() {
-                drop(buffered_random);
-                drop(state_ref);
-                crate::error::throw_error(scope, "Failed to generate random key");
-                return;
+            {
+                let state = crate::isolate_state::IsolateState::get(scope);
+                let state_ref = state.borrow();
+                let mut buffered_random = state_ref.buffered_random.borrow_mut();
+                if buffered_random.fill(&mut key_bytes).is_err() {
+                    drop(buffered_random);
+                    drop(state_ref);
+                    crate::error::throw_error(scope, "Failed to generate random key");
+                    return;
+                }
             }
-            drop(buffered_random);
-            drop(state_ref);
             key_bytes
         }
         _ => {
