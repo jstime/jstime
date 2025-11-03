@@ -488,6 +488,7 @@ echo -e "${YELLOW}Compliance Test Results:${NC}"
 for runtime in "${RUNTIMES[@]}"; do
     passed=0
     failed=0
+    skipped=0
     
     for test_file in "${COMPLIANCE_TESTS[@]}"; do
         test_name=$(basename "$test_file" | sed 's/^test-//' | sed 's/\..*//')
@@ -500,19 +501,25 @@ for runtime in "${RUNTIMES[@]}"; do
         result=$(get_result COMPLIANCE_RESULTS "$runtime-$test_name")
         if [ "$result" == "PASSED" ]; then
             ((passed++))
+        elif [ "$result" == "SKIPPED" ]; then
+            ((skipped++))
         else
             ((failed++))
         fi
     done
     
     # Only show summary if we ran any tests
-    if [ $((passed + failed)) -gt 0 ]; then
-        total=$((passed + failed))
-        printf "  %-10s: %d/%d passed" "$runtime" "$passed" "$total"
-        if [ $failed -eq 0 ]; then
-            echo -e " ${GREEN}✓${NC}"
-        else
-            echo -e " ${RED}($failed failed)${NC}"
+    total_run=$((passed + failed))
+    if [ $((passed + failed + skipped)) -gt 0 ]; then
+        if [ $total_run -gt 0 ]; then
+            printf "  %-10s: %d/%d passed" "$runtime" "$passed" "$total_run"
+            if [ $failed -eq 0 ]; then
+                echo -e " ${GREEN}✓${NC}"
+            else
+                echo -e " ${RED}($failed failed)${NC}"
+            fi
+        elif [ $skipped -gt 0 ]; then
+            printf "  %-10s: %d skipped\n" "$runtime" "$skipped"
         fi
     fi
 done
