@@ -20,10 +20,12 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 }
 
 // Helper to convert v8 string to Rust string
+#[inline]
 fn to_rust_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     crate::error::try_to_rust_string(scope, value, "value").unwrap_or_default()
 }
 
+#[inline]
 fn fetch_send(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -116,6 +118,7 @@ fn fetch_send(
 }
 
 // Native function to read a chunk from a streaming fetch
+#[inline]
 fn fetch_read_chunk(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,

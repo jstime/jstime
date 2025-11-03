@@ -154,6 +154,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
     bindings.set(scope, name.into(), value.into());
 }
 
+#[inline]
 fn read_file(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -215,6 +216,7 @@ fn read_file(
     }
 }
 
+#[inline]
 fn read_dir(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -260,6 +262,7 @@ fn read_dir(
     }
 }
 
+#[inline]
 fn write_file(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -280,7 +283,8 @@ fn write_file(
             crate::error::throw_type_error(scope, "Failed to convert to Uint8Array");
             return;
         };
-        let mut buffer = vec![0u8; uint8_array.byte_length()];
+        let byte_length = uint8_array.byte_length();
+        let mut buffer = vec![0u8; byte_length];
         let copied = uint8_array.copy_contents(&mut buffer);
         if copied != buffer.len() {
             crate::error::throw_error(scope, "Failed to copy buffer data");
@@ -302,6 +306,7 @@ fn write_file(
     }
 }
 
+#[inline]
 fn append_file(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -355,6 +360,7 @@ fn append_file(
     }
 }
 
+#[inline]
 fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "mkdir") {
         return;
@@ -372,9 +378,15 @@ fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
             let Some(options) = options_arg.to_object(scope) else {
                 return;
             };
-            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
-                return;
-            };
+            // Use cached string for "recursive" property
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let string_cache = state.borrow().string_cache.clone();
+            let mut cache = string_cache.borrow_mut();
+            let recursive_key =
+                crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
+            drop(cache);
+            drop(string_cache);
+
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -401,6 +413,7 @@ fn mkdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
     }
 }
 
+#[inline]
 fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "rmdir") {
         return;
@@ -418,9 +431,15 @@ fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
             let Some(options) = options_arg.to_object(scope) else {
                 return;
             };
-            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
-                return;
-            };
+            // Use cached string for "recursive" property
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let string_cache = state.borrow().string_cache.clone();
+            let mut cache = string_cache.borrow_mut();
+            let recursive_key =
+                crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
+            drop(cache);
+            drop(string_cache);
+
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -447,6 +466,7 @@ fn rmdir(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
     }
 }
 
+#[inline]
 fn unlink(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "unlink") {
         return;
@@ -465,6 +485,7 @@ fn unlink(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval
     }
 }
 
+#[inline]
 fn rename(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 2, "rename") {
         return;
@@ -489,6 +510,7 @@ fn rename(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval
     }
 }
 
+#[inline]
 fn copy_file(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -515,6 +537,7 @@ fn copy_file(
     }
 }
 
+#[inline]
 fn stat(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -533,37 +556,42 @@ fn stat(
         Ok(metadata) => {
             let stats = v8::Object::new(scope);
 
+            // Get cached strings for stat properties
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let string_cache = state.borrow().string_cache.clone();
+            let mut cache = string_cache.borrow_mut();
+
+            let is_file_key = crate::get_or_create_cached_string!(scope, cache, is_file, "isFile");
+            let is_dir_key =
+                crate::get_or_create_cached_string!(scope, cache, is_directory, "isDirectory");
+            let is_symlink_key = crate::get_or_create_cached_string!(
+                scope,
+                cache,
+                is_symbolic_link,
+                "isSymbolicLink"
+            );
+            let size_key = crate::get_or_create_cached_string!(scope, cache, size, "size");
+            let mtime_key = crate::get_or_create_cached_string!(scope, cache, mtime_ms, "mtimeMs");
+
+            drop(cache);
+            drop(string_cache);
+
             let is_file = v8::Boolean::new(scope, metadata.is_file());
-            let Some(is_file_key) = v8::String::new(scope, "isFile") else {
-                return;
-            };
             stats.set(scope, is_file_key.into(), is_file.into());
 
             let is_dir = v8::Boolean::new(scope, metadata.is_dir());
-            let Some(is_dir_key) = v8::String::new(scope, "isDirectory") else {
-                return;
-            };
             stats.set(scope, is_dir_key.into(), is_dir.into());
 
             let is_symlink = v8::Boolean::new(scope, metadata.is_symlink());
-            let Some(is_symlink_key) = v8::String::new(scope, "isSymbolicLink") else {
-                return;
-            };
             stats.set(scope, is_symlink_key.into(), is_symlink.into());
 
             let size = v8::Number::new(scope, metadata.len() as f64);
-            let Some(size_key) = v8::String::new(scope, "size") else {
-                return;
-            };
             stats.set(scope, size_key.into(), size.into());
 
             if let Ok(modified) = metadata.modified()
                 && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
             {
                 let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                let Some(mtime_key) = v8::String::new(scope, "mtimeMs") else {
-                    return;
-                };
                 stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
@@ -575,6 +603,7 @@ fn stat(
     }
 }
 
+#[inline]
 fn access(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "access") {
         return;
@@ -593,6 +622,7 @@ fn access(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval
     }
 }
 
+#[inline]
 fn rm(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 1, "rm") {
         return;
@@ -610,9 +640,15 @@ fn rm(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8
             let Some(options) = options_arg.to_object(scope) else {
                 return;
             };
-            let Some(recursive_key) = v8::String::new(scope, "recursive") else {
-                return;
-            };
+            // Use cached string for "recursive" property
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let string_cache = state.borrow().string_cache.clone();
+            let mut cache = string_cache.borrow_mut();
+            let recursive_key =
+                crate::get_or_create_cached_string!(scope, cache, recursive, "recursive");
+            drop(cache);
+            drop(string_cache);
+
             if let Some(recursive_val) = options.get(scope, recursive_key.into()) {
                 recursive_val.is_true()
             } else {
@@ -658,6 +694,7 @@ fn rm(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8
     }
 }
 
+#[inline]
 fn truncate(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -698,6 +735,7 @@ fn truncate(
     }
 }
 
+#[inline]
 fn realpath(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -726,6 +764,7 @@ fn realpath(
     }
 }
 
+#[inline]
 fn chmod(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 2, "chmod") {
         return;
@@ -773,6 +812,7 @@ fn chmod(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
     }
 }
 
+#[inline]
 fn mkdtemp(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -808,6 +848,7 @@ fn mkdtemp(
     }
 }
 
+#[inline]
 fn readlink(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -836,6 +877,7 @@ fn readlink(
     }
 }
 
+#[inline]
 fn symlink(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -888,6 +930,7 @@ fn symlink(
     }
 }
 
+#[inline]
 fn lstat(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -906,37 +949,42 @@ fn lstat(
         Ok(metadata) => {
             let stats = v8::Object::new(scope);
 
+            // Get cached strings for stat properties
+            let state = crate::isolate_state::IsolateState::get(scope);
+            let string_cache = state.borrow().string_cache.clone();
+            let mut cache = string_cache.borrow_mut();
+
+            let is_file_key = crate::get_or_create_cached_string!(scope, cache, is_file, "isFile");
+            let is_dir_key =
+                crate::get_or_create_cached_string!(scope, cache, is_directory, "isDirectory");
+            let is_symlink_key = crate::get_or_create_cached_string!(
+                scope,
+                cache,
+                is_symbolic_link,
+                "isSymbolicLink"
+            );
+            let size_key = crate::get_or_create_cached_string!(scope, cache, size, "size");
+            let mtime_key = crate::get_or_create_cached_string!(scope, cache, mtime_ms, "mtimeMs");
+
+            drop(cache);
+            drop(string_cache);
+
             let is_file = v8::Boolean::new(scope, metadata.is_file());
-            let Some(is_file_key) = v8::String::new(scope, "isFile") else {
-                return;
-            };
             stats.set(scope, is_file_key.into(), is_file.into());
 
             let is_dir = v8::Boolean::new(scope, metadata.is_dir());
-            let Some(is_dir_key) = v8::String::new(scope, "isDirectory") else {
-                return;
-            };
             stats.set(scope, is_dir_key.into(), is_dir.into());
 
             let is_symlink = v8::Boolean::new(scope, metadata.is_symlink());
-            let Some(is_symlink_key) = v8::String::new(scope, "isSymbolicLink") else {
-                return;
-            };
             stats.set(scope, is_symlink_key.into(), is_symlink.into());
 
             let size = v8::Number::new(scope, metadata.len() as f64);
-            let Some(size_key) = v8::String::new(scope, "size") else {
-                return;
-            };
             stats.set(scope, size_key.into(), size.into());
 
             if let Ok(modified) = metadata.modified()
                 && let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
             {
                 let mtime_ms = v8::Number::new(scope, duration.as_millis() as f64);
-                let Some(mtime_key) = v8::String::new(scope, "mtimeMs") else {
-                    return;
-                };
                 stats.set(scope, mtime_key.into(), mtime_ms.into());
             }
 
@@ -948,6 +996,7 @@ fn lstat(
     }
 }
 
+#[inline]
 fn chown(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 3, "chown") {
         return;
@@ -992,6 +1041,7 @@ fn chown(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval:
     }
 }
 
+#[inline]
 fn utimes(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue) {
     if !crate::error::check_arg_count(scope, &args, 3, "utimes") {
         return;

@@ -69,6 +69,11 @@ pub(crate) struct StringCache {
 
     // Module/import strings
     pub(crate) url: Option<v8::Global<v8::String>>,
+
+    // Process-related strings
+    pub(crate) encoding: Option<v8::Global<v8::String>>,
+    pub(crate) path: Option<v8::Global<v8::String>>,
+    pub(crate) data: Option<v8::Global<v8::String>>,
 }
 
 impl StringCache {
@@ -117,6 +122,11 @@ impl StringCache {
 
             // Module/import
             url: None,
+
+            // Process-related
+            encoding: None,
+            path: None,
+            data: None,
         }
     }
 }

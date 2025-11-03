@@ -10,6 +10,7 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
     bindings.set(scope, name.into(), value.into());
 }
 
+#[inline]
 fn printer(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
     let arg_len = args.length();
     assert!((0..=2).contains(&arg_len));
