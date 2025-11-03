@@ -212,8 +212,11 @@ fn event_target_remove_event_listener(
     // Only rebuild array if listener was found
     if let Some(remove_idx) = found_index {
         // Safety: length is at least 1 because we found an item
-        debug_assert!(length > 0, "Array must have at least one element if found_index is Some");
-        
+        debug_assert!(
+            length > 0,
+            "Array must have at least one element if found_index is Some"
+        );
+
         // Pre-allocate array with exact size needed
         let new_length = (length - 1) as i32;
         let new_array = v8::Array::new(scope, new_length);
