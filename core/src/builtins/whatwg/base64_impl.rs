@@ -47,7 +47,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     // This follows the "forgiving base64" spec which removes ASCII whitespace
     let mut input_bytes = input_str.into_bytes();
 
-    // Remove ASCII whitespace first (per forgiving base64 spec)
+    // Remove ASCII whitespace (per forgiving base64 spec)
     input_bytes.retain(|&b| !b.is_ascii_whitespace());
 
     // Validate length is multiple of 4 (per WHATWG spec)
@@ -56,7 +56,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         return;
     }
 
-    // Decode base64 in-place
+    // Decode base64 in-place using SIMD-optimized decoder
     let decoded = match base64_simd::forgiving_decode_inplace(&mut input_bytes) {
         Ok(decoded_slice) => decoded_slice,
         Err(_) => {
