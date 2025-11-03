@@ -1,3 +1,4 @@
+mod buffered_random;
 mod builtins;
 mod error;
 mod event_loop;
@@ -125,6 +126,11 @@ impl JSTime {
             module::host_initialize_import_meta_object_callback,
         );
 
+        // Set up dynamic import callback
+        isolate.set_host_import_module_dynamically_callback(
+            module::host_import_module_dynamically_callback,
+        );
+
         let global_context = {
             v8::scope!(let scope, &mut isolate);
             let context = v8::Context::new(scope, Default::default());
@@ -163,6 +169,11 @@ impl JSTime {
         // Set up import.meta callback before creating context
         isolate.set_host_initialize_import_meta_object_callback(
             module::host_initialize_import_meta_object_callback,
+        );
+
+        // Set up dynamic import callback
+        isolate.set_host_import_module_dynamically_callback(
+            module::host_import_module_dynamically_callback,
         );
 
         let global_context = {
