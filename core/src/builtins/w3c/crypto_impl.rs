@@ -142,7 +142,7 @@ fn crypto_get_random_values(
         let mut buffered_random = state_ref.buffered_random.borrow_mut();
         buffered_random.fill(data)
     };
-    
+
     if result.is_err() {
         crate::error::throw_error(scope, "Failed to generate random values");
         return;
