@@ -2,13 +2,14 @@
 // URLs stored in Rust, accessed via lazy getters
 
 use ada_url::Url;
+use rustc_hash::FxHashMap;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 // Global URL storage - URLs stored by ID in Rust
+// Using FxHashMap for faster lookups with integer keys
 thread_local! {
-    static URL_STORAGE: RefCell<HashMap<u32, Url>> = RefCell::new(HashMap::new());
-    static NEXT_URL_ID: RefCell<u32> = RefCell::new(1);
+    static URL_STORAGE: RefCell<FxHashMap<u32, Url>> = RefCell::new(FxHashMap::default());
+    static NEXT_URL_ID: RefCell<u32> = const { RefCell::new(1) };
 }
 
 // Helper to allocate a new URL ID
@@ -30,20 +31,6 @@ fn store_url(url: Url) -> u32 {
     id
 }
 
-// Helper to get URL by ID
-fn get_url(id: u32) -> Option<Url> {
-    URL_STORAGE.with(|storage| {
-        storage.borrow().get(&id).cloned()
-    })
-}
-
-// Helper to update URL by ID
-fn update_url(id: u32, url: Url) {
-    URL_STORAGE.with(|storage| {
-        storage.borrow_mut().insert(id, url);
-    });
-}
-
 // Helper to convert Rust string to V8 string
 #[inline]
 fn to_v8_string<'s>(scope: &mut v8::PinScope<'s, '_>, s: &str) -> v8::Local<'s, v8::String> {
@@ -53,9 +40,7 @@ fn to_v8_string<'s>(scope: &mut v8::PinScope<'s, '_>, s: &str) -> v8::Local<'s, 
 // Helper to convert V8 value to Rust string
 #[inline]
 fn to_rust_string(scope: &mut v8::PinScope, val: v8::Local<v8::Value>) -> String {
-    val.to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(scope)
+    val.to_string(scope).unwrap().to_rust_string_lossy(scope)
 }
 
 // URL parse function - returns URL ID
@@ -70,7 +55,7 @@ fn url_parse(
     }
 
     let url_str = to_rust_string(scope, args.get(0));
-    
+
     let base = if args.length() > 1 && !args.get(1).is_undefined() {
         Some(to_rust_string(scope, args.get(1)))
     } else {
@@ -95,7 +80,7 @@ fn url_parse(
     }
 }
 
-// Get URL property by ID
+// Get URL property by ID - optimized to avoid cloning
 fn url_get_property(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -109,29 +94,33 @@ fn url_get_property(
     let id = args.get(0).number_value(scope).unwrap() as u32;
     let prop = to_rust_string(scope, args.get(1));
 
-    if let Some(url) = get_url(id) {
-        let value = match prop.as_str() {
-            "href" => url.as_str(),
-            "origin" => &url.origin(),
-            "protocol" => &url.protocol(),
-            "username" => &url.username(),
-            "password" => &url.password(),
-            "host" => &url.host(),
-            "hostname" => &url.hostname(),
-            "port" => &url.port(),
-            "pathname" => &url.pathname(),
-            "search" => &url.search(),
-            "hash" => &url.hash(),
-            _ => "",
-        };
-        let v8_str = to_v8_string(scope, value);
-        rv.set(v8_str.into());
-    } else {
-        rv.set(v8::undefined(scope).into());
-    }
+    // Access URL directly without cloning
+    URL_STORAGE.with(|storage| {
+        let storage_ref = storage.borrow();
+        if let Some(url) = storage_ref.get(&id) {
+            let value = match prop.as_str() {
+                "href" => url.as_str(),
+                "origin" => &url.origin(),
+                "protocol" => url.protocol(),
+                "username" => url.username(),
+                "password" => url.password(),
+                "host" => url.host(),
+                "hostname" => url.hostname(),
+                "port" => url.port(),
+                "pathname" => url.pathname(),
+                "search" => url.search(),
+                "hash" => url.hash(),
+                _ => "",
+            };
+            let v8_str = to_v8_string(scope, value);
+            rv.set(v8_str.into());
+        } else {
+            rv.set(v8::undefined(scope).into());
+        }
+    });
 }
 
-// Set URL property by ID
+// Set URL property by ID - optimized to minimize cloning
 fn url_set_property(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -146,52 +135,50 @@ fn url_set_property(
     let prop = to_rust_string(scope, args.get(1));
     let value = to_rust_string(scope, args.get(2));
 
-    if let Some(mut url) = get_url(id) {
-        match prop.as_str() {
-            "href" => {
-                if let Ok(new_url) = Url::parse(&value, None) {
-                    update_url(id, new_url);
+    URL_STORAGE.with(|storage| {
+        let mut storage_mut = storage.borrow_mut();
+        if let Some(url) = storage_mut.get_mut(&id) {
+            match prop.as_str() {
+                "href" => {
+                    if let Ok(new_url) = Url::parse(&value, None) {
+                        *url = new_url;
+                        rv.set(v8::Boolean::new(scope, true).into());
+                        return;
+                    }
+                }
+                "protocol" => {
+                    let _ = url.set_protocol(&value);
                     rv.set(v8::Boolean::new(scope, true).into());
                     return;
                 }
-            }
-            "protocol" => {
-                let _ = url.set_protocol(&value);
-                update_url(id, url);
-                rv.set(v8::Boolean::new(scope, true).into());
-                return;
-            }
-            "pathname" => {
-                let _ = url.set_pathname(Some(&value));
-                update_url(id, url);
-                rv.set(v8::Boolean::new(scope, true).into());
-                return;
-            }
-            "search" => {
-                if value.is_empty() || value == "?" {
-                    url.set_search(None);
-                } else {
-                    url.set_search(Some(&value));
+                "pathname" => {
+                    let _ = url.set_pathname(Some(&value));
+                    rv.set(v8::Boolean::new(scope, true).into());
+                    return;
                 }
-                update_url(id, url);
-                rv.set(v8::Boolean::new(scope, true).into());
-                return;
-            }
-            "hash" => {
-                if value.is_empty() || value == "#" {
-                    url.set_hash(None);
-                } else {
-                    url.set_hash(Some(&value));
+                "search" => {
+                    if value.is_empty() || value == "?" {
+                        url.set_search(None);
+                    } else {
+                        url.set_search(Some(&value));
+                    }
+                    rv.set(v8::Boolean::new(scope, true).into());
+                    return;
                 }
-                update_url(id, url);
-                rv.set(v8::Boolean::new(scope, true).into());
-                return;
+                "hash" => {
+                    if value.is_empty() || value == "#" {
+                        url.set_hash(None);
+                    } else {
+                        url.set_hash(Some(&value));
+                    }
+                    rv.set(v8::Boolean::new(scope, true).into());
+                    return;
+                }
+                _ => {}
             }
-            _ => {}
         }
-    }
-    
-    rv.set(v8::Boolean::new(scope, false).into());
+        rv.set(v8::Boolean::new(scope, false).into());
+    });
 }
 
 pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
