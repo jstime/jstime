@@ -188,7 +188,7 @@ fn event_target_remove_event_listener(
     // Find and remove the listener
     let listener_func = v8::Local::<v8::Function>::try_from(listener).unwrap();
     let length = listeners_array.length();
-    
+
     // Pre-allocate new array with appropriate size
     let new_array = v8::Array::new(scope, 0);
     let mut new_index = 0;
