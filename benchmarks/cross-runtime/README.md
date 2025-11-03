@@ -9,6 +9,11 @@ The test suite is divided into two categories:
 1. **Compliance Tests** - Verify that APIs work correctly and are compatible across runtimes
 2. **Performance Tests** - Benchmark execution speed for various operations
 
+**Runtime Compatibility:** Tests gracefully handle APIs that are not available in certain runtimes. For example:
+- `process` API is not available in Deno by default
+- `node:fs/promises` module is not available in Deno
+- Such tests will show as "SKIPPED (API not available)" rather than failing
+
 ## Running the Tests
 
 ### Quick Start
@@ -347,12 +352,14 @@ console.log(JSON.stringify({
 
 - **Passed**: All API features work correctly
 - **Failed**: One or more API features don't work or behave incorrectly
-- **Error**: Test couldn't run (e.g., API not implemented, syntax error)
+- **Skipped**: API is not available in the runtime (e.g., `process` in Deno, `node:fs/promises` in Deno)
+- **Error**: Test couldn't run (e.g., syntax error, unexpected runtime error)
 
 ### Performance Tests
 
 - **Lower times are better** (faster execution)
 - The fastest runtime for each test is marked with ★
+- Tests that are skipped due to unavailable APIs will show "SKIPPED (API not available)"
 - Results can vary based on:
   - System load
   - Hardware specifications

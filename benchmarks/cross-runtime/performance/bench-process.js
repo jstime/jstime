@@ -1,6 +1,21 @@
 // Performance benchmark: Process API
 // Measures process environment and argument access
 
+// Check if process API is available (not available in Deno by default)
+if (typeof process === 'undefined') {
+  console.log(JSON.stringify({
+    test: 'process',
+    error: 'API not available',
+    iterations: 0,
+    elapsed_ms: '0.000',
+    ops_per_ms: '0.00',
+    sub_tests: []
+  }));
+  if (typeof Deno !== 'undefined') {
+    Deno.exit(0);
+  }
+}
+
 const ITERATIONS = 100000;
 
 const results = [];

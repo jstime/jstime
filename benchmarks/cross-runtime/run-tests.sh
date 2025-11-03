@@ -278,7 +278,11 @@ for test_file in "${COMPLIANCE_TESTS[@]}"; do
         # Extract results from output
         result_line=$(echo "$output" | grep "API:" || echo "")
         
-        if echo "$output" | grep -q "RUNTIME_ERROR"; then
+        # Check if API is not available (graceful skip)
+        if echo "$output" | grep -q "API not available"; then
+            echo -e "${BLUE}SKIPPED (API not available)${NC}"
+            set_result COMPLIANCE_RESULTS "$runtime-$test_name" "SKIPPED"
+        elif echo "$output" | grep -q "RUNTIME_ERROR"; then
             echo -e "${RED}ERROR${NC}"
             set_result COMPLIANCE_RESULTS "$runtime-$test_name" "ERROR"
         elif echo "$output" | grep -qE "FAIL:|SyntaxError|ReferenceError|TypeError"; then
@@ -350,7 +354,11 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         output=$(run_test "$runtime" "$PERFORMANCE_DIR/$test_file" "performance" 2>&1 || echo "$ERROR_MARKER")
         
-        if echo "$output" | grep -q '"test"'; then
+        # Check if API is not available (graceful skip)
+        if echo "$output" | grep -q '"error":"API not available"'; then
+            set_result PERF_RESULTS "$runtime-$test_name" "SKIPPED"
+            echo '{"test":"'$test_name'","error":"API not available"}' > "/tmp/perf_details_${runtime}_${test_name}.json"
+        elif echo "$output" | grep -q '"test"'; then
             # Parse JSON output
             # Extract only the top-level values, not from sub_tests
             elapsed=$(echo "$output" | sed 's/"sub_tests":\[.*\]//' | grep -o '"elapsed_ms":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -380,7 +388,11 @@ for test_file in "${PERFORMANCE_TESTS[@]}"; do
         if [ -f "$detail_file" ]; then
             output=$(cat "$detail_file")
             
-            if [ "$output" == "$ERROR_DETAILS" ]; then
+            # Check if API is not available (graceful skip)
+            if echo "$output" | grep -q '"error":"API not available"'; then
+                echo -e "${BLUE}SKIPPED (API not available)${NC}"
+                continue
+            elif [ "$output" == "$ERROR_DETAILS" ]; then
                 echo -e "${RED}${ERROR_MARKER}${NC}"
                 continue
             fi

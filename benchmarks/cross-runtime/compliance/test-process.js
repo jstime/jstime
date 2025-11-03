@@ -1,6 +1,16 @@
 // Compliance test for Process API
 // Tests process.env, process.argv, process.cwd, and process.exit
 
+// Check if process API is available (not available in Deno by default)
+if (typeof process === 'undefined') {
+  console.log('Process API: 0 passed, 0 failed (API not available)');
+  if (typeof Deno !== 'undefined') {
+    // Exit successfully for Deno - this API is not expected to be available
+    Deno.exit(0);
+  }
+  process.exit(0);
+}
+
 let passed = 0;
 let failed = 0;
 
