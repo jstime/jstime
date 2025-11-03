@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "jstime"
-version = "0.63.0"
+version = "0.64.0"
 dependencies = [
  "assert_cmd",
  "dirs",
@@ -777,7 +777,7 @@ dependencies = [
 
 [[package]]
 name = "jstime_core"
-version = "0.63.0"
+version = "0.64.0"
 dependencies = [
  "ada-url",
  "align-data",
