@@ -211,6 +211,7 @@ jstime supports ES modules, allowing you to organize your code using `import` an
 ### Features
 
 - Standard `import` and `export` syntax
+- **Dynamic imports** with `import()` for runtime module loading
 - Top-level `await` support
 - Module resolution from the file system
 - `import.meta.url` support for getting the current module's URL
@@ -237,6 +238,35 @@ import { add, multiply, PI } from './math.js';
 console.log(add(2, 3));        // 5
 console.log(multiply(4, 5));   // 20
 console.log(PI);               // 3.14159
+```
+
+**dynamic-import.js (using dynamic imports)**
+```javascript
+// Dynamic imports load modules at runtime
+// They return a Promise that resolves to the module namespace
+
+async function loadModule(modulePath) {
+  try {
+    const module = await import(modulePath);
+    console.log('Module loaded:', module);
+    return module;
+  } catch (error) {
+    console.error('Failed to load module:', error.message);
+  }
+}
+
+// Load a module conditionally
+const shouldLoadMath = true;
+if (shouldLoadMath) {
+  const math = await import('./math.js');
+  console.log(math.add(5, 3));  // 8
+}
+
+// Load multiple modules in parallel
+const [moduleA, moduleB] = await Promise.all([
+  import('./module-a.js'),
+  import('./module-b.js')
+]);
 ```
 
 **app.js (with top-level await)**
@@ -266,6 +296,46 @@ console.log('Pathname:', moduleUrl.pathname);  // '/path/to/module-info.js'
 // Resolve relative paths from the current module
 const dataPath = new URL('./data.json', import.meta.url);
 console.log('Data file URL:', dataPath.href);
+```
+
+### Dynamic Imports
+
+Dynamic imports allow you to load modules at runtime using the `import()` expression. Unlike static imports, dynamic imports:
+
+- Return a Promise that resolves to the module namespace object
+- Can be used conditionally or in response to user actions
+- Support string expressions for the module specifier
+- Work with ES modules, JSON modules, and built-in modules
+
+**Examples:**
+
+```javascript
+// Basic dynamic import
+const module = await import('./my-module.js');
+console.log(module.exportedFunction());
+
+// Conditional import
+if (condition) {
+  const utils = await import('./utils.js');
+  utils.doSomething();
+}
+
+// Import with error handling
+import('./module.js')
+  .then(module => {
+    console.log('Module loaded successfully');
+  })
+  .catch(error => {
+    console.error('Failed to load module:', error);
+  });
+
+// Import JSON data
+const config = await import('./config.json');
+console.log(config.default);
+
+// Import built-in modules
+const fs = await import('node:fs/promises');
+const data = await fs.readFile('file.txt', 'utf-8');
 ```
 
 ### Running Modules
