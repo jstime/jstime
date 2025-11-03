@@ -32,7 +32,7 @@ show_help() {
     echo "                   Available APIs:"
     echo "                     console, timers, url, crypto, performance, base64,"
     echo "                     json, text-encoding, event, streams, structured-clone,"
-    echo "                     microtask, fetch, webassembly, fs, process,"
+    echo "                     microtask, fetch, webassembly,"
     echo "                     arithmetic, strings, arrays, objects"
     echo "                   Example: --api crypto,url,json"
     echo "  --verbose, -v    Show detailed breakdown for each performance test"
@@ -251,8 +251,6 @@ COMPLIANCE_TESTS=(
     "test-microtask.js"
     "test-fetch.js"
     "test-webassembly.js"
-    "test-fs.mjs"
-    "test-process.js"
 )
 
 # Track results using delimiter-separated strings (bash 3.2 compatible)
@@ -333,8 +331,7 @@ PERFORMANCE_TESTS=(
     "bench-streams.js"
     "bench-fetch.js"
     "bench-webassembly.js"
-    "bench-fs.mjs"
-    "bench-process.js"
+)
 )
 
 # Store performance results (bash 3.2 compatible)
