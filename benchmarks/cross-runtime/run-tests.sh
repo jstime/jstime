@@ -32,7 +32,8 @@ show_help() {
     echo "                   Available APIs:"
     echo "                     console, timers, url, crypto, performance, base64,"
     echo "                     json, text-encoding, event, streams, structured-clone,"
-    echo "                     microtask, arithmetic, strings, arrays, objects"
+    echo "                     microtask, fetch, webassembly, fs, process,"
+    echo "                     arithmetic, strings, arrays, objects"
     echo "                   Example: --api crypto,url,json"
     echo "  --verbose, -v    Show detailed breakdown for each performance test"
     echo "  --help, -h       Show this help message"
@@ -248,6 +249,10 @@ COMPLIANCE_TESTS=(
     "test-streams.js"
     "test-structured-clone.js"
     "test-microtask.js"
+    "test-fetch.js"
+    "test-webassembly.js"
+    "test-fs.mjs"
+    "test-process.js"
 )
 
 # Track results using delimiter-separated strings (bash 3.2 compatible)
@@ -256,7 +261,7 @@ COMPLIANCE_RESULTS=""
 
 
 for test_file in "${COMPLIANCE_TESTS[@]}"; do
-    test_name=$(basename "$test_file" .js | sed 's/^test-//')
+    test_name=$(basename "$test_file" | sed 's/^test-//' | sed 's/\..*//')
     
     # Check if this API should be tested
     if ! should_test_api "$test_name"; then
@@ -324,13 +329,15 @@ PERFORMANCE_TESTS=(
     "bench-streams.js"
     "bench-fetch.js"
     "bench-webassembly.js"
+    "bench-fs.mjs"
+    "bench-process.js"
 )
 
 # Store performance results (bash 3.2 compatible)
 PERF_RESULTS=""
 
 for test_file in "${PERFORMANCE_TESTS[@]}"; do
-    test_name=$(basename "$test_file" .js | sed 's/^bench-//')
+    test_name=$(basename "$test_file" | sed 's/^bench-//' | sed 's/\..*//')
     
     # Check if this API should be tested
     if ! should_test_api "$test_name"; then
