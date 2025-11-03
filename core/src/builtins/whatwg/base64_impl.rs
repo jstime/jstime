@@ -43,6 +43,8 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
                 let onebyte = s.contains_only_onebyte();
                 (v8::Local::new(tc, s), len, onebyte)
             }
+            // Create handle in parent scope for error case (checked below)
+            // v8::Local::new creates a handle in the parent scope, so it's valid after tc ends
             None => (v8::Local::new(tc, v8::String::empty(tc)), 0, true),
         }
     };
