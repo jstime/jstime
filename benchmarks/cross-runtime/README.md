@@ -86,8 +86,8 @@ Benchmarks measure execution speed for common operations. Each benchmark include
   - Sub-tests: creation, map, filter, reduce, push/pop
 - **bench-objects.js** - Object operations (100K iterations)
   - Sub-tests: creation, property access, property assignment, spread
-- **bench-json.js** - JSON operations (100K iterations)
-  - Sub-tests (13): stringify for small/medium/large objects, arrays of numbers/strings, nested objects; parse for various object types; roundtrip operations
+- **bench-json.js** - JSON operations (10K iterations)
+  - Sub-tests (10): stringify for small/medium objects, arrays of numbers/strings; parse for small/medium objects, arrays; roundtrip for small/medium objects
 - **bench-base64.js** - Base64 operations (100K iterations)
   - Sub-tests (9): encode short/medium/long strings, decode short/medium/long strings, roundtrip short/medium/long strings
 - **bench-url.js** - URL operations (100K iterations)
