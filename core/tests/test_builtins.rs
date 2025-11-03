@@ -779,9 +779,9 @@ mod tests {
         let _setup_guard = common::setup();
         let options = jstime::Options::default();
         let mut jstime = jstime::JSTime::new(options);
-        let result = jstime.run_script("new Date(0).toString()", "jstime");
+        let result = jstime.run_script("new Date(0).toISOString()", "jstime");
         assert!(result.is_ok());
-        assert!(result.unwrap().contains("1970"));
+        assert_eq!(result.unwrap(), "1970-01-01T00:00:00.000Z");
     }
 
     #[test]
