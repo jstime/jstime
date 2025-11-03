@@ -95,10 +95,11 @@ results.push({
   ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
 });
 
-// Test 7: crypto.subtle.digest SHA-256 (small data)
-async function testDigest() {
+// Test 7-11: crypto.subtle.digest operations (async tests)
+(async function testDigest() {
   const encoder = new TextEncoder();
   
+  // Test 7: crypto.subtle.digest SHA-256 (small data)
   start = performance.now();
   for (let i = 0; i < ITERATIONS; i++) {
     const data = encoder.encode('Hello, World!');
@@ -180,6 +181,4 @@ async function testDigest() {
     ops_per_ms: (ITERATIONS * results.length / totalElapsed).toFixed(2),
     sub_tests: results
   }));
-}
-
-testDigest();
+})();

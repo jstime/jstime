@@ -231,7 +231,7 @@ results.push({
   ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
 });
 
-// Test 16: Mixed operations
+// Test 16: Mixed operations - combines multiple arithmetic operations in a single expression
 start = performance.now();
 let sum16 = 0;
 for (let i = 0; i < ITERATIONS; i++) {
