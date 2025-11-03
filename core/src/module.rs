@@ -425,10 +425,18 @@ fn normalize_path(referrer_path: &str, requested: &str) -> String {
     // Join and canonicalize the path
     let joined = ref_dir.join(req_path);
     match joined.canonicalize() {
-        Ok(normalized) => normalized.to_str().unwrap_or(requested).to_string(),
+        Ok(normalized) => {
+            // Convert the normalized path to a string
+            // If conversion fails (non-UTF-8 path), fall back to the joined path string
+            normalized
+                .to_str()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| joined.display().to_string())
+        }
         Err(_) => {
-            // If canonicalize fails (e.g., file doesn't exist yet), return the joined path
-            joined.to_str().unwrap_or(requested).to_string()
+            // If canonicalize fails (e.g., file doesn't exist), return the joined path as a string
+            // This allows the caller to provide a better error message
+            joined.display().to_string()
         }
     }
 }
@@ -476,9 +484,14 @@ pub(crate) fn host_import_module_dynamically_callback<'s>(
     let referrer = match v8::Local::<v8::String>::try_from(resource_name) {
         Ok(resource_str) => resource_str.to_rust_string_lossy(scope),
         Err(_) => {
-            // If it's not a string, use empty string as referrer
-            // This will cause relative imports to be resolved from current directory
-            String::new()
+            // If resource_name is not a string (e.g., an object or undefined),
+            // use the current working directory as the referrer.
+            // This means relative imports will be resolved from the process's
+            // current working directory, which is the expected behavior when
+            // there's no clear module context.
+            std::env::current_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| ".".to_string())
         }
     };
 
