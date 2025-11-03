@@ -28,24 +28,42 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
     let input = args.get(0);
 
-    // Convert input to string using tc_scope
-    let input_str = {
-        v8::tc_scope!(let tc, scope);
-        match input.to_string(tc) {
-            Some(s) => s.to_rust_string_lossy(tc),
-            None => String::new(), // Return empty string on failure, check below
-        }
-    };
-
-    // Check if conversion failed
-    if input.is_null_or_undefined() || input_str.is_empty() && !input.is_string() {
+    // Check if conversion would fail
+    if input.is_null_or_undefined() {
         crate::error::throw_type_error(scope, "Failed to convert argument to string");
         return;
     }
 
-    // Convert to bytes for in-place decoding
-    // This follows the "forgiving base64" spec which removes ASCII whitespace
-    let mut input_bytes = input_str.into_bytes();
+    // Convert input to V8 string and get properties we need
+    let (input_str, str_len, is_onebyte) = {
+        v8::tc_scope!(let tc, scope);
+        match input.to_string(tc) {
+            Some(s) => {
+                let len = s.length();
+                let onebyte = s.contains_only_onebyte();
+                (v8::Local::new(tc, s), len, onebyte)
+            }
+            None => (v8::Local::new(tc, v8::String::empty(tc)), 0, true),
+        }
+    };
+
+    // Check if conversion failed
+    if str_len == 0 && !input.is_string() {
+        crate::error::throw_type_error(scope, "Failed to convert argument to string");
+        return;
+    }
+
+    // Fast path: if string contains only one-byte (ASCII) characters, read directly
+    // This avoids the expensive String conversion and allocation
+    let mut input_bytes = if is_onebyte {
+        let mut bytes = vec![0u8; str_len];
+        input_str.write_one_byte_v2(scope, 0, &mut bytes, v8::WriteFlags::empty());
+        bytes
+    } else {
+        // Slow path: string contains multi-byte characters, convert to Rust String
+        let input_str_rust = input_str.to_rust_string_lossy(scope);
+        input_str_rust.into_bytes()
+    };
 
     // Remove ASCII whitespace first (per forgiving base64 spec)
     input_bytes.retain(|&b| !b.is_ascii_whitespace());
