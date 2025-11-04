@@ -28,35 +28,50 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
 
     let input = args.get(0);
 
-    // Convert input to string using tc_scope
-    let input_str = {
-        v8::tc_scope!(let tc, scope);
-        match input.to_string(tc) {
-            Some(s) => s.to_rust_string_lossy(tc),
-            None => String::new(), // Return empty string on failure, check below
-        }
-    };
-
-    // Check if conversion failed
-    if input.is_null_or_undefined() || input_str.is_empty() && !input.is_string() {
+    // Early check for null/undefined
+    if input.is_null_or_undefined() {
         crate::error::throw_type_error(scope, "Failed to convert argument to string");
         return;
     }
 
-    // Convert to bytes for in-place decoding
-    // This follows the "forgiving base64" spec which removes ASCII whitespace
-    let mut input_bytes = input_str.into_bytes();
+    // Convert input to V8 string using tc_scope
+    let input_str = {
+        v8::tc_scope!(let tc, scope);
+        input.to_string(tc)
+    };
 
-    // Remove ASCII whitespace first (per forgiving base64 spec)
+    let input_str = match input_str {
+        Some(s) => s,
+        None => {
+            crate::error::throw_type_error(scope, "Failed to convert argument to string");
+            return;
+        }
+    };
+
+    // Fast path for empty strings
+    let str_len = input_str.length() as usize;
+    if str_len == 0 {
+        let result = v8::String::new(scope, "").unwrap();
+        rv.set(result.into());
+        return;
+    }
+
+    // Extract bytes from V8 string
+    // Base64 strings are always ASCII, so we can use write_one_byte_v2 to avoid UTF-8 conversion overhead
+    // This matches the fast path used in btoa() and significantly improves performance for large inputs
+    let mut input_bytes = vec![0u8; str_len];
+    input_str.write_one_byte_v2(scope, 0, &mut input_bytes, v8::WriteFlags::empty());
+
+    // Remove ASCII whitespace (per forgiving base64 spec)
     input_bytes.retain(|&b| !b.is_ascii_whitespace());
 
     // Validate length is multiple of 4 (per WHATWG spec)
-    if input_bytes.len() % 4 != 0 {
+    if !input_bytes.len().is_multiple_of(4) {
         crate::error::throw_error(scope, "Invalid base64 string length");
         return;
     }
 
-    // Decode base64 in-place
+    // Decode base64 in-place using SIMD-optimized decoder
     let decoded = match base64_simd::forgiving_decode_inplace(&mut input_bytes) {
         Ok(decoded_slice) => decoded_slice,
         Err(_) => {
