@@ -81,8 +81,10 @@ fn event_target_add_event_listener(
 
     let listener_func = v8::Local::<v8::Function>::try_from(listener).unwrap();
 
-    // Convert type to a V8 string directly, without going through Rust String
-    let type_key = {
+    // Convert type to a V8 string - fast path if already a string
+    let type_key = if type_arg.is_string() {
+        v8::Local::<v8::String>::try_from(type_arg).unwrap()
+    } else {
         v8::tc_scope!(let tc, scope);
         match type_arg.to_string(tc) {
             Some(s) => s,
@@ -91,45 +93,40 @@ fn event_target_add_event_listener(
     };
 
     // Get cached __listeners__ key string from the isolate state
+    // Acquire cache once and release quickly to minimize lock contention
     let listeners_key = {
         let isolate_state = crate::isolate_state::IsolateState::get(scope);
-        let string_cache = isolate_state.borrow().string_cache.clone();
-        let mut cache = string_cache.borrow_mut();
-        let key = crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
-        drop(cache);
-        drop(string_cache);
-        key
+        let string_cache_ref = isolate_state.borrow().string_cache.clone();
+        let mut cache = string_cache_ref.borrow_mut();
+        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__")
     };
 
-    // Get or create the listeners map - optimized for the common case
-    match target_obj.get(scope, listeners_key.into()) {
-        Some(existing) if existing.is_map() => {
-            // Fast path: listeners map already exists
-            let map = v8::Local::<v8::Map>::try_from(existing).unwrap();
+    // Get the listeners map - should always exist since EventTarget constructor creates it
+    let listeners_map = match target_obj.get(scope, listeners_key.into()) {
+        Some(val) if val.is_map() => v8::Local::<v8::Map>::try_from(val).unwrap(),
+        _ => {
+            // Fallback: create new map if it doesn't exist (shouldn't happen normally)
+            let new_map = v8::Map::new(scope);
+            target_obj.set(scope, listeners_key.into(), new_map.into());
+            new_map
+        }
+    };
 
-            // Get or create the array of listeners for this event type
-            match map.get(scope, type_key.into()) {
-                Some(arr) if arr.is_array() => {
-                    // Fast path: array exists, just append
-                    let array = v8::Local::<v8::Array>::try_from(arr).unwrap();
-                    let length = array.length();
-                    array.set_index(scope, length, listener_func.into());
-                }
-                _ => {
-                    // Create new array for this event type
-                    let array = v8::Array::new(scope, 1);
-                    array.set_index(scope, 0, listener_func.into());
-                    map.set(scope, type_key.into(), array.into());
-                }
-            }
+    // Get or create the array of listeners for this event type
+    match listeners_map.get(scope, type_key.into()) {
+        Some(arr) if arr.is_array() => {
+            // Fast path: array exists, just append
+            let array = v8::Local::<v8::Array>::try_from(arr).unwrap();
+            let length = array.length();
+            array.set_index(scope, length, listener_func.into());
         }
         _ => {
-            // Slow path: create new map, array, and set everything up
-            let new_map = v8::Map::new(scope);
-            let new_array = v8::Array::new(scope, 1);
-            new_array.set_index(scope, 0, listener_func.into());
-            new_map.set(scope, type_key.into(), new_array.into());
-            target_obj.set(scope, listeners_key.into(), new_map.into());
+            // Create new array for this event type with room for growth
+            // Pre-allocate 4 slots to reduce reallocations for common cases
+            // where multiple listeners are added to the same event type
+            let array = v8::Array::new(scope, 4);
+            array.set_index(scope, 0, listener_func.into());
+            listeners_map.set(scope, type_key.into(), array.into());
         }
     }
 }
@@ -159,8 +156,10 @@ fn event_target_remove_event_listener(
         Err(_) => return,
     };
 
-    // Convert type to a V8 string directly, without going through Rust String
-    let type_key = {
+    // Convert type to a V8 string - fast path if already a string
+    let type_key = if type_arg.is_string() {
+        v8::Local::<v8::String>::try_from(type_arg).unwrap()
+    } else {
         v8::tc_scope!(let tc, scope);
         match type_arg.to_string(tc) {
             Some(s) => s,
@@ -169,14 +168,12 @@ fn event_target_remove_event_listener(
     };
 
     // Get cached __listeners__ key string from the isolate state
+    // Acquire cache once and release quickly
     let listeners_key = {
         let isolate_state = crate::isolate_state::IsolateState::get(scope);
-        let string_cache = isolate_state.borrow().string_cache.clone();
-        let mut cache = string_cache.borrow_mut();
-        let key = crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__");
-        drop(cache);
-        drop(string_cache);
-        key
+        let string_cache_ref = isolate_state.borrow().string_cache.clone();
+        let mut cache = string_cache_ref.borrow_mut();
+        crate::get_or_create_cached_string!(scope, cache, listeners, "__listeners__")
     };
 
     // Early return if no listeners exist
@@ -193,19 +190,24 @@ fn event_target_remove_event_listener(
     // Find and remove the listener
     let listener_func = v8::Local::<v8::Function>::try_from(listener).unwrap();
     let length = listeners_array.length();
+
+    // Pre-allocate new array with appropriate size
     let new_array = v8::Array::new(scope, 0);
     let mut new_index = 0;
+    let mut removed = false;
 
     for i in 0..length {
         if let Some(item) = listeners_array.get_index(scope, i)
             && item.is_function()
         {
             let item_func = v8::Local::<v8::Function>::try_from(item).unwrap();
-            // Compare function references
-            if !item_func.strict_equals(listener_func.into()) {
-                new_array.set_index(scope, new_index, item);
-                new_index += 1;
+            // Compare function references - skip only the first match
+            if !removed && item_func.strict_equals(listener_func.into()) {
+                removed = true;
+                continue;
             }
+            new_array.set_index(scope, new_index, item);
+            new_index += 1;
         }
     }
 
@@ -249,8 +251,8 @@ fn event_target_dispatch_event(
 
     // Get all cached strings at once to minimize borrow overhead
     let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow().string_cache.clone();
-    let mut cache = string_cache.borrow_mut();
+    let string_cache_ref = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache_ref.borrow_mut();
 
     let current_target_key =
         crate::get_or_create_cached_string!(scope, cache, current_target, "__currentTarget__");
@@ -273,7 +275,6 @@ fn event_target_dispatch_event(
 
     // Release the cache borrow early
     drop(cache);
-    drop(string_cache);
 
     // Set currentTarget on the event
     event_obj.set(scope, current_target_key.into(), target);
@@ -416,15 +417,13 @@ fn event_stop_propagation(
 
     // Get cached strings from the isolate state
     let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow().string_cache.clone();
-    let mut cache = string_cache.borrow_mut();
+    let string_cache_ref = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache_ref.borrow_mut();
 
     let key =
         crate::get_or_create_cached_string!(scope, cache, stop_propagation, "__stopPropagation__");
     let value = v8::Boolean::new(scope, true);
     event_obj.set(scope, key.into(), value.into());
-    drop(cache);
-    drop(string_cache);
 }
 
 // Event.stopImmediatePropagation()
@@ -446,8 +445,8 @@ fn event_stop_immediate_propagation(
 
     // Get cached strings from the isolate state
     let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow().string_cache.clone();
-    let mut cache = string_cache.borrow_mut();
+    let string_cache_ref = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache_ref.borrow_mut();
 
     let key = crate::get_or_create_cached_string!(
         scope,
@@ -462,8 +461,6 @@ fn event_stop_immediate_propagation(
     let prop_key =
         crate::get_or_create_cached_string!(scope, cache, stop_propagation, "__stopPropagation__");
     event_obj.set(scope, prop_key.into(), value.into());
-    drop(cache);
-    drop(string_cache);
 }
 
 // Event.preventDefault()
@@ -484,8 +481,8 @@ fn event_prevent_default(
 
     // Get cached strings from the isolate state
     let isolate_state = crate::isolate_state::IsolateState::get(scope);
-    let string_cache = isolate_state.borrow().string_cache.clone();
-    let mut cache = string_cache.borrow_mut();
+    let string_cache_ref = isolate_state.borrow().string_cache.clone();
+    let mut cache = string_cache_ref.borrow_mut();
 
     // Only allow preventDefault if cancelable
     let cancelable_key =
@@ -505,6 +502,4 @@ fn event_prevent_default(
         let value = v8::Boolean::new(scope, true);
         event_obj.set(scope, key.into(), value.into());
     }
-    drop(cache);
-    drop(string_cache);
 }
