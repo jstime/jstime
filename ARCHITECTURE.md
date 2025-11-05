@@ -28,7 +28,7 @@ jstime is a minimal JavaScript runtime built on top of the V8 JavaScript engine.
 ### Technology Stack
 
 - **Language**: Rust (2024 edition)
-- **JavaScript Engine**: V8 (v140.2.0)
+- **JavaScript Engine**: V8 (v142.0.0)
 - **Build System**: Cargo
 - **Testing**: Rust's built-in test framework
 
@@ -312,7 +312,7 @@ jstime implements a two-level module caching strategy to optimize performance:
 **2. Global Source Code Cache**:
 - Shared across all JSTime instances (process-wide)
 - Caches raw source code in memory after first file read
-- Implemented using `lazy_static` with `RwLock` for thread safety
+- Implemented using `OnceLock` with `RwLock` for thread safety
 - Uses `FxHashMap` for fast lookups with file path keys
 
 **Benefits**:

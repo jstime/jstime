@@ -42,15 +42,16 @@ jstime is a minimal and performant JavaScript runtime built on top of the V8 Jav
 
 ## Key Dependencies
 
-- **v8** (140.2.0): V8 JavaScript engine bindings
+- **v8** (142.0.0): V8 JavaScript engine bindings
+- **ada-url** (3.3): Fast URL parsing library
 - **ureq** (3.1): HTTP client for fetch API implementation with connection pooling
-- **url** (2.5): URL parsing for URL API implementation
-- **urlencoding** (2.1): URL encoding/decoding utilities
 - **rustc-hash** (2.1): Fast non-cryptographic hashing for module maps
 - **filetime** (0.2): File timestamp manipulation for fs API
 - **ring** (0.17): Cryptographic operations for crypto API
 - **align-data** (0.1.0): Data alignment utilities
-- **lazy_static** (1.5.0): Lazy static initialization
+- **smallvec** (1.13): Stack-allocated vectors to reduce heap allocations
+- **base64-simd** (0.8): SIMD-accelerated base64 encoding/decoding
+- **getrandom** (0.3): Fast random number generation for crypto API
 - **rustyline** (17.0.2): REPL implementation with line editing (in cli crate)
 - **structopt** (0.3.26): CLI argument parsing (in cli crate)
 - **dirs** (6.0.0): User directories helper (in cli crate)
