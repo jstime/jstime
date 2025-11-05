@@ -307,21 +307,20 @@ jstime supports ES modules with:
 - [W3C Standards](https://www.w3.org/TR/)
 - [Node.js Documentation](https://nodejs.org/api/)
 - [Project Repository](https://github.com/jstime/jstime)
-- [Architecture Documentation](../ARCHITECTURE.md)
-- [Performance Documentation](../PERFORMANCE.md)
-- [Features Overview](../docs/README.md)
-- [Web APIs](../docs/apis/web-apis.md)
-- [System APIs](../docs/apis/system.md)
-- [Text Encoding & Crypto](../docs/apis/encoding-crypto.md)
-- [Module System](../docs/apis/modules.md)
-- [JavaScript Runtime](../docs/runtime.md)
+- Architecture Documentation (../ARCHITECTURE.md)
+- Performance Documentation (../PERFORMANCE.md)
+- Features Overview (../docs/README.md)
+- Web APIs (../docs/apis/web-apis.md)
+- System APIs (../docs/apis/system.md)
+- Text Encoding & Crypto (../docs/apis/encoding-crypto.md)
+- Module System (../docs/apis/modules.md)
+- JavaScript Runtime (../docs/runtime.md)
 
 ## Getting Help
 
 - Check existing issues and discussions
 - Review conformance tests for examples
 - Read V8 documentation for engine-specific questions
-- See [ARCHITECTURE.md](../ARCHITECTURE.md) for detailed architecture
-- See [core/tests/README.md](../core/tests/README.md) for testing patterns
-- See [core/src/builtins/README.md](../core/src/builtins/README.md) for built-in API structure
-- Follow project governance in GOVERNANCE.md
+- See ARCHITECTURE.md for detailed architecture
+- See core/tests/README.md for testing patterns
+- See core/src/builtins/README.md for built-in API structure

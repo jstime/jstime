@@ -16,7 +16,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-jstime_core = "0.59.0"
+jstime_core = "0.64.0"
 ```
 
 ### Basic Example

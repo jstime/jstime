@@ -323,7 +323,7 @@ jstime implements a two-level module caching strategy to optimize performance:
 **Behavior**:
 - Source code is cached on first read and persists for the process lifetime
 - No automatic cache invalidation on file changes (suitable for production)
-- Use `clear_source_cache()` in development/testing scenarios if needed
+- In development/testing scenarios where file changes are expected, consider restarting the application
 - Module evaluation state is per-isolate, not shared globally
 
 **Example**:
