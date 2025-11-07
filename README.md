@@ -66,8 +66,10 @@ For detailed documentation on all supported features, see [Documentation](./docs
 - **Streams API**: `ReadableStream`, `WritableStream`, `TransformStream` for streaming data processing
 - **URL API**: `URL` and `URLSearchParams` for URL manipulation
 - **Performance API**: High-resolution timing with `performance.now()`
+- **Event API**: `Event` and `EventTarget` for event handling
 - **Microtask API**: `queueMicrotask()` for fine-grained async control
 - **Structured Clone API**: `structuredClone()` for deep cloning of complex objects
+- **Base64 API**: `atob()` and `btoa()` for base64 encoding/decoding
 - **Text Encoding API**: `TextEncoder` and `TextDecoder` for UTF-8 encoding/decoding
 - **Crypto API**: `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()` for cryptographic operations
 - **Process API**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()` for process information
@@ -81,12 +83,18 @@ For detailed documentation on all supported features, see [Documentation](./docs
 jstime includes comprehensive test coverage including conformance tests for standard APIs:
 
 - **Console API** - WHATWG Console Standard compliance
+- **Event API** - WHATWG DOM Events compliance
+- **Timers API** - WHATWG HTML Standard timers compliance
 - **Fetch API** - WHATWG Fetch Standard compliance
 - **Streams API** - WHATWG Streams Standard compliance
-- **Performance API** - W3C High Resolution Time compliance
 - **URL API** - WHATWG URL Standard compliance
-- **Timers API** - WHATWG HTML Standard timers compliance
+- **Performance API** - W3C High Resolution Time compliance
 - **Structured Clone API** - HTML Standard structured cloning compliance
+- **Base64 API** - HTML Standard base64 encoding compliance
+- **Text Encoding API** - WHATWG Encoding Standard compliance
+- **Crypto API** - W3C Web Cryptography API compliance
+- **JSON Modules** - ECMAScript JSON modules compliance
+- **WebAssembly** - WebAssembly specification compliance
 
 Run all tests with:
 ```bash

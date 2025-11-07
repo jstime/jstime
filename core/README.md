@@ -16,7 +16,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-jstime_core = "0.59.0"
+jstime_core = "0.64.0"
 ```
 
 ### Basic Example
@@ -101,15 +101,21 @@ jstime_core provides these JavaScript APIs:
 
 ### Web APIs
 - **Fetch**: `fetch()`, `Headers`, `Request`, `Response`
+- **Streams**: `ReadableStream`, `WritableStream`, `TransformStream`
 - **URL**: `URL`, `URLSearchParams`
 - **Events**: `Event`, `EventTarget`
 
 ### Data APIs
 - **Base64**: `atob()`, `btoa()`
 - **Structured Clone**: `structuredClone()`
+- **Text Encoding**: `TextEncoder`, `TextDecoder`
+
+### Cryptography
+- **Crypto**: `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()`
 
 ### System APIs
 - **File System**: `node:fs/promises` module
+- **Process**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()`
 
 ### Advanced Features
 - **ES Modules**: `import`/`export` with top-level `await`

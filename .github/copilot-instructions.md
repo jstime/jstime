@@ -42,18 +42,19 @@ jstime is a minimal and performant JavaScript runtime built on top of the V8 Jav
 
 ## Key Dependencies
 
-- **v8** (140.2.0): V8 JavaScript engine bindings
-- **ureq** (3.1): HTTP client for fetch API implementation with connection pooling
-- **url** (2.5): URL parsing for URL API implementation
-- **urlencoding** (2.1): URL encoding/decoding utilities
-- **rustc-hash** (2.1): Fast non-cryptographic hashing for module maps
-- **filetime** (0.2): File timestamp manipulation for fs API
-- **ring** (0.17): Cryptographic operations for crypto API
-- **align-data** (0.1.0): Data alignment utilities
-- **lazy_static** (1.5.0): Lazy static initialization
-- **rustyline** (17.0.2): REPL implementation with line editing (in cli crate)
-- **structopt** (0.3.26): CLI argument parsing (in cli crate)
-- **dirs** (6.0.0): User directories helper (in cli crate)
+- **v8**: V8 JavaScript engine bindings
+- **ada-url**: Fast URL parsing library
+- **ureq**: HTTP client for fetch API implementation with connection pooling
+- **rustc-hash**: Fast non-cryptographic hashing for module maps
+- **filetime**: File timestamp manipulation for fs API
+- **ring**: Cryptographic operations for crypto API
+- **align-data**: Data alignment utilities
+- **smallvec**: Stack-allocated vectors to reduce heap allocations
+- **base64-simd**: SIMD-accelerated base64 encoding/decoding
+- **getrandom**: Fast random number generation for crypto API
+- **rustyline**: REPL implementation with line editing (in cli crate)
+- **structopt**: CLI argument parsing (in cli crate)
+- **dirs**: User directories helper (in cli crate)
 
 ## Working with V8
 
@@ -324,4 +325,3 @@ jstime supports ES modules with:
 - See [ARCHITECTURE.md](../ARCHITECTURE.md) for detailed architecture
 - See [core/tests/README.md](../core/tests/README.md) for testing patterns
 - See [core/src/builtins/README.md](../core/src/builtins/README.md) for built-in API structure
-- Follow project governance in GOVERNANCE.md
