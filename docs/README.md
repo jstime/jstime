@@ -35,6 +35,7 @@ jstime's feature documentation is organized into the following categories:
 - **[System APIs](apis/system.md)** - Operating system and file system interaction
   - Process API - Environment variables, command-line arguments, working directory
   - File System API - Node.js-compatible fs/promises API
+  - UDP/Datagram Sockets API - Node.js-compatible dgram module for UDP networking
 
 ### Module System
 
@@ -82,6 +83,7 @@ jstime uses V8 as its JavaScript engine, providing full support for modern JavaS
 | **Cryptography** | `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()` |
 | **Process** | `process.env`, `process.argv`, `process.cwd()`, `process.exit()` |
 | **File System** | Complete Node.js-compatible `fs/promises` API |
+| **UDP Sockets** | Node.js-compatible `dgram` module for UDP networking |
 | **WebAssembly** | Full WebAssembly support |
 | **ES Modules** | Full support for `import`/`export` with top-level await |
 

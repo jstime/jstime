@@ -240,6 +240,27 @@ jstime examples/fs-demo.js
 
 ---
 
+### UDP/Datagram Sockets (dgram)
+
+**File:** `dgram-demo.js` (ES Module)
+
+Demonstrates the Node.js-compatible dgram API for UDP networking:
+- Creating UDP sockets with `dgram.createSocket()`
+- Binding to ports with `socket.bind()`
+- Sending and receiving UDP messages
+- Socket events (listening, message, error, close)
+- Socket options (broadcast, TTL, buffer sizes)
+- Simple UDP echo server example
+
+**To run:**
+```bash
+jstime examples/dgram-demo.js
+```
+
+**See also:** [UDP/Datagram Sockets documentation](../docs/apis/system.md#udpdatagram-sockets-api-dgram)
+
+---
+
 ### WebAssembly
 
 **File:** `webassembly-demo.js`
@@ -298,6 +319,7 @@ jstime examples/json-import-example.js
 ### File System
 - [Basic File System](fs-demo.js) - Reading files and directories
 - [Complete File System](fs-complete-demo.js) - All filesystem operations
+- [UDP Sockets](dgram-demo.js) - UDP networking with dgram module
 
 ### Advanced Features
 - [WebAssembly](webassembly-demo.js) - Running compiled modules

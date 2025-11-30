@@ -855,4 +855,308 @@ for (const file of jsFiles) {
 console.log('Processing complete!');
 ```
 
+## UDP/Datagram Sockets API (dgram)
+
+jstime provides a Node.js-compatible UDP datagram socket API through the `node:dgram` module. This provides access to UDP networking for sending and receiving datagrams.
+
+### Supported APIs
+
+- `createSocket(type, [callback])` - Create a UDP socket
+- `Socket` class with:
+  - `bind(port, [address], [callback])` - Bind to a port and address
+  - `send(msg, [offset], [length], port, [address], [callback])` - Send data
+  - `close([callback])` - Close the socket
+  - `address()` - Get the bound address info
+  - `setBroadcast(flag)` - Enable/disable broadcast
+  - `setTTL(ttl)` - Set IP TTL
+  - `setMulticastTTL(ttl)` - Set multicast TTL
+  - `setMulticastLoopback(flag)` - Enable/disable multicast loopback
+  - `addMembership(multicastAddress, [multicastInterface])` - Join multicast group
+  - `dropMembership(multicastAddress, [multicastInterface])` - Leave multicast group
+  - `getRecvBufferSize()` / `setRecvBufferSize(size)` - Receive buffer size
+  - `getSendBufferSize()` / `setSendBufferSize(size)` - Send buffer size
+  - `ref()` / `unref()` - Reference counting for event loop
+
+### Usage
+
+```javascript
+import dgram from 'node:dgram';
+// or
+import { createSocket } from 'node:dgram';
+```
+
+### Creating a Socket
+
+```javascript
+import dgram from 'node:dgram';
+
+// Create a UDP4 socket
+const socket = dgram.createSocket('udp4');
+
+// Create with options
+const socket2 = dgram.createSocket({
+  type: 'udp4',
+  recvBufferSize: 1024 * 1024
+});
+
+// Create with message callback
+const socket3 = dgram.createSocket('udp4', (msg, rinfo) => {
+  console.log(`Received: ${msg} from ${rinfo.address}:${rinfo.port}`);
+});
+```
+
+### Binding and Listening
+
+```javascript
+import dgram from 'node:dgram';
+
+const socket = dgram.createSocket('udp4');
+
+socket.on('listening', () => {
+  const address = socket.address();
+  console.log(`Server listening on ${address.address}:${address.port}`);
+});
+
+socket.on('message', (msg, rinfo) => {
+  console.log(`Received ${msg.length} bytes from ${rinfo.address}:${rinfo.port}`);
+});
+
+// Bind to port 41234
+socket.bind(41234);
+
+// Or bind to specific address
+socket.bind({
+  port: 41234,
+  address: '127.0.0.1'
+});
+```
+
+### Sending Data
+
+```javascript
+import dgram from 'node:dgram';
+
+const socket = dgram.createSocket('udp4');
+
+// Send string data
+socket.send('Hello, World!', 41234, '127.0.0.1', (err) => {
+  if (err) console.error(err);
+  else console.log('Message sent');
+});
+
+// Send buffer data
+const buffer = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]);
+socket.send(buffer, 0, buffer.length, 41234, '127.0.0.1');
+
+// Send array of buffers
+socket.send(['Hello', ' ', 'World'], 41234, '127.0.0.1');
+```
+
+### Echo Server Example
+
+```javascript
+import dgram from 'node:dgram';
+
+const server = dgram.createSocket('udp4');
+
+server.on('error', (err) => {
+  console.error(`Server error: ${err.message}`);
+  server.close();
+});
+
+server.on('message', (msg, rinfo) => {
+  console.log(`Server received: ${msg} from ${rinfo.address}:${rinfo.port}`);
+  // Echo the message back
+  server.send(msg, rinfo.port, rinfo.address);
+});
+
+server.on('listening', () => {
+  const address = server.address();
+  console.log(`Server listening on ${address.address}:${address.port}`);
+});
+
+server.bind(41234);
+```
+
+### Broadcast Example
+
+```javascript
+import dgram from 'node:dgram';
+
+const socket = dgram.createSocket('udp4');
+
+socket.bind(() => {
+  socket.setBroadcast(true);
+  
+  const message = 'Broadcast message';
+  socket.send(message, 41234, '255.255.255.255', (err) => {
+    if (err) console.error(err);
+    socket.close();
+  });
+});
+```
+
+### Multicast Example
+
+```javascript
+import dgram from 'node:dgram';
+
+const socket = dgram.createSocket('udp4');
+const MULTICAST_ADDR = '224.1.1.1';
+const PORT = 5000;
+
+socket.on('listening', () => {
+  // Join multicast group
+  socket.addMembership(MULTICAST_ADDR);
+  console.log('Joined multicast group');
+});
+
+socket.on('message', (msg, rinfo) => {
+  console.log(`Multicast message: ${msg} from ${rinfo.address}`);
+});
+
+socket.bind(PORT);
+
+// Send to multicast group
+setTimeout(() => {
+  socket.send('Hello multicast!', PORT, MULTICAST_ADDR);
+}, 1000);
+```
+
+### API Reference
+
+#### `dgram.createSocket(options, [callback])`
+
+Creates a dgram.Socket object.
+
+**Parameters:**
+- `options` (string | object): Socket type ('udp4' or 'udp6') or options object
+  - `type` (string): 'udp4' or 'udp6'
+  - `recvBufferSize` (number): Receive buffer size
+  - `sendBufferSize` (number): Send buffer size
+- `callback` (function, optional): Attached as listener for 'message' event
+
+**Returns:** Socket
+
+#### `socket.bind([port], [address], [callback])`
+
+Binds the socket to a port and address.
+
+**Parameters:**
+- `port` (number, optional): Port to bind to. Default: 0 (OS assigns)
+- `address` (string, optional): Address to bind to. Default: 0.0.0.0 (all interfaces)
+- `callback` (function, optional): Called when binding is complete
+
+**Returns:** Socket (for chaining)
+
+#### `socket.send(msg, [offset], [length], port, [address], [callback])`
+
+Sends a datagram through the socket.
+
+**Parameters:**
+- `msg` (string | Uint8Array | Array): Message to send
+- `offset` (number, optional): Offset in buffer
+- `length` (number, optional): Number of bytes to send
+- `port` (number): Destination port
+- `address` (string, optional): Destination address. Default: '127.0.0.1'
+- `callback` (function, optional): Called when message is sent
+
+#### `socket.close([callback])`
+
+Closes the socket.
+
+**Parameters:**
+- `callback` (function, optional): Called when socket is closed
+
+#### `socket.address()`
+
+Returns the address information for the socket.
+
+**Returns:** { address: string, family: string, port: number }
+
+#### `socket.setBroadcast(flag)`
+
+Sets or clears the SO_BROADCAST socket option.
+
+**Parameters:**
+- `flag` (boolean): Enable or disable broadcast
+
+#### `socket.setTTL(ttl)`
+
+Sets the IP_TTL socket option (time-to-live for outgoing packets).
+
+**Parameters:**
+- `ttl` (number): TTL value (1-255)
+
+#### `socket.setMulticastTTL(ttl)`
+
+Sets the IP_MULTICAST_TTL socket option.
+
+**Parameters:**
+- `ttl` (number): Multicast TTL value (0-255)
+
+#### `socket.setMulticastLoopback(flag)`
+
+Sets or clears the IP_MULTICAST_LOOP socket option.
+
+**Parameters:**
+- `flag` (boolean): Enable or disable multicast loopback
+
+#### `socket.addMembership(multicastAddress, [multicastInterface])`
+
+Tells the kernel to join a multicast group.
+
+**Parameters:**
+- `multicastAddress` (string): Multicast group address
+- `multicastInterface` (string, optional): Interface address. Default: 0.0.0.0
+
+#### `socket.dropMembership(multicastAddress, [multicastInterface])`
+
+Instructs the kernel to leave a multicast group.
+
+**Parameters:**
+- `multicastAddress` (string): Multicast group address
+- `multicastInterface` (string, optional): Interface address. Default: 0.0.0.0
+
+### Events
+
+The Socket class extends EventTarget and emits the following events:
+
+- `'listening'` - Emitted when the socket is bound and ready to receive data
+- `'message'` - Emitted when a datagram is received
+  - Event properties: `data` (Uint8Array), `rinfo` ({ address, family, port, size })
+- `'error'` - Emitted when an error occurs
+  - Event property: `error` (Error)
+- `'close'` - Emitted when the socket is closed
+
+### Comparison with Node.js
+
+jstime's dgram API implements a subset of Node.js's dgram module:
+
+| Feature | jstime | Node.js |
+|---------|--------|---------|
+| `createSocket()` | ✅ | ✅ |
+| `socket.bind()` | ✅ | ✅ |
+| `socket.send()` | ✅ | ✅ |
+| `socket.close()` | ✅ | ✅ |
+| `socket.address()` | ✅ | ✅ |
+| `socket.setBroadcast()` | ✅ | ✅ |
+| `socket.setTTL()` | ✅ | ✅ |
+| `socket.setMulticastTTL()` | ✅ | ✅ |
+| `socket.setMulticastLoopback()` | ✅ | ✅ |
+| `socket.addMembership()` | ✅ | ✅ |
+| `socket.dropMembership()` | ✅ | ✅ |
+| `socket.getRecvBufferSize()` | ✅ | ✅ |
+| `socket.setRecvBufferSize()` | ✅ | ✅ |
+| `socket.getSendBufferSize()` | ✅ | ✅ |
+| `socket.setSendBufferSize()` | ✅ | ✅ |
+| `socket.ref()` / `unref()` | ✅ (no-op) | ✅ |
+| `socket.connect()` | ❌ | ✅ |
+| `socket.disconnect()` | ❌ | ✅ |
+| `socket.remoteAddress()` | ❌ | ✅ |
+| IPv6 multicast | ❌ | ✅ |
+| Source-specific multicast | ❌ | ✅ |
+
+**Note:** The `ref()` and `unref()` methods are implemented as no-ops for compatibility. In jstime, sockets don't automatically keep the event loop running.
+
 ## WebAssembly
