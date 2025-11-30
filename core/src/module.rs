@@ -50,6 +50,19 @@ fn read_source_cached(path: &str) -> std::io::Result<String> {
     Ok(source)
 }
 
+/// Check if a specifier is a package import (starts with `#`).
+/// Package imports are defined in the `imports` field of package.json.
+///
+/// Examples:
+/// - "#utils" -> true
+/// - "#internal/helpers" -> true
+/// - "lodash" -> false
+/// - "./foo.js" -> false
+#[inline]
+fn is_package_import(specifier: &str) -> bool {
+    specifier.starts_with('#')
+}
+
 /// Check if a specifier is a bare specifier (not relative, absolute, or a built-in module).
 /// Bare specifiers are package names that should be resolved from node_modules.
 ///
@@ -60,17 +73,20 @@ fn read_source_cached(path: &str) -> std::io::Result<String> {
 /// - "../bar.js" -> false (relative)
 /// - "/abs/path.js" -> false (absolute)
 /// - "node:fs" -> false (built-in)
+/// - "#internal" -> false (package import)
 #[inline]
 fn is_bare_specifier(specifier: &str) -> bool {
     // Not a bare specifier if:
     // - Starts with './' or '../' (relative)
     // - Starts with '/' (absolute)
     // - Starts with 'node:' (built-in)
+    // - Starts with '#' (package import)
     // - Contains '://' (URL-like)
     !specifier.starts_with("./")
         && !specifier.starts_with("../")
         && !specifier.starts_with('/')
         && !specifier.starts_with("node:")
+        && !specifier.starts_with('#')
         && !specifier.contains("://")
 }
 
@@ -339,6 +355,152 @@ fn resolve_bare_specifier(referrer_path: &str, specifier: &str) -> Option<String
         match current_dir.parent() {
             Some(parent) => current_dir = parent,
             None => break,
+        }
+    }
+
+    None
+}
+
+/// Resolve a package import (specifiers starting with `#`).
+/// Package imports are defined in the `imports` field of package.json.
+///
+/// Starting from the referrer's directory, walk up the directory tree
+/// looking for a package.json with an `imports` field that matches the specifier.
+fn resolve_package_import(referrer_path: &str, specifier: &str) -> Option<String> {
+    // Start from the referrer's directory
+    let referrer = Path::new(referrer_path);
+    let mut current_dir = if referrer.is_file() {
+        referrer.parent()?
+    } else {
+        referrer
+    };
+
+    // Walk up the directory tree looking for package.json with imports field
+    loop {
+        let package_json_path = current_dir.join("package.json");
+        if package_json_path.exists()
+            && let Ok(content) = std::fs::read_to_string(&package_json_path)
+            && let Some(resolved) = resolve_imports_field(&content, specifier, current_dir)
+        {
+            return Some(resolved);
+        }
+
+        // Move up to parent directory
+        match current_dir.parent() {
+            Some(parent) => current_dir = parent,
+            None => break,
+        }
+    }
+
+    None
+}
+
+/// Resolve a specifier using the `imports` field in package.json.
+/// Handles both exact matches and pattern matches (with `*` wildcards).
+fn resolve_imports_field(content: &str, specifier: &str, package_dir: &Path) -> Option<String> {
+    // Find the imports field
+    let imports_start = content.find("\"imports\"")?;
+    let after_imports = &content[imports_start + 9..];
+    let colon_pos = after_imports.find(':')?;
+    let value_start = &after_imports[colon_pos + 1..].trim_start();
+
+    if !value_start.starts_with('{') {
+        return None;
+    }
+
+    // First, try exact match for the specifier
+    let exact_pattern = format!("\"{}\"", specifier);
+    if let Some(pos) = value_start.find(&exact_pattern) {
+        let after_key = &value_start[pos + exact_pattern.len()..];
+        if let Some(colon_pos) = after_key.find(':') {
+            let value = after_key[colon_pos + 1..].trim_start();
+            if let Some(resolved) = resolve_import_target(value, package_dir) {
+                return Some(resolved);
+            }
+        }
+    }
+
+    // Try pattern matching with wildcards (e.g., "#internal/*": "./src/internal/*.js")
+    // Find all patterns in the imports field
+    let mut search_pos = 0;
+    while let Some(quote_pos) = value_start[search_pos..].find("\"#") {
+        let start = search_pos + quote_pos + 1; // Skip the opening quote
+        if let Some(end_quote) = value_start[start..].find('"') {
+            let pattern = &value_start[start..start + end_quote];
+
+            // Check if this is a wildcard pattern
+            if pattern.contains('*')
+                && let Some(matched) = match_import_pattern(pattern, specifier)
+            {
+                // Find the value for this pattern
+                let after_pattern = &value_start[start + end_quote + 1..];
+                if let Some(colon_pos) = after_pattern.find(':') {
+                    let value = after_pattern[colon_pos + 1..].trim_start();
+                    if let Some(target) = extract_quoted_string(value) {
+                        // Replace * in target with matched portion
+                        let resolved_target = target.replace('*', &matched);
+                        let resolved_path =
+                            package_dir.join(resolved_target.trim_start_matches("./"));
+                        if resolved_path.exists() {
+                            return resolved_path.to_str().map(|s| s.to_string());
+                        }
+                    }
+                }
+            }
+
+            search_pos = start + end_quote + 1;
+        } else {
+            break;
+        }
+    }
+
+    None
+}
+
+/// Match a specifier against an import pattern with wildcards.
+/// Returns the portion that matched the `*` if successful.
+fn match_import_pattern(pattern: &str, specifier: &str) -> Option<String> {
+    if let Some(star_pos) = pattern.find('*') {
+        let prefix = &pattern[..star_pos];
+        let suffix = &pattern[star_pos + 1..];
+
+        if specifier.starts_with(prefix) && specifier.ends_with(suffix) {
+            let matched_len = specifier.len() - prefix.len() - suffix.len();
+            let matched = &specifier[prefix.len()..prefix.len() + matched_len];
+            return Some(matched.to_string());
+        }
+    }
+    None
+}
+
+/// Resolve an import target value, handling both string values and conditional objects.
+fn resolve_import_target(value: &str, package_dir: &Path) -> Option<String> {
+    let value = value.trim();
+
+    if value.starts_with('"') {
+        // Simple string value
+        if let Some(target) = extract_quoted_string(value) {
+            let resolved_path = package_dir.join(target.trim_start_matches("./"));
+            if resolved_path.exists() {
+                return resolved_path.to_str().map(|s| s.to_string());
+            }
+        }
+    } else if value.starts_with('{') {
+        // Conditional import object
+        // Priority: "import" > "default" > "require"
+        for key in &["\"import\"", "\"default\"", "\"require\""] {
+            if let Some(pos) = value.find(key) {
+                let after_key = &value[pos + key.len()..];
+                if let Some(colon_pos) = after_key.find(':') {
+                    let target_value = after_key[colon_pos + 1..].trim_start();
+                    if let Some(target) = extract_quoted_string(target_value) {
+                        let resolved_path = package_dir.join(target.trim_start_matches("./"));
+                        if resolved_path.exists() {
+                            return resolved_path.to_str().map(|s| s.to_string());
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -723,6 +885,17 @@ fn resolve_builtin_module<'a>(
 fn normalize_path(referrer_path: &str, requested: &str) -> String {
     let req_path = Path::new(requested);
     if req_path.is_absolute() {
+        return requested.to_string();
+    }
+
+    // Check if this is a package import (e.g., "#utils", "#internal/helpers")
+    // Package imports are resolved using the "imports" field in package.json
+    if is_package_import(requested) {
+        if let Some(resolved) = resolve_package_import(referrer_path, requested) {
+            return resolved;
+        }
+        // If we can't resolve the package import, return it as-is
+        // This will cause a proper error when trying to load the file
         return requested.to_string();
     }
 

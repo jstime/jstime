@@ -227,7 +227,8 @@ jstime implements the Node.js specifier resolution algorithm, allowing you to im
 2. **Absolute imports** (`/path/to/file.js`) - used as-is
 3. **Bare specifiers** (`lodash`, `express`) - resolved from `node_modules`
 4. **Scoped packages** (`@scope/package`) - resolved from `node_modules/@scope/`
-5. **Built-in modules** (`node:fs/promises`) - jstime built-in APIs
+5. **Package imports** (`#utils`, `#internal/helpers`) - resolved using `imports` field in `package.json`
+6. **Built-in modules** (`node:fs/promises`) - jstime built-in APIs
 
 #### Package Resolution
 
@@ -281,6 +282,46 @@ import pkg from 'my-package';  // Resolves to ./node_modules/my-package/dist/ind
 //   }
 // }
 import pkg from 'my-package';  // Uses the "import" entry (ESM)
+```
+
+#### Package Imports (`imports` field)
+
+jstime also supports the `imports` field in `package.json`, which allows you to define internal module aliases using the `#` prefix. This is useful for creating private mappings within your project without exposing them to consumers.
+
+**Basic usage:**
+```javascript
+// package.json:
+// {
+//   "imports": {
+//     "#utils": "./src/utils.js"
+//   }
+// }
+import { helper } from '#utils';  // Resolves to ./src/utils.js
+```
+
+**Wildcard patterns:**
+```javascript
+// package.json:
+// {
+//   "imports": {
+//     "#internal/*": "./src/internal/*.js"
+//   }
+// }
+import { db } from '#internal/database';  // Resolves to ./src/internal/database.js
+```
+
+**Conditional imports:**
+```javascript
+// package.json:
+// {
+//   "imports": {
+//     "#config": {
+//       "import": "./src/esm/config.js",
+//       "require": "./src/cjs/config.js"
+//     }
+//   }
+// }
+import config from '#config';  // Uses the "import" entry (ESM)
 ```
 
 ### Examples
