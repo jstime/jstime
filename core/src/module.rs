@@ -1,7 +1,7 @@
 use crate::IsolateState;
 use rustc_hash::FxHashMap;
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{OnceLock, RwLock};
 
 // Global source code cache shared across all JSTime instances
@@ -48,6 +48,297 @@ fn read_source_cached(path: &str) -> std::io::Result<String> {
     }
 
     Ok(source)
+}
+
+/// Check if a specifier is a bare specifier (not relative, absolute, or a built-in module).
+/// Bare specifiers are package names that should be resolved from node_modules.
+///
+/// Examples:
+/// - "lodash" -> true (bare specifier)
+/// - "@scope/package" -> true (scoped bare specifier)
+/// - "./foo.js" -> false (relative)
+/// - "../bar.js" -> false (relative)
+/// - "/abs/path.js" -> false (absolute)
+/// - "node:fs" -> false (built-in)
+#[inline]
+fn is_bare_specifier(specifier: &str) -> bool {
+    // Not a bare specifier if:
+    // - Starts with './' or '../' (relative)
+    // - Starts with '/' (absolute)
+    // - Starts with 'node:' (built-in)
+    // - Contains '://' (URL-like)
+    !specifier.starts_with("./")
+        && !specifier.starts_with("../")
+        && !specifier.starts_with('/')
+        && !specifier.starts_with("node:")
+        && !specifier.contains("://")
+}
+
+/// Parse the package name and subpath from a bare specifier.
+/// Returns (package_name, subpath) where subpath may be empty.
+///
+/// Examples:
+/// - "lodash" -> ("lodash", "")
+/// - "lodash/fp" -> ("lodash", "fp")
+/// - "@scope/package" -> ("@scope/package", "")
+/// - "@scope/package/sub" -> ("@scope/package", "sub")
+fn parse_package_specifier(specifier: &str) -> (&str, &str) {
+    if specifier.starts_with('@') {
+        // Scoped package: @scope/name or @scope/name/subpath
+        // Find the second '/' to separate package from subpath
+        let mut slash_count = 0;
+        for (i, c) in specifier.char_indices() {
+            if c == '/' {
+                slash_count += 1;
+                if slash_count == 2 {
+                    return (&specifier[..i], &specifier[i + 1..]);
+                }
+            }
+        }
+        // No second slash, entire specifier is the package name
+        (specifier, "")
+    } else {
+        // Regular package: name or name/subpath
+        match specifier.find('/') {
+            Some(i) => (&specifier[..i], &specifier[i + 1..]),
+            None => (specifier, ""),
+        }
+    }
+}
+
+/// Read and parse a package.json file, returning the main entry point if found.
+/// Handles both "main" and "exports" fields according to Node.js resolution.
+fn read_package_json_main(package_dir: &Path, subpath: &str) -> Option<PathBuf> {
+    let package_json_path = package_dir.join("package.json");
+    let content = std::fs::read_to_string(&package_json_path).ok()?;
+
+    // Parse the JSON using a simple approach
+    // We look for "main" and "exports" fields
+
+    // First check if there's a subpath - if so, we need to resolve it
+    if !subpath.is_empty() {
+        return resolve_package_subpath(package_dir, &content, subpath);
+    }
+
+    // Try to find "exports" field first (modern approach)
+    if let Some(entry) = resolve_exports_main(&content, package_dir) {
+        return Some(entry);
+    }
+
+    // Fall back to "main" field
+    if let Some(main) = extract_json_string_field(&content, "main") {
+        let main_path = package_dir.join(&main);
+        // Try the path as-is first
+        if main_path.exists() {
+            return Some(main_path);
+        }
+        // Try adding .js extension
+        let with_js = package_dir.join(format!("{}.js", main));
+        if with_js.exists() {
+            return Some(with_js);
+        }
+        // Try as directory with index.js
+        let as_dir = main_path.join("index.js");
+        if as_dir.exists() {
+            return Some(as_dir);
+        }
+    }
+
+    // Default to index.js
+    let index_path = package_dir.join("index.js");
+    if index_path.exists() {
+        return Some(index_path);
+    }
+
+    None
+}
+
+/// Resolve the "exports" field for the main entry point.
+/// Handles both simple string exports and conditional exports objects.
+fn resolve_exports_main(content: &str, package_dir: &Path) -> Option<PathBuf> {
+    // Find the exports field
+    let exports_start = content.find("\"exports\"")?;
+    let after_exports = &content[exports_start + 9..];
+    let colon_pos = after_exports.find(':')?;
+    let value_start = &after_exports[colon_pos + 1..].trim_start();
+
+    if value_start.starts_with('"') {
+        // Simple string export: "exports": "./dist/index.js"
+        if let Some(entry) = extract_quoted_string(value_start) {
+            let entry_path = package_dir.join(entry.trim_start_matches("./"));
+            if entry_path.exists() {
+                return Some(entry_path);
+            }
+        }
+    } else if value_start.starts_with('{') {
+        // Object export: "exports": { ".": "./dist/index.js" } or conditional exports
+        // Look for "." entry or "default" entry
+        if let Some(main_entry) = resolve_exports_dot_entry(value_start, package_dir) {
+            return Some(main_entry);
+        }
+    }
+
+    None
+}
+
+/// Resolve the "." entry in an exports object.
+fn resolve_exports_dot_entry(exports_obj: &str, package_dir: &Path) -> Option<PathBuf> {
+    // Look for ".": which is the main entry point
+    // This handles: { ".": "./index.js" } or { ".": { "default": "./index.js" } }
+
+    let dot_patterns = ["\".\": ", "\".\": {"];
+    for pattern in &dot_patterns {
+        if let Some(pos) = exports_obj.find(pattern) {
+            let after_dot = &exports_obj[pos + pattern.len() - 1..].trim_start();
+            if after_dot.starts_with('"') {
+                // Direct string value
+                if let Some(entry) = extract_quoted_string(after_dot) {
+                    let entry_path = package_dir.join(entry.trim_start_matches("./"));
+                    if entry_path.exists() {
+                        return Some(entry_path);
+                    }
+                }
+            } else if after_dot.starts_with('{') {
+                // Conditional exports object, look for "default" or "import"
+                if let Some(entry) = extract_conditional_export(after_dot, package_dir) {
+                    return Some(entry);
+                }
+            }
+        }
+    }
+
+    // Also check for "default" at the top level for simpler exports
+    if let Some(entry) = extract_conditional_export(exports_obj, package_dir) {
+        return Some(entry);
+    }
+
+    None
+}
+
+/// Extract the "default" or "import" entry from a conditional exports object.
+fn extract_conditional_export(obj: &str, package_dir: &Path) -> Option<PathBuf> {
+    // Priority: "import" > "default" > "require" (for ESM resolution)
+    for key in &["\"import\"", "\"default\"", "\"require\""] {
+        if let Some(pos) = obj.find(key) {
+            let after_key = &obj[pos + key.len()..];
+            let colon_pos = after_key.find(':')?;
+            let value = after_key[colon_pos + 1..].trim_start();
+            if let Some(entry) = extract_quoted_string(value) {
+                let entry_path = package_dir.join(entry.trim_start_matches("./"));
+                if entry_path.exists() {
+                    return Some(entry_path);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Resolve a subpath import from a package's exports field.
+fn resolve_package_subpath(package_dir: &Path, content: &str, subpath: &str) -> Option<PathBuf> {
+    // First try direct file resolution (for packages without exports)
+    let direct_path = package_dir.join(subpath);
+    if direct_path.exists() {
+        return Some(direct_path);
+    }
+    // Try with .js extension
+    let with_js = package_dir.join(format!("{}.js", subpath));
+    if with_js.exists() {
+        return Some(with_js);
+    }
+    // Try as directory with index.js
+    let as_dir = direct_path.join("index.js");
+    if as_dir.exists() {
+        return Some(as_dir);
+    }
+
+    // Try to resolve from exports field
+    if let Some(exports_start) = content.find("\"exports\"") {
+        let after_exports = &content[exports_start..];
+        // Look for "./<subpath>" in exports
+        let subpath_pattern = format!("\"./{}", subpath);
+        if let Some(pos) = after_exports.find(&subpath_pattern) {
+            let remaining = &after_exports[pos..];
+            // Find the end of this key
+            if let Some(quote_end) = remaining[1..].find('"') {
+                let _key = &remaining[1..quote_end + 1];
+                // Now find the value after the colon
+                let after_key = &remaining[quote_end + 2..];
+                if let Some(colon_pos) = after_key.find(':') {
+                    let value = after_key[colon_pos + 1..].trim_start();
+                    if let Some(entry) = extract_quoted_string(value) {
+                        let entry_path = package_dir.join(entry.trim_start_matches("./"));
+                        if entry_path.exists() {
+                            return Some(entry_path);
+                        }
+                    } else if value.starts_with('{') {
+                        // Conditional export for subpath
+                        if let Some(entry) = extract_conditional_export(value, package_dir) {
+                            return Some(entry);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Extract a simple string value from a JSON field.
+/// This is a simple parser that looks for "field": "value" patterns.
+fn extract_json_string_field(json: &str, field: &str) -> Option<String> {
+    let pattern = format!("\"{}\"", field);
+    let field_pos = json.find(&pattern)?;
+    let after_field = &json[field_pos + pattern.len()..];
+
+    // Skip whitespace and colon
+    let value_start = after_field.trim_start();
+    if !value_start.starts_with(':') {
+        return None;
+    }
+    let value_start = value_start[1..].trim_start();
+
+    extract_quoted_string(value_start)
+}
+
+/// Resolve a bare specifier by searching node_modules directories.
+/// This implements the Node.js module resolution algorithm.
+///
+/// Starting from the referrer's directory, walk up the directory tree
+/// looking for node_modules/<package_name>.
+fn resolve_bare_specifier(referrer_path: &str, specifier: &str) -> Option<String> {
+    let (package_name, subpath) = parse_package_specifier(specifier);
+
+    // Start from the referrer's directory
+    let referrer = Path::new(referrer_path);
+    let mut current_dir = if referrer.is_file() {
+        referrer.parent()?
+    } else {
+        referrer
+    };
+
+    // Walk up the directory tree
+    loop {
+        let node_modules_dir = current_dir.join("node_modules");
+        if node_modules_dir.is_dir() {
+            let package_dir = node_modules_dir.join(package_name);
+            if package_dir.is_dir() {
+                // Found the package, resolve the entry point
+                if let Some(entry_path) = read_package_json_main(&package_dir, subpath) {
+                    return entry_path.to_str().map(|s| s.to_string());
+                }
+            }
+        }
+
+        // Move up to parent directory
+        match current_dir.parent() {
+            Some(parent) => current_dir = parent,
+            None => break,
+        }
+    }
+
+    None
 }
 
 /// Extract import specifiers from JavaScript source code.
@@ -230,17 +521,30 @@ impl Loader {
         v8::tc_scope!(let tc, scope);
         match resolve(tc, referrer, specifier) {
             Some(m) => {
-                m.instantiate_module(tc, module_resolve_callback).unwrap();
-                let res = m.evaluate(tc).unwrap();
-                let promise = unsafe { v8::Local::<v8::Promise>::cast_unchecked(res) };
-                match promise.state() {
-                    v8::PromiseState::Pending => panic!(),
-                    v8::PromiseState::Fulfilled => Ok(promise.result(tc)),
-                    v8::PromiseState::Rejected => {
-                        // Throw the rejected promise value as an exception so it can be
-                        // properly formatted with source location and stack trace
-                        tc.throw_exception(promise.result(tc));
-                        Err(promise.result(tc))
+                match m.instantiate_module(tc, module_resolve_callback) {
+                    Some(_) => {
+                        let res = m.evaluate(tc).unwrap();
+                        let promise = unsafe { v8::Local::<v8::Promise>::cast_unchecked(res) };
+                        match promise.state() {
+                            v8::PromiseState::Pending => panic!(),
+                            v8::PromiseState::Fulfilled => Ok(promise.result(tc)),
+                            v8::PromiseState::Rejected => {
+                                // Throw the rejected promise value as an exception so it can be
+                                // properly formatted with source location and stack trace
+                                tc.throw_exception(promise.result(tc));
+                                Err(promise.result(tc))
+                            }
+                        }
+                    }
+                    None => {
+                        // Module instantiation failed (e.g., dependency resolution failed)
+                        if tc.has_caught() {
+                            Err(tc.exception().unwrap())
+                        } else {
+                            let msg = v8::String::new(tc, "Module instantiation failed").unwrap();
+                            let exception = v8::Exception::error(tc, msg);
+                            Err(exception)
+                        }
                     }
                 }
             }
@@ -415,6 +719,17 @@ fn resolve_builtin_module<'a>(
 fn normalize_path(referrer_path: &str, requested: &str) -> String {
     let req_path = Path::new(requested);
     if req_path.is_absolute() {
+        return requested.to_string();
+    }
+
+    // Check if this is a bare specifier (e.g., "lodash", "@scope/package")
+    // Bare specifiers need to be resolved from node_modules
+    if is_bare_specifier(requested) {
+        if let Some(resolved) = resolve_bare_specifier(referrer_path, requested) {
+            return resolved;
+        }
+        // If we can't resolve the bare specifier, return it as-is
+        // This will cause a proper error when trying to load the file
         return requested.to_string();
     }
 
