@@ -79,8 +79,7 @@
       }
 
       try {
-        this.#socket = dgramBind(this.#type, port || 0, address);
-        this.#bound = true;
+        this.#bindInternal(port || 0, address);
 
         // Emit listening event asynchronously
         queueMicrotask(() => {
@@ -105,6 +104,16 @@
     }
 
     /**
+     * Internal bind implementation (synchronous, no events)
+     * @param {number} port - Port to bind to
+     * @param {string} [address] - Address to bind to
+     */
+    #bindInternal(port, address) {
+      this.#socket = dgramBind(this.#type, port, address);
+      this.#bound = true;
+    }
+
+    /**
      * Sends a message through the socket
      * @param {Buffer|string|Array} msg - Message to send
      * @param {number} [offset] - Offset in buffer
@@ -119,28 +128,28 @@
       }
 
       // Handle different argument patterns
-      // send(msg, port, address, callback)
+      // Pattern 1: send(msg, port, address, callback) - offset is actually port, length is address
       if (typeof offset === 'number' && typeof length === 'string') {
-        callback = port;
+        callback = typeof port === 'function' ? port : undefined;
         address = length;
         port = offset;
         offset = 0;
-        length = msg.length;
+        length = undefined;
       }
-      // send(msg, port, callback)
+      // Pattern 2: send(msg, port, callback) - offset is port, length is callback
       else if (typeof offset === 'number' && typeof length === 'function') {
         callback = length;
         address = undefined;
         port = offset;
         offset = 0;
-        length = msg.length;
+        length = undefined;
       }
-      // send(msg, port, address)
-      else if (typeof offset === 'number' && typeof length === 'string' && typeof port === 'undefined') {
-        address = length;
+      // Pattern 3: send(msg, port) - offset is port, no callback
+      else if (typeof offset === 'number' && length === undefined) {
         port = offset;
+        address = undefined;
         offset = 0;
-        length = msg.length;
+        length = undefined;
       }
 
       // Default address based on socket type
@@ -170,10 +179,17 @@
         throw new TypeError('Invalid message type');
       }
 
-      // Auto-bind if not bound
+      // Set default offset and length if not specified
+      if (offset === undefined || offset === 0) {
+        offset = 0;
+      }
+      if (length === undefined) {
+        length = buffer.length;
+      }
+
+      // Auto-bind if not bound (use internal method)
       if (!this.#bound) {
-        this.#socket = dgramBind(this.#type, 0, undefined);
-        this.#bound = true;
+        this.#bindInternal(0, undefined);
       }
 
       try {
