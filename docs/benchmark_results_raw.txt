@@ -1,0 +1,224 @@
+[0;34m=== Cross-Runtime Test Suite ===[0m
+[0;34mAvailable runtimes: jstime node deno bun[0m
+
+[1;33mjstime[0m
+  Path:    /home/runner/work/jstime/jstime/target/release/jstime
+  Version: jstime 0.64.0
+[1;33mnode[0m
+  Path:    /usr/local/bin/node
+  Version: v20.19.5
+[1;33mdeno[0m
+  Path:    /home/runner/.deno/bin/deno
+  Version: 2.5.6
+[1;33mbun[0m
+  Path:    /home/runner/.bun/bin/bun
+  Version: 1.3.3
+
+[0;34m=== Compliance Tests ===[0m
+
+[1;33mRunning test-console...[0m
+  jstime    : [0;32m5 passed ✓[0m
+  node      : [0;32m5 passed ✓[0m
+  deno      : [0;32m5 passed ✓[0m
+  bun       : [0;32m5 passed ✓[0m
+
+[1;33mRunning test-timers...[0m
+  jstime    : [0;32m6 passed ✓[0m
+  node      : [0;32m6 passed ✓[0m
+  deno      : [0;32m6 passed ✓[0m
+  bun       : [0;32m6 passed ✓[0m
+
+[1;33mRunning test-url...[0m
+  jstime    : [0;32m6 passed ✓[0m
+  node      : [0;32m6 passed ✓[0m
+  deno      : [0;32m6 passed ✓[0m
+  bun       : [0;32m6 passed ✓[0m
+
+[1;33mRunning test-crypto...[0m
+  jstime    : [0;32m5 passed ✓[0m
+  node      : [0;32m5 passed ✓[0m
+  deno      : [0;32m5 passed ✓[0m
+  bun       : [0;32m5 passed ✓[0m
+
+[1;33mRunning test-performance...[0m
+  jstime    : [0;32m6 passed ✓[0m
+  node      : [0;32m6 passed ✓[0m
+  deno      : [0;32m6 passed ✓[0m
+  bun       : [0;32m6 passed ✓[0m
+
+[1;33mRunning test-base64...[0m
+  jstime    : [0;32m5 passed ✓[0m
+  node      : [0;32m5 passed ✓[0m
+  deno      : [0;32m5 passed ✓[0m
+  bun       : [0;32m5 passed ✓[0m
+
+[1;33mRunning test-json...[0m
+  jstime    : [0;32m5 passed ✓[0m
+  node      : [0;32m5 passed ✓[0m
+  deno      : [0;32m5 passed ✓[0m
+  bun       : [0;32m5 passed ✓[0m
+
+[1;33mRunning test-text-encoding...[0m
+  jstime    : [0;32m11 passed ✓[0m
+  node      : [0;32m11 passed ✓[0m
+  deno      : [0;32m11 passed ✓[0m
+  bun       : [0;32m11 passed ✓[0m
+
+[1;33mRunning test-event...[0m
+  jstime    : [0;32m14 passed ✓[0m
+  node      : [0;32m14 passed ✓[0m
+  deno      : [0;32m14 passed ✓[0m
+  bun       : [0;32m14 passed ✓[0m
+
+[1;33mRunning test-streams...[0m
+  jstime    : [0;32m9 passed ✓[0m
+  node      : [0;32m9 passed ✓[0m
+  deno      : [0;32m9 passed ✓[0m
+  bun       : [0;32m9 passed ✓[0m
+
+[1;33mRunning test-structured-clone...[0m
+  jstime    : [0;32m11 passed ✓[0m
+  node      : [0;32m11 passed ✓[0m
+  deno      : [0;32m11 passed ✓[0m
+  bun       : [0;32m11 passed ✓[0m
+
+[1;33mRunning test-microtask...[0m
+  jstime    : [0;32m2 passed ✓[0m
+  node      : [0;32m2 passed ✓[0m
+  deno      : [0;32m2 passed ✓[0m
+  bun       : [0;32m2 passed ✓[0m
+
+[0;34m=== Performance Tests ===[0m
+
+[1;33mRunning bench-arithmetic...[0m
+  jstime    : [0;32m20.325ms (78720.03 ops/ms)[0m
+  node      : [0;32m19.939ms (80244.42 ops/ms)[0m
+  deno      : [0;32m21.152ms (75642.57 ops/ms)[0m
+  bun       : [0;32m6.429ms (248871.02 ops/ms)[0m
+
+[1;33mRunning bench-strings...[0m
+  jstime    : [0;32m10.487ms (3814.31 ops/ms)[0m
+  node      : [0;32m13.991ms (2858.95 ops/ms)[0m
+  deno      : [0;32m11.586ms (3452.39 ops/ms)[0m
+  bun       : [0;32m21.859ms (1829.89 ops/ms)[0m
+
+[1;33mRunning bench-arrays...[0m
+  jstime    : [0;32m219.148ms (22.82 ops/ms)[0m
+  node      : [0;32m242.519ms (20.62 ops/ms)[0m
+  deno      : [0;32m216.496ms (23.10 ops/ms)[0m
+  bun       : [0;32m64.655ms (77.33 ops/ms)[0m
+
+[1;33mRunning bench-objects...[0m
+  jstime    : [0;32m13.759ms (29071.29 ops/ms)[0m
+  node      : [0;32m121.383ms (3295.37 ops/ms)[0m
+  deno      : [0;32m10.766ms (37152.86 ops/ms)[0m
+  bun       : [0;32m22.911ms (17458.74 ops/ms)[0m
+
+[1;33mRunning bench-json...[0m
+  jstime    : [0;32m93.501ms (1069.51 ops/ms)[0m
+  node      : [0;32m147.341ms (678.70 ops/ms)[0m
+  deno      : [0;32m98.003ms (1020.38 ops/ms)[0m
+  bun       : [0;32m111.589ms (896.14 ops/ms)[0m
+
+[1;33mRunning bench-base64...[0m
+  jstime    : [0;32m437.171ms (2058.69 ops/ms)[0m
+  node      : [0;32m220.986ms (4072.65 ops/ms)[0m
+  deno      : [0;32m294.433ms (3056.72 ops/ms)[0m
+  bun       : [0;32m245.532ms (3665.51 ops/ms)[0m
+
+[1;33mRunning bench-url...[0m
+  jstime    : [0;32m928.856ms (968.93 ops/ms)[0m
+  node      : [0;32m591.042ms (1522.74 ops/ms)[0m
+  deno      : [0;32m1326.753ms (678.35 ops/ms)[0m
+  bun       : [0;32m1098.891ms (819.01 ops/ms)[0m
+
+[1;33mRunning bench-crypto...[0m
+  jstime    : [0;32m347.825ms (316.25 ops/ms)[0m
+  node      : [0;32m2082.951ms (52.81 ops/ms)[0m
+  deno      : [0;32m1801.882ms (61.05 ops/ms)[0m
+  bun       : [0;32m909.960ms (120.88 ops/ms)[0m
+
+[1;33mRunning bench-text-encoding...[0m
+  jstime    : [0;32m163.584ms (855.83 ops/ms)[0m
+  node      : [0;32m138.219ms (1012.89 ops/ms)[0m
+  deno      : [0;32m179.463ms (780.11 ops/ms)[0m
+  bun       : [0;32m72.722ms (1925.14 ops/ms)[0m
+
+[1;33mRunning bench-structured-clone...[0m
+  jstime    : [0;32m53.061ms (565.39 ops/ms)[0m
+  node      : [0;32m63.632ms (471.46 ops/ms)[0m
+  deno      : [0;32m102.938ms (291.44 ops/ms)[0m
+  bun       : [0;32m57.369ms (522.93 ops/ms)[0m
+
+[1;33mRunning bench-event...[0m
+  jstime    : [0;32m95.392ms (9434.77 ops/ms)[0m
+  node      : [0;32m140.961ms (6384.76 ops/ms)[0m
+  deno      : [0;32m222.427ms (4046.27 ops/ms)[0m
+  bun       : [0;32m319.944ms (2813.00 ops/ms)[0m
+
+[1;33mRunning bench-console...[0m
+  jstime    : [0;32m95.987ms (416.72 ops/ms)[0m
+  node      : [0;32m176.936ms (226.07 ops/ms)[0m
+  deno      : [0;32m135.525ms (295.15 ops/ms)[0m
+  bun       : [0;32m52.176ms (766.63 ops/ms)[0m
+
+[1;33mRunning bench-performance...[0m
+  jstime    : [0;32m199.739ms (15019.62 ops/ms)[0m
+  node      : [0;32m187.793ms (15975.07 ops/ms)[0m
+  deno      : [0;32m253.386ms (11839.66 ops/ms)[0m
+  bun       : [0;32m83.026ms (36133.42 ops/ms)[0m
+
+[1;33mRunning bench-timers...[0m
+  jstime    : [0;32m26.140ms (1147.66 ops/ms)[0m
+  node      : [0;32m54.453ms (550.93 ops/ms)[0m
+  deno      : [0;32m201.081ms (149.19 ops/ms)[0m
+  bun       : [0;32m25.917ms (1157.56 ops/ms)[0m
+
+[1;33mRunning bench-streams...[0m
+  jstime    : [0;32m6.755ms (740.21 ops/ms)[0m
+  node      : [0;32m127.133ms (39.33 ops/ms)[0m
+  deno      : [0;32m41.492ms (120.51 ops/ms)[0m
+  bun       : [0;32m34.329ms (145.65 ops/ms)[0m
+
+[1;33mRunning bench-fetch...[0m
+  jstime    : [0;32m19.173ms (2086.23 ops/ms)[0m
+  node      : [0;32m426.132ms (93.87 ops/ms)[0m
+  deno      : [0;32m118.339ms (338.01 ops/ms)[0m
+  bun       : [0;32m36.576ms (1093.60 ops/ms)[0m
+
+[1;33mRunning bench-webassembly...[0m
+  jstime    : [0;32m22.336ms (223.85 ops/ms)[0m
+  node      : [0;32m23.295ms (214.64 ops/ms)[0m
+  deno      : [0;32m25.823ms (193.63 ops/ms)[0m
+  bun       : [0;32m190.751ms (26.21 ops/ms)[0m
+
+[0;34m=== Summary ===[0m
+
+[1;33mCompliance Test Results:[0m
+  jstime    : 12/12 passed [0;32m✓[0m
+  node      : 12/12 passed [0;32m✓[0m
+  deno      : 12/12 passed [0;32m✓[0m
+  bun       : 12/12 passed [0;32m✓[0m
+
+[1;33mPerformance Comparison:[0m
+  (Lower is better - showing elapsed time in milliseconds)
+
+  arithmetic:          [1;33mjstime:20.325ms[0m [1;33mnode:19.939ms[0m [0;31mdeno:21.152ms[0m [0;32mbun:6.429ms★[0m
+  strings:             [0;32mjstime:10.487ms★[0m [1;33mnode:13.991ms[0m [1;33mdeno:11.586ms[0m [0;31mbun:21.859ms[0m
+  arrays:              [1;33mjstime:219.148ms[0m [0;31mnode:242.519ms[0m [1;33mdeno:216.496ms[0m [0;32mbun:64.655ms★[0m
+  objects:             [1;33mjstime:13.759ms[0m [0;31mnode:121.383ms[0m [0;32mdeno:10.766ms★[0m [1;33mbun:22.911ms[0m
+  json:                [0;32mjstime:93.501ms★[0m [0;31mnode:147.341ms[0m [1;33mdeno:98.003ms[0m [1;33mbun:111.589ms[0m
+  base64:              [0;31mjstime:437.171ms[0m [0;32mnode:220.986ms★[0m [1;33mdeno:294.433ms[0m [1;33mbun:245.532ms[0m
+  url:                 [1;33mjstime:928.856ms[0m [0;32mnode:591.042ms★[0m [0;31mdeno:1326.753ms[0m [1;33mbun:1098.891ms[0m
+  crypto:              [0;32mjstime:347.825ms★[0m [0;31mnode:2082.951ms[0m [1;33mdeno:1801.882ms[0m [1;33mbun:909.960ms[0m
+  text-encoding:       [1;33mjstime:163.584ms[0m [1;33mnode:138.219ms[0m [0;31mdeno:179.463ms[0m [0;32mbun:72.722ms★[0m
+  structured-clone:    [0;32mjstime:53.061ms★[0m [1;33mnode:63.632ms[0m [0;31mdeno:102.938ms[0m [1;33mbun:57.369ms[0m
+  event:               [0;32mjstime:95.392ms★[0m [1;33mnode:140.961ms[0m [1;33mdeno:222.427ms[0m [0;31mbun:319.944ms[0m
+  console:             [1;33mjstime:95.987ms[0m [0;31mnode:176.936ms[0m [1;33mdeno:135.525ms[0m [0;32mbun:52.176ms★[0m
+  performance:         [1;33mjstime:199.739ms[0m [1;33mnode:187.793ms[0m [0;31mdeno:253.386ms[0m [0;32mbun:83.026ms★[0m
+  timers:              [1;33mjstime:26.140ms[0m [1;33mnode:54.453ms[0m [0;31mdeno:201.081ms[0m [0;32mbun:25.917ms★[0m
+  streams:             [0;32mjstime:6.755ms★[0m [0;31mnode:127.133ms[0m [1;33mdeno:41.492ms[0m [1;33mbun:34.329ms[0m
+  fetch:               [0;32mjstime:19.173ms★[0m [0;31mnode:426.132ms[0m [1;33mdeno:118.339ms[0m [1;33mbun:36.576ms[0m
+  webassembly:         [0;32mjstime:22.336ms★[0m [1;33mnode:23.295ms[0m [1;33mdeno:25.823ms[0m [0;31mbun:190.751ms[0m
+
+[0;34m=== Test Complete ===[0m

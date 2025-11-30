@@ -118,5 +118,6 @@ cargo test
 - [README.md](../README.md) - Getting started guide
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Detailed architecture documentation
 - [PERFORMANCE.md](../PERFORMANCE.md) - Performance optimization details
+- [Performance Improvement Recommendations](PERFORMANCE_IMPROVEMENT_RECOMMENDATIONS.md) - Stack-ranked performance improvement opportunities based on cross-runtime benchmarking
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
 - [GitHub Repository](https://github.com/jstime/jstime) - Source code and issues
