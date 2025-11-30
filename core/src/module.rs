@@ -235,6 +235,7 @@ fn extract_conditional_export(obj: &str, package_dir: &Path) -> Option<PathBuf> 
 }
 
 /// Resolve a subpath import from a package's exports field.
+/// This function is called once per import, not in a loop, so string allocation is acceptable.
 fn resolve_package_subpath(package_dir: &Path, content: &str, subpath: &str) -> Option<PathBuf> {
     // First try direct file resolution (for packages without exports)
     let direct_path = package_dir.join(subpath);
@@ -253,6 +254,9 @@ fn resolve_package_subpath(package_dir: &Path, content: &str, subpath: &str) -> 
     }
 
     // Try to resolve from exports field
+    // Note: The format! call below allocates a small string, but this is acceptable
+    // because this code path is only reached when direct resolution fails and
+    // the function is called once per import, not in an inner loop.
     if let Some(exports_start) = content.find("\"exports\"") {
         let after_exports = &content[exports_start..];
         // Look for "./<subpath>" in exports
