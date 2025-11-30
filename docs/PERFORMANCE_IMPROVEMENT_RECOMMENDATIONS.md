@@ -19,12 +19,12 @@ This document provides a stack-ranked analysis of performance improvement opport
 | event | **95.4ms** | 140.9ms | 222.4ms | 319.9ms | jstime |
 | console | 96.0ms | 176.9ms | 135.5ms | **52.2ms** | Bun |
 | performance | 199.7ms | 187.8ms | 253.4ms | **83.0ms** | Bun |
-| timers | **26.1ms** | 51.0ms | 202.9ms | 25.9ms | Bun |
+| timers | 26.1ms | 51.0ms | 202.9ms | **25.9ms** | Bun |
 | streams | **6.8ms** | 127.1ms | 42.3ms | 36.6ms | jstime |
 | fetch | **19.2ms** | 426.1ms | 118.3ms | 36.6ms | jstime |
-| webassembly | **22.3ms** | 22.0ms | 25.8ms | 190.8ms | Node.js |
+| webassembly | 22.3ms | **22.0ms** | 25.8ms | 190.8ms | Node.js |
 
-**jstime Wins: 8/17 benchmarks** (strings, json, crypto, structured-clone, event, streams, fetch, webassembly)
+**jstime Wins: 7/17 benchmarks** (strings, json, crypto, structured-clone, event, streams, fetch)
 
 ---
 
