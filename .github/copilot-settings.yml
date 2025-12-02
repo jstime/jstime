@@ -1,0 +1,6 @@
+# GitHub Copilot Coding Agent Settings
+# This file configures the behavior of the Copilot Coding Agent
+
+tools:
+  codeql_checker:
+    enabled: false  # Disable CodeQL during Copilot sessions - it runs during PR review
