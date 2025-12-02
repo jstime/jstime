@@ -215,6 +215,114 @@ jstime supports ES modules, allowing you to organize your code using `import` an
 - Top-level `await` support
 - Module resolution from the file system
 - `import.meta.url` support for getting the current module's URL
+- **Node.js-compatible `node_modules` resolution** for third-party packages
+
+### Node.js Module Resolution
+
+jstime implements the Node.js specifier resolution algorithm, allowing you to import packages from `node_modules` directories just like in Node.js. This means you can use packages installed with npm, yarn, pnpm, or other package managers.
+
+#### Supported Import Types
+
+1. **Relative imports** (`./` or `../`) - resolved relative to the importing file
+2. **Absolute imports** (`/path/to/file.js`) - used as-is
+3. **Bare specifiers** (`lodash`, `express`) - resolved from `node_modules`
+4. **Scoped packages** (`@scope/package`) - resolved from `node_modules/@scope/`
+5. **Package imports** (`#utils`, `#internal/helpers`) - resolved using `imports` field in `package.json`
+6. **Built-in modules** (`node:fs/promises`) - jstime built-in APIs
+
+#### Package Resolution
+
+When you import a bare specifier, jstime:
+
+1. Starts from the directory containing the importing file
+2. Looks for `node_modules/<package-name>/` in that directory
+3. If not found, walks up the directory tree until root
+4. Reads `package.json` to find the entry point:
+   - Uses `"exports"` field if present (supports conditional exports)
+   - Falls back to `"main"` field
+   - Defaults to `index.js`
+
+#### Examples
+
+**Using npm packages:**
+```javascript
+// Install a package first: npm install lodash
+import _ from 'lodash';
+console.log(_.camelCase('hello world'));  // 'helloWorld'
+```
+
+**Scoped packages:**
+```javascript
+// Install: npm install @babel/core
+import * as babel from '@babel/core';
+```
+
+**Subpath imports:**
+```javascript
+// Import specific submodules
+import fp from 'lodash/fp';
+import { get } from 'lodash/get.js';
+```
+
+**Package with exports field:**
+```javascript
+// package.json: { "exports": { ".": "./dist/index.js" } }
+import pkg from 'my-package';  // Resolves to ./node_modules/my-package/dist/index.js
+```
+
+**Conditional exports:**
+```javascript
+// package.json with conditional exports:
+// {
+//   "exports": {
+//     ".": {
+//       "import": "./esm/index.js",
+//       "require": "./cjs/index.js"
+//     }
+//   }
+// }
+import pkg from 'my-package';  // Uses the "import" entry (ESM)
+```
+
+#### Package Imports (`imports` field)
+
+jstime also supports the `imports` field in `package.json`, which allows you to define internal module aliases using the `#` prefix. This is useful for creating private mappings within your project without exposing them to consumers.
+
+**Basic usage:**
+```javascript
+// package.json:
+// {
+//   "imports": {
+//     "#utils": "./src/utils.js"
+//   }
+// }
+import { helper } from '#utils';  // Resolves to ./src/utils.js
+```
+
+**Wildcard patterns:**
+```javascript
+// package.json:
+// {
+//   "imports": {
+//     "#internal/*": "./src/internal/*.js"
+//   }
+// }
+import { db } from '#internal/database';  // Resolves to ./src/internal/database.js
+```
+
+**Conditional imports:**
+```javascript
+// package.json:
+// {
+//   "imports": {
+//     "#config": {
+//       "import": "./src/esm/config.js",
+//       "require": "./src/cjs/config.js"
+//     }
+//   }
+// }
+import config from '#config';  // Uses the "import" entry (ESM)
+```
 
 ### Examples
 

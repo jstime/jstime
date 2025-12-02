@@ -75,7 +75,7 @@ For detailed documentation on all supported features, see [Documentation](./docs
 - **Process API**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()` for process information
 - **File System API**: Complete Node.js-compatible `fs/promises` with `readFile()`, `writeFile()`, `mkdir()`, `stat()`, and more
 - **WebAssembly**: Full WebAssembly support for running high-performance compiled modules
-- **ES Modules**: Full support for `import`/`export` with top-level await and dynamic `import()`
+- **ES Modules**: Full support for `import`/`export` with top-level await, dynamic `import()`, and **Node.js-compatible `node_modules` resolution**
 - **Modern JavaScript**: All ES2015+ features via V8 engine
 
 ## Testing
