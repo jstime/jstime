@@ -38,6 +38,18 @@ pub(crate) fn get_external_references() -> Vec<v8::ExternalReference> {
         v8::ExternalReference {
             function: v8::MapFnTo::map_fn_to(dgram_recv),
         },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(dgram_register_for_messages),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(dgram_unregister_for_messages),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(dgram_ref),
+        },
+        v8::ExternalReference {
+            function: v8::MapFnTo::map_fn_to(dgram_unref),
+        },
     ]
 }
 
@@ -88,6 +100,22 @@ pub(crate) fn register_bindings(scope: &mut v8::PinScope, bindings: v8::Local<v8
 
     let name = v8::String::new(scope, "dgramRecv").unwrap();
     let value = v8::Function::new(scope, dgram_recv).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "dgramRegisterForMessages").unwrap();
+    let value = v8::Function::new(scope, dgram_register_for_messages).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "dgramUnregisterForMessages").unwrap();
+    let value = v8::Function::new(scope, dgram_unregister_for_messages).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "dgramRef").unwrap();
+    let value = v8::Function::new(scope, dgram_ref).unwrap();
+    bindings.set(scope, name.into(), value.into());
+
+    let name = v8::String::new(scope, "dgramUnref").unwrap();
+    let value = v8::Function::new(scope, dgram_unref).unwrap();
     bindings.set(scope, name.into(), value.into());
 }
 
@@ -750,5 +778,167 @@ fn dgram_recv(
                 crate::error::throw_error(scope, &format!("Failed to receive: {}", e));
             }
         }
+    }
+}
+
+/// Register a socket to receive message callbacks from the event loop
+/// Args: socketExternal, callback (function that receives data and rinfo)
+/// Returns: socket_id (number) to use for unregistering
+#[inline]
+fn dgram_register_for_messages(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    if !crate::error::check_arg_count(scope, &args, 2, "dgramRegisterForMessages") {
+        return;
+    }
+
+    // Get the socket external
+    let socket_arg = args.get(0);
+    let Some(socket_external) = v8::Local::<v8::External>::try_from(socket_arg).ok() else {
+        crate::error::throw_type_error(scope, "Invalid socket reference");
+        return;
+    };
+
+    let socket_ptr = socket_external.value() as *mut UdpSocket;
+    if socket_ptr.is_null() {
+        crate::error::throw_error(scope, "Socket has been closed");
+        return;
+    }
+
+    // Get the callback function
+    let callback_arg = args.get(1);
+    let Some(callback) = v8::Local::<v8::Function>::try_from(callback_arg).ok() else {
+        crate::error::throw_type_error(scope, "Callback must be a function");
+        return;
+    };
+
+    // Get isolate state and register the socket
+    let isolate: &mut v8::Isolate = scope;
+    let state = crate::IsolateState::get(isolate);
+
+    let socket_id = {
+        let state_ref = state.borrow();
+        let next_dgram_socket_id_ref = state_ref.next_dgram_socket_id.clone();
+        drop(state_ref);
+        let mut next_id = next_dgram_socket_id_ref.borrow_mut();
+        let id = *next_id;
+        *next_id += 1;
+        id
+    };
+
+    let callback_global = v8::Global::new(scope, callback);
+
+    let active_socket = crate::isolate_state::ActiveDgramSocket {
+        socket_id,
+        socket_ptr,
+        callback: callback_global,
+        is_ref: true, // By default, sockets keep the event loop alive
+    };
+
+    state
+        .borrow()
+        .active_dgram_sockets
+        .borrow_mut()
+        .insert(socket_id, active_socket);
+
+    let result = v8::Number::new(scope, socket_id as f64);
+    retval.set(result.into());
+}
+
+/// Unregister a socket from receiving message callbacks
+/// Args: socket_id (number)
+#[inline]
+fn dgram_unregister_for_messages(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    if !crate::error::check_arg_count(scope, &args, 1, "dgramUnregisterForMessages") {
+        return;
+    }
+
+    let socket_id_arg = args.get(0);
+    let socket_id = if socket_id_arg.is_number() {
+        socket_id_arg.number_value(scope).unwrap() as u64
+    } else {
+        crate::error::throw_type_error(scope, "Socket ID must be a number");
+        return;
+    };
+
+    // Get isolate state and unregister the socket
+    let isolate: &mut v8::Isolate = scope;
+    let state = crate::IsolateState::get(isolate);
+    state
+        .borrow()
+        .active_dgram_sockets
+        .borrow_mut()
+        .remove(&socket_id);
+}
+
+/// Reference the socket to keep the event loop alive
+/// Args: socket_id (number)
+#[inline]
+fn dgram_ref(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    if !crate::error::check_arg_count(scope, &args, 1, "dgramRef") {
+        return;
+    }
+
+    let socket_id_arg = args.get(0);
+    let socket_id = if socket_id_arg.is_number() {
+        socket_id_arg.number_value(scope).unwrap() as u64
+    } else {
+        crate::error::throw_type_error(scope, "Socket ID must be a number");
+        return;
+    };
+
+    // Get isolate state and set is_ref to true
+    let isolate: &mut v8::Isolate = scope;
+    let state = crate::IsolateState::get(isolate);
+    if let Some(socket) = state
+        .borrow()
+        .active_dgram_sockets
+        .borrow_mut()
+        .get_mut(&socket_id)
+    {
+        socket.is_ref = true;
+    }
+}
+
+/// Unreference the socket to allow the event loop to exit
+/// Args: socket_id (number)
+#[inline]
+fn dgram_unref(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    if !crate::error::check_arg_count(scope, &args, 1, "dgramUnref") {
+        return;
+    }
+
+    let socket_id_arg = args.get(0);
+    let socket_id = if socket_id_arg.is_number() {
+        socket_id_arg.number_value(scope).unwrap() as u64
+    } else {
+        crate::error::throw_type_error(scope, "Socket ID must be a number");
+        return;
+    };
+
+    // Get isolate state and set is_ref to false
+    let isolate: &mut v8::Isolate = scope;
+    let state = crate::IsolateState::get(isolate);
+    if let Some(socket) = state
+        .borrow()
+        .active_dgram_sockets
+        .borrow_mut()
+        .get_mut(&socket_id)
+    {
+        socket.is_ref = false;
     }
 }

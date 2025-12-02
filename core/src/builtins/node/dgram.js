@@ -5,7 +5,7 @@
 'use strict';
 
 // eslint-disable-next-line no-unused-expressions
-(({ dgramCreateSocket, dgramBind, dgramSend, dgramClose, dgramAddress, dgramSetBroadcast, dgramSetTTL, dgramSetMulticastTTL, dgramSetMulticastLoopback, dgramAddMembership, dgramDropMembership, dgramRecv }) => {
+(({ dgramCreateSocket, dgramBind, dgramSend, dgramClose, dgramAddress, dgramSetBroadcast, dgramSetTTL, dgramSetMulticastTTL, dgramSetMulticastLoopback, dgramAddMembership, dgramDropMembership, dgramRecv, dgramRegisterForMessages, dgramUnregisterForMessages, dgramRef, dgramUnref }) => {
 
   /**
    * Socket class - represents a UDP socket
@@ -18,6 +18,8 @@
     #closed = false;
     #recvBufferSize = 65536;
     #sendBufferSize = 65536;
+    #socketId = null; // ID for event loop registration
+    #isRef = true;    // Whether this socket keeps the event loop alive
 
     constructor(options) {
       super();
@@ -111,6 +113,21 @@
     #bindInternal(port, address) {
       this.#socket = dgramBind(this.#type, port, address);
       this.#bound = true;
+      
+      // Register the socket for message callbacks from the event loop
+      // This callback will be called when data is received
+      this.#socketId = dgramRegisterForMessages(this.#socket, (data, rinfo) => {
+        // Dispatch the message event
+        const event = new Event('message');
+        event.data = data;
+        event.rinfo = rinfo;
+        this.dispatchEvent(event);
+      });
+      
+      // Apply ref/unref state
+      if (!this.#isRef) {
+        dgramUnref(this.#socketId);
+      }
     }
 
     /**
@@ -221,6 +238,16 @@
       }
 
       this.#closed = true;
+
+      // Unregister from event loop first
+      if (this.#socketId !== null) {
+        try {
+          dgramUnregisterForMessages(this.#socketId);
+        } catch (err) {
+          // Ignore unregister errors
+        }
+        this.#socketId = null;
+      }
 
       if (this.#socket) {
         try {
@@ -389,8 +416,10 @@
      * @returns {Socket} this
      */
     ref() {
-      // In our implementation, sockets don't keep the event loop alive by default
-      // This is a no-op for compatibility
+      this.#isRef = true;
+      if (this.#socketId !== null) {
+        dgramRef(this.#socketId);
+      }
       return this;
     }
 
@@ -399,8 +428,10 @@
      * @returns {Socket} this
      */
     unref() {
-      // In our implementation, sockets don't keep the event loop alive by default
-      // This is a no-op for compatibility
+      this.#isRef = false;
+      if (this.#socketId !== null) {
+        dgramUnref(this.#socketId);
+      }
       return this;
     }
 

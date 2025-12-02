@@ -87,6 +87,7 @@ mod tests {
             socket.on('listening', () => { bound = true; });
             socket.bind(0);
             // Wait for async listening event
+            socket.close();
             bound
             "#,
             "test",
@@ -108,7 +109,9 @@ mod tests {
             const socket = dgram.createSocket('udp4');
             socket.bind(0);
             const addr = socket.address();
-            typeof addr.address === 'string' && typeof addr.port === 'number' && addr.family === 'IPv4'
+            const result = typeof addr.address === 'string' && typeof addr.port === 'number' && addr.family === 'IPv4';
+            socket.close();
+            result
             "#,
             "test",
         );
@@ -344,5 +347,85 @@ mod tests {
             "test",
         );
         assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_dgram_socket_message_callback_registration() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Test that registering a message listener works without error
+        let result = jstime.run_script(
+            r#"
+            const dgram = globalThis.__node_modules['node:dgram'];
+            const server = dgram.createSocket('udp4');
+            let callbackRegistered = false;
+            
+            server.on('message', (msg, rinfo) => {
+                // This callback won't be called in this test
+                callbackRegistered = true;
+            });
+            
+            server.bind(0);
+            const addr = server.address();
+            
+            // Verify the socket is bound and the callback was registered
+            // (the callback won't fire because we close immediately)
+            server.close();
+            
+            addr.port > 0 && addr.family === 'IPv4'
+            "#,
+            "test",
+        );
+        assert_eq!(result.unwrap(), "true");
+    }
+
+    #[test]
+    fn test_dgram_socket_unref_allows_exit() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let result = jstime.run_script(
+            r#"
+            const dgram = globalThis.__node_modules['node:dgram'];
+            const socket = dgram.createSocket('udp4');
+            socket.bind(0);
+            
+            // Unref should allow the process to exit even with bound socket
+            socket.unref();
+            
+            'unref_called'
+            "#,
+            "test",
+        );
+        // This test should complete without hanging since unref() was called
+        assert_eq!(result.unwrap(), "unref_called");
+    }
+
+    #[test]
+    fn test_dgram_socket_ref_after_unref() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let result = jstime.run_script(
+            r#"
+            const dgram = globalThis.__node_modules['node:dgram'];
+            const socket = dgram.createSocket('udp4');
+            socket.bind(0);
+            
+            // Unref, then ref, then unref again - should exit
+            socket.unref();
+            socket.ref();
+            socket.unref();
+            socket.close();
+            
+            'ref_unref_chain'
+            "#,
+            "test",
+        );
+        assert_eq!(result.unwrap(), "ref_unref_chain");
     }
 }

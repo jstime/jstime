@@ -9,6 +9,15 @@ pub(crate) struct FetchRequest {
     pub(crate) resolver: v8::Global<v8::PromiseResolver>,
 }
 
+/// Represents an active dgram socket that should be polled for incoming messages
+#[allow(dead_code)]
+pub(crate) struct ActiveDgramSocket {
+    pub(crate) socket_id: u64,
+    pub(crate) socket_ptr: *mut std::net::UdpSocket,
+    pub(crate) callback: v8::Global<v8::Function>,
+    pub(crate) is_ref: bool, // If true, keeps the event loop alive
+}
+
 /// Stores response body data for streaming
 #[allow(dead_code)]
 pub(crate) struct StreamingFetch {
@@ -166,6 +175,10 @@ pub(crate) struct IsolateState {
     pub(crate) header_vec_pool: Rc<crate::pool::Pool<Vec<(String, String)>>>,
     // Buffered random number generator for crypto operations
     pub(crate) buffered_random: RefCell<crate::buffered_random::BufferedRandom>,
+    // Active dgram sockets that should be polled for incoming messages
+    pub(crate) active_dgram_sockets: Rc<RefCell<rustc_hash::FxHashMap<u64, ActiveDgramSocket>>>,
+    // Next dgram socket ID
+    pub(crate) next_dgram_socket_id: Rc<RefCell<u64>>,
 }
 
 impl IsolateState {
@@ -180,6 +193,8 @@ impl IsolateState {
         let string_cache = Rc::new(RefCell::new(StringCache::new()));
         let next_stream_id = Rc::new(RefCell::new(1u64));
         let streaming_fetches = Rc::new(RefCell::new(rustc_hash::FxHashMap::default()));
+        let active_dgram_sockets = Rc::new(RefCell::new(rustc_hash::FxHashMap::default()));
+        let next_dgram_socket_id = Rc::new(RefCell::new(1u64));
 
         // Create object pool for header vectors with reasonable capacity limit
         let header_vec_pool = Rc::new(crate::pool::Pool::new(200));
@@ -199,6 +214,7 @@ impl IsolateState {
                 timers_to_add.clone(),
                 next_timer_id.clone(),
                 pending_fetches.clone(),
+                active_dgram_sockets.clone(),
             ))),
             timers_to_clear,
             timers_to_add,
@@ -211,6 +227,8 @@ impl IsolateState {
             streaming_fetches,
             header_vec_pool,
             buffered_random: RefCell::new(crate::buffered_random::BufferedRandom::new()),
+            active_dgram_sockets,
+            next_dgram_socket_id,
         }))
     }
 
