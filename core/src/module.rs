@@ -382,17 +382,41 @@ fn resolve_builtin_module<'a>(
     }
 
     // Generate ES module code that exports from globalThis.__node_modules
-    let js_src = format!(
-        r#"
-        const mod = globalThis.__node_modules['node:{}'];
-        if (!mod) {{
-            throw new Error('Built-in module not found: {}');
-        }}
-        export const {{ readFile, readdir, writeFile, appendFile, mkdir, rmdir, unlink, rename, copyFile, stat, access, rm, truncate, realpath, chmod, mkdtemp, readlink, symlink, lstat, chown, utimes, constants }} = mod;
-        export default mod;
-        "#,
-        module_name, module_name
-    );
+    // Different modules have different exports
+    let js_src = match module_name {
+        "fs/promises" | "fs" => format!(
+            r#"
+            const mod = globalThis.__node_modules['node:{}'];
+            if (!mod) {{
+                throw new Error('Built-in module not found: {}');
+            }}
+            export const {{ readFile, readdir, writeFile, appendFile, mkdir, rmdir, unlink, rename, copyFile, stat, access, rm, truncate, realpath, chmod, mkdtemp, readlink, symlink, lstat, chown, utimes, constants }} = mod;
+            export default mod;
+            "#,
+            module_name, module_name
+        ),
+        "dgram" => format!(
+            r#"
+            const mod = globalThis.__node_modules['node:{}'];
+            if (!mod) {{
+                throw new Error('Built-in module not found: {}');
+            }}
+            export const {{ createSocket, Socket }} = mod;
+            export default mod;
+            "#,
+            module_name, module_name
+        ),
+        _ => format!(
+            r#"
+            const mod = globalThis.__node_modules['node:{}'];
+            if (!mod) {{
+                throw new Error('Built-in module not found: {}');
+            }}
+            export default mod;
+            "#,
+            module_name, module_name
+        ),
+    };
 
     let requested_string = v8::String::new(scope, &synthetic_path).unwrap();
     let origin = crate::js_loading::create_script_origin(scope, requested_string, true);
