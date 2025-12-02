@@ -322,12 +322,65 @@ fn extract_json_string_field(json: &str, field: &str) -> Option<String> {
     extract_quoted_string(value_start)
 }
 
+/// Resolve a self-referencing import.
+/// This allows a package to import itself using its own name from the `exports` field.
+///
+/// Starting from the referrer's directory, walk up the directory tree
+/// looking for a package.json whose `name` field matches the specifier's package name.
+/// If found, resolve using the `exports` field of that package.json.
+///
+/// Examples:
+/// - In package "my-lib", `import { foo } from 'my-lib'` resolves to the package's own exports
+/// - In package "my-lib", `import { bar } from 'my-lib/utils'` resolves to the package's "./utils" export
+fn resolve_self_reference(referrer_path: &str, specifier: &str) -> Option<String> {
+    let (package_name, subpath) = parse_package_specifier(specifier);
+
+    // Start from the referrer's directory
+    let referrer = Path::new(referrer_path);
+    let mut current_dir = if referrer.is_file() {
+        referrer.parent()?
+    } else {
+        referrer
+    };
+
+    // Walk up the directory tree looking for package.json with matching name
+    loop {
+        let package_json_path = current_dir.join("package.json");
+        if package_json_path.exists()
+            && let Ok(content) = std::fs::read_to_string(&package_json_path)
+            && let Some(name) = extract_json_string_field(&content, "name")
+            && name == package_name
+        {
+            // Found a matching package.json, resolve using exports field
+            if let Some(entry_path) = read_package_json_main(current_dir, subpath) {
+                return entry_path.to_str().map(|s| s.to_string());
+            }
+        }
+
+        // Move up to parent directory
+        match current_dir.parent() {
+            Some(parent) => current_dir = parent,
+            None => break,
+        }
+    }
+
+    None
+}
+
 /// Resolve a bare specifier by searching node_modules directories.
 /// This implements the Node.js module resolution algorithm.
 ///
 /// Starting from the referrer's directory, walk up the directory tree
 /// looking for node_modules/<package_name>.
+///
+/// Also supports self-referencing: a package can import itself using its own name.
 fn resolve_bare_specifier(referrer_path: &str, specifier: &str) -> Option<String> {
+    // First, try to resolve as a self-reference
+    // This allows a package to import itself using its own name
+    if let Some(resolved) = resolve_self_reference(referrer_path, specifier) {
+        return Some(resolved);
+    }
+
     let (package_name, subpath) = parse_package_specifier(specifier);
 
     // Start from the referrer's directory
