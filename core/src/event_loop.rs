@@ -37,6 +37,8 @@ pub(crate) struct EventLoop {
     timers_to_clear: Rc<RefCell<Vec<TimerId>>>,
     timers_to_add: Rc<RefCell<Vec<PendingTimer>>>,
     pending_fetches: Rc<RefCell<Vec<crate::isolate_state::FetchRequest>>>,
+    active_dgram_sockets:
+        Rc<RefCell<rustc_hash::FxHashMap<u64, crate::isolate_state::ActiveDgramSocket>>>,
 }
 
 impl EventLoop {
@@ -45,6 +47,9 @@ impl EventLoop {
         timers_to_add: Rc<RefCell<Vec<PendingTimer>>>,
         _next_timer_id: Rc<RefCell<u64>>,
         pending_fetches: Rc<RefCell<Vec<crate::isolate_state::FetchRequest>>>,
+        active_dgram_sockets: Rc<
+            RefCell<rustc_hash::FxHashMap<u64, crate::isolate_state::ActiveDgramSocket>>,
+        >,
     ) -> Self {
         Self {
             timers: BTreeMap::new(),
@@ -52,6 +57,7 @@ impl EventLoop {
             timers_to_clear,
             timers_to_add,
             pending_fetches,
+            active_dgram_sockets,
         }
     }
 
@@ -127,9 +133,19 @@ impl EventLoop {
         }
     }
 
-    /// Check if there are any pending timers or fetch requests
+    /// Check if there are any pending timers, fetch requests, or active dgram sockets
     pub(crate) fn has_pending_timers(&self) -> bool {
-        !self.timers.is_empty() || !self.pending_fetches.borrow().is_empty()
+        !self.timers.is_empty()
+            || !self.pending_fetches.borrow().is_empty()
+            || self.has_ref_dgram_sockets()
+    }
+
+    /// Check if there are any dgram sockets that are keeping the event loop alive
+    fn has_ref_dgram_sockets(&self) -> bool {
+        self.active_dgram_sockets
+            .borrow()
+            .values()
+            .any(|socket| socket.is_ref)
     }
 
     /// Get the next timer fire time
@@ -176,6 +192,93 @@ impl EventLoop {
             timer.fire_at = new_fire_at;
 
             self.timer_queue.entry(new_fire_at).or_default().push(id);
+        }
+    }
+
+    /// Poll dgram sockets for incoming data and invoke callbacks
+    #[inline]
+    fn poll_dgram_sockets(&self, scope: &mut v8::PinScope) {
+        let sockets_borrow = self.active_dgram_sockets.borrow();
+        if sockets_borrow.is_empty() {
+            return;
+        }
+
+        // Collect socket IDs to poll (we'll re-validate each one before use)
+        let socket_ids: SmallVec<[u64; 8]> = sockets_borrow.keys().copied().collect();
+        drop(sockets_borrow);
+
+        // Reuse buffer across all sockets (64KB max UDP packet size)
+        let mut buf = vec![0u8; 65536];
+
+        for socket_id in socket_ids {
+            // Re-borrow and validate the socket is still registered
+            // This prevents use-after-free if the socket was closed during callback execution
+            let socket_data = {
+                let sockets_borrow = self.active_dgram_sockets.borrow();
+                sockets_borrow
+                    .get(&socket_id)
+                    .map(|s| (s.socket_ptr, s.callback.clone()))
+            };
+
+            let Some((socket_ptr, callback)) = socket_data else {
+                continue;
+            };
+
+            if socket_ptr.is_null() {
+                continue;
+            }
+
+            // SAFETY: We only access the socket if it's still registered in active_dgram_sockets.
+            // The JS layer ensures unregister is called before close, and we re-validate
+            // registration before each access.
+            let socket = unsafe { &*socket_ptr };
+
+            // Try to receive data (non-blocking)
+            match socket.recv_from(&mut buf) {
+                Ok((size, addr)) => {
+                    // Create Uint8Array with the received data
+                    let data_slice = buf[..size].to_vec();
+                    let backing_store =
+                        v8::ArrayBuffer::new_backing_store_from_vec(data_slice).make_shared();
+                    let array_buffer = v8::ArrayBuffer::with_backing_store(scope, &backing_store);
+                    let uint8_array = v8::Uint8Array::new(scope, array_buffer, 0, size).unwrap();
+
+                    // Create rinfo object
+                    let rinfo = v8::Object::new(scope);
+
+                    let address_key = v8::String::new(scope, "address").unwrap();
+                    let address_value = v8::String::new(scope, &addr.ip().to_string()).unwrap();
+                    rinfo.set(scope, address_key.into(), address_value.into());
+
+                    let family_key = v8::String::new(scope, "family").unwrap();
+                    let family_value = if addr.is_ipv4() {
+                        v8::String::new(scope, "IPv4").unwrap()
+                    } else {
+                        v8::String::new(scope, "IPv6").unwrap()
+                    };
+                    rinfo.set(scope, family_key.into(), family_value.into());
+
+                    let port_key = v8::String::new(scope, "port").unwrap();
+                    let port_value = v8::Number::new(scope, addr.port() as f64);
+                    rinfo.set(scope, port_key.into(), port_value.into());
+
+                    let size_key = v8::String::new(scope, "size").unwrap();
+                    let size_value = v8::Number::new(scope, size as f64);
+                    rinfo.set(scope, size_key.into(), size_value.into());
+
+                    // Call the callback with (data, rinfo)
+                    let callback_local = v8::Local::new(scope, &callback);
+                    let recv = v8::undefined(scope).into();
+                    let _ = callback_local.call(scope, recv, &[uint8_array.into(), rinfo.into()]);
+                }
+                Err(e) => {
+                    // For non-blocking sockets, WouldBlock means no data available - this is normal
+                    if e.kind() != std::io::ErrorKind::WouldBlock {
+                        // Log other errors but don't throw - the socket might still be usable
+                        eprintln!("dgram recv error: {}", e);
+                    }
+                }
+            }
         }
     }
 
@@ -401,6 +504,9 @@ impl EventLoop {
             // Process pending fetch requests
             self.process_fetches(scope);
 
+            // Poll dgram sockets for incoming data
+            self.poll_dgram_sockets(scope);
+
             // Process all microtasks
             scope.perform_microtask_checkpoint();
 
@@ -409,13 +515,25 @@ impl EventLoop {
                 break;
             }
 
-            // Get next fire time
-            if let Some(next_time) = self.next_fire_time() {
+            // Determine sleep duration
+            let has_dgram_sockets = self.has_ref_dgram_sockets();
+            let sleep_duration = if has_dgram_sockets {
+                // When dgram sockets are active, use a short poll interval
+                // This allows us to check for incoming UDP data frequently
+                Some(Duration::from_millis(10))
+            } else if let Some(next_time) = self.next_fire_time() {
                 let now = Instant::now();
                 if next_time > now {
-                    // Sleep until next timer
-                    std::thread::sleep(next_time - now);
+                    Some(next_time - now)
+                } else {
+                    None
                 }
+            } else {
+                None
+            };
+
+            if let Some(duration) = sleep_duration {
+                std::thread::sleep(duration);
             }
 
             // Collect and execute ready timers
@@ -455,6 +573,9 @@ impl EventLoop {
         // Process pending fetch requests
         self.process_fetches(scope);
 
+        // Poll dgram sockets for incoming data
+        self.poll_dgram_sockets(scope);
+
         // Process all microtasks
         scope.perform_microtask_checkpoint();
 
@@ -493,6 +614,7 @@ impl Default for EventLoop {
             Rc::new(RefCell::new(Vec::new())),
             Rc::new(RefCell::new(1)),
             Rc::new(RefCell::new(Vec::new())),
+            Rc::new(RefCell::new(rustc_hash::FxHashMap::default())),
         )
     }
 }
