@@ -173,6 +173,8 @@ fn repl(mut jstime: jstime::JSTime) {
                 let property_prefix = &line[property_start..pos];
 
                 // Property completions for known objects
+                // NOTE: When adding new built-in APIs to jstime, update this list.
+                // See also: copilot-instructions.md "Adding New Built-ins" section.
                 let properties = match obj_name {
                     "console" => vec![
                         "log",
@@ -292,6 +294,65 @@ fn repl(mut jstime: jstime::JSTime) {
                         "type",
                         "url",
                     ],
+                    // jstime WHATWG APIs
+                    "Event" => vec![
+                        "type",
+                        "target",
+                        "currentTarget",
+                        "eventPhase",
+                        "bubbles",
+                        "cancelable",
+                        "defaultPrevented",
+                        "composed",
+                        "isTrusted",
+                        "timeStamp",
+                        "stopPropagation",
+                        "stopImmediatePropagation",
+                        "preventDefault",
+                        "NONE",
+                        "CAPTURING_PHASE",
+                        "AT_TARGET",
+                        "BUBBLING_PHASE",
+                    ],
+                    "EventTarget" => {
+                        vec!["addEventListener", "removeEventListener", "dispatchEvent"]
+                    }
+                    "TextEncoder" => vec!["encoding", "encode", "encodeInto"],
+                    "TextDecoder" => vec!["encoding", "fatal", "ignoreBOM", "decode"],
+                    "ReadableStream" => vec!["locked", "cancel", "getReader"],
+                    "WritableStream" => vec!["locked", "abort", "getWriter"],
+                    "TransformStream" => vec!["readable", "writable"],
+                    // jstime W3C APIs
+                    "crypto" => vec!["getRandomValues", "randomUUID", "subtle"],
+                    "subtle" => vec![
+                        "digest",
+                        "sign",
+                        "verify",
+                        "encrypt",
+                        "decrypt",
+                        "generateKey",
+                        "importKey",
+                        "exportKey",
+                    ],
+                    "performance" => vec!["now", "timeOrigin", "toJSON"],
+                    // jstime Node.js compatible APIs
+                    "process" => vec!["env", "argv", "cwd", "exit", "stdout", "stderr", "stdin"],
+                    // WebAssembly
+                    "WebAssembly" => vec![
+                        "compile",
+                        "compileStreaming",
+                        "instantiate",
+                        "instantiateStreaming",
+                        "validate",
+                        "Module",
+                        "Instance",
+                        "Memory",
+                        "Table",
+                        "Global",
+                        "CompileError",
+                        "LinkError",
+                        "RuntimeError",
+                    ],
                     _ => vec![],
                 };
 
@@ -318,6 +379,8 @@ fn repl(mut jstime: jstime::JSTime) {
             let word = &line[start..pos];
 
             // Common JavaScript globals and jstime-specific APIs
+            // NOTE: When adding new built-in APIs to jstime, update this list.
+            // See also: copilot-instructions.md "Adding New Built-ins" section.
             let keywords = vec![
                 // JavaScript built-in objects
                 "Array",
@@ -333,6 +396,7 @@ fn repl(mut jstime: jstime::JSTime) {
                 "String",
                 "Symbol",
                 "JSON",
+                "WebAssembly",
                 // Common globals
                 "console",
                 "undefined",
@@ -349,7 +413,7 @@ fn repl(mut jstime: jstime::JSTime) {
                 "decodeURI",
                 "encodeURIComponent",
                 "decodeURIComponent",
-                // jstime-specific
+                // jstime WHATWG APIs
                 "setTimeout",
                 "setInterval",
                 "clearTimeout",
@@ -357,6 +421,25 @@ fn repl(mut jstime: jstime::JSTime) {
                 "queueMicrotask",
                 "URL",
                 "URLSearchParams",
+                "atob",
+                "btoa",
+                "structuredClone",
+                "TextEncoder",
+                "TextDecoder",
+                "Event",
+                "EventTarget",
+                "ReadableStream",
+                "ReadableStreamDefaultReader",
+                "WritableStream",
+                "WritableStreamDefaultWriter",
+                "TransformStream",
+                // jstime W3C APIs
+                "crypto",
+                "Crypto",
+                "SubtleCrypto",
+                "performance",
+                // jstime Node.js compatible APIs
+                "process",
                 // Fetch API
                 "fetch",
                 "Headers",
