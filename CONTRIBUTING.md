@@ -44,7 +44,8 @@ jstime/
 │   └── tests/      # Integration tests
 ├── cli/            # CLI tool
 ├── docs/           # Documentation
-└── examples/       # Example scripts
+├── examples/       # Example scripts
+└── benchmarks/     # Performance benchmarks
 ```
 
 ## Development Workflow

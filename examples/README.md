@@ -218,6 +218,106 @@ jstime examples/text-encoding-demo.js
 
 ---
 
+### Crypto API
+
+**File:** `crypto-demo.js`
+
+Demonstrates basic cryptographic operations:
+- Generating random values with `crypto.getRandomValues()`
+- Generating UUIDs with `crypto.randomUUID()`
+- Computing hash digests with `crypto.subtle.digest()`
+- SHA-256, SHA-384, and SHA-512 hashing
+
+**To run:**
+```bash
+jstime examples/crypto-demo.js
+```
+
+**Advanced example:** `crypto-advanced-demo.js` - Shows advanced features including HMAC signing/verification, AES-GCM encryption/decryption, and key management.
+
+**See also:** [Crypto API documentation](../docs/apis/encoding-crypto.md#web-cryptography-api)
+
+---
+
+### Process API
+
+**File:** `process-demo.js`
+
+Demonstrates the Node.js-compatible Process API:
+- Accessing environment variables with `process.env`
+- Getting command-line arguments with `process.argv`
+- Getting current working directory with `process.cwd()`
+- Writing to stdout and stderr with `process.stdout` and `process.stderr`
+- Exiting the process with `process.exit()`
+
+**To run:**
+```bash
+jstime examples/process-demo.js
+```
+
+**See also:** [Process API documentation](../docs/apis/system.md#process-api)
+
+---
+
+### Streams API
+
+**File:** `streams-demo.js`
+
+Demonstrates the WHATWG Streams API:
+- Creating ReadableStreams with custom source
+- Creating WritableStreams with custom sink
+- Creating TransformStreams for data transformation
+- Reading from streams with getReader()
+- Writing to streams with getWriter()
+- Stream pipelines
+
+**To run:**
+```bash
+jstime examples/streams-demo.js
+```
+
+**See also:** [Streams API documentation](../docs/apis/web-apis.md#streams-api)
+
+---
+
+### Error Handling
+
+**File:** `error-handling-demo.js`
+
+Demonstrates error handling and debugging features:
+- Understanding error messages and stack traces
+- Color-coded error output
+- Common error types (ReferenceError, TypeError, SyntaxError)
+- Best practices for error handling
+
+**To run:**
+```bash
+jstime examples/error-handling-demo.js
+```
+
+**See also:** [Error Handling documentation](../docs/apis/error-handling.md)
+
+---
+
+### Dynamic Imports
+
+**File:** `dynamic-import-example.mjs` (ES Module)
+
+Demonstrates dynamic module imports:
+- Using `import()` to load modules at runtime
+- Conditional imports
+- Error handling with dynamic imports
+- Loading JSON modules dynamically
+
+**To run:**
+```bash
+jstime examples/dynamic-import-example.mjs
+```
+
+**See also:** [ES Modules documentation](../docs/apis/modules.md#dynamic-imports)
+
+---
+
 ### File System API
 
 **File:** `fs-demo.js` (ES Module)
@@ -307,23 +407,31 @@ jstime examples/json-import-example.js
 - [Performance](performance-demo.js) - High-resolution timing
 - [JIT Warmup](warmup-demo.js) - Performance optimization with warmup
 - [Events](events-demo.js) - Event and EventTarget
+- [Error Handling](error-handling-demo.js) - Error messages and debugging
 
 ### Web APIs
 - [Fetch API](fetch-demo.mjs) - HTTP requests
 - [URL API](url-demo.js) - URL parsing and manipulation
+- [Streams API](streams-demo.js) - ReadableStream, WritableStream, TransformStream
 
 ### Data APIs
 - [Structured Clone](structured-clone-demo.mjs) - Deep cloning objects
 - [Text Encoding](text-encoding-demo.js) - UTF-8 encoding and decoding
 
-### File System
+### Cryptography
+- [Basic Crypto](crypto-demo.js) - Random values, UUIDs, hashing
+- [Advanced Crypto](crypto-advanced-demo.js) - HMAC, AES-GCM encryption
+
+### System APIs
+- [Process API](process-demo.js) - Environment, arguments, I/O
 - [Basic File System](fs-demo.js) - Reading files and directories
 - [Complete File System](fs-complete-demo.js) - All filesystem operations
 - [UDP Sockets](dgram-demo.js) - UDP networking with dgram module
 
-### Advanced Features
+### Module System
 - [WebAssembly](webassembly-demo.js) - Running compiled modules
 - [JSON Imports](json-import-example.js) - ES module JSON imports
+- [Dynamic Imports](dynamic-import-example.mjs) - Runtime module loading
 
 ## Creating Your Own Examples
 

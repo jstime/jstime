@@ -28,7 +28,7 @@ jstime is a minimal JavaScript runtime built on top of the V8 JavaScript engine.
 ### Technology Stack
 
 - **Language**: Rust (2024 edition)
-- **JavaScript Engine**: V8 (v142.0.0)
+- **JavaScript Engine**: V8 (v142.2.0)
 - **Build System**: Cargo
 - **Testing**: Rust's built-in test framework
 
@@ -254,11 +254,13 @@ Each API follows a two-part structure:
 - Text Encoding: TextEncoder and TextDecoder
 
 **Crypto APIs**:
-- Web Crypto: getRandomValues, randomUUID, subtle.digest
+- Web Crypto: getRandomValues, randomUUID, subtle (digest, sign, verify, encrypt, decrypt)
 
 **System APIs**:
 - File System: Node.js-compatible fs/promises API
-- Process: Environment variables, arguments, working directory
+- Process: Environment variables, arguments, working directory, stdin/stdout/stderr
+- Buffer: Node.js-compatible Buffer for binary data
+- UDP Sockets: Node.js-compatible dgram module
 
 **Advanced APIs**:
 - WebAssembly: WASM module execution (via V8)
@@ -284,7 +286,8 @@ Import Specifier → Resolve Algorithm → Absolute Path → Load & Compile
 **Resolution Rules**:
 1. Relative imports: Resolve relative to importing file
 2. Absolute paths: Use as-is
-3. Bare specifiers: Not supported (Node.js-style resolution not implemented)
+3. Bare specifiers: Resolved from `node_modules` directories (Node.js-compatible)
+4. Package imports: `#imports` field in package.json supported
 
 ### JSON Modules
 
