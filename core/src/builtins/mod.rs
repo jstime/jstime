@@ -23,6 +23,7 @@ mod w3c {
 // Node.js Compatible APIs
 mod node {
     pub(crate) mod dgram_impl;
+    pub(crate) mod events_impl;
     pub(crate) mod fs_impl;
     pub(crate) mod process_impl;
 }
@@ -52,6 +53,7 @@ pub(crate) fn get_external_references() -> SmallVec<[v8::ExternalReference; 128]
 
     // Node.js
     refs.extend(node::dgram_impl::get_external_references());
+    refs.extend(node::events_impl::get_external_references());
     refs.extend(node::fs_impl::get_external_references());
     refs.extend(node::process_impl::get_external_references());
 
@@ -83,6 +85,7 @@ impl Builtins {
 
         // Node.js
         node::dgram_impl::register_bindings(scope, bindings);
+        node::events_impl::register_bindings(scope, bindings);
         node::fs_impl::register_bindings(scope, bindings);
         node::process_impl::register_bindings(scope, bindings);
 
@@ -118,6 +121,7 @@ impl Builtins {
 
         // Node.js
         builtin!("./node/dgram.js");
+        builtin!("./node/events.js");
         builtin!("./node/fs.js");
         builtin!("./node/process.js");
 
