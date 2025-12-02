@@ -1,7 +1,6 @@
 use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::net::UdpSocket;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -204,23 +203,35 @@ impl EventLoop {
             return;
         }
 
-        // Collect sockets to poll and their callbacks
-        let sockets_to_poll: SmallVec<[(u64, *mut UdpSocket, v8::Global<v8::Function>); 4]> =
-            sockets_borrow
-                .iter()
-                .map(|(id, socket)| (*id, socket.socket_ptr, socket.callback.clone()))
-                .collect();
+        // Collect socket IDs to poll (we'll re-validate each one before use)
+        let socket_ids: SmallVec<[u64; 8]> = sockets_borrow.keys().copied().collect();
         drop(sockets_borrow);
 
-        for (_socket_id, socket_ptr, callback) in sockets_to_poll {
+        // Reuse buffer across all sockets (64KB max UDP packet size)
+        let mut buf = vec![0u8; 65536];
+
+        for socket_id in socket_ids {
+            // Re-borrow and validate the socket is still registered
+            // This prevents use-after-free if the socket was closed during callback execution
+            let socket_data = {
+                let sockets_borrow = self.active_dgram_sockets.borrow();
+                sockets_borrow
+                    .get(&socket_id)
+                    .map(|s| (s.socket_ptr, s.callback.clone()))
+            };
+
+            let Some((socket_ptr, callback)) = socket_data else {
+                continue;
+            };
+
             if socket_ptr.is_null() {
                 continue;
             }
 
+            // SAFETY: We only access the socket if it's still registered in active_dgram_sockets.
+            // The JS layer ensures unregister is called before close, and we re-validate
+            // registration before each access.
             let socket = unsafe { &*socket_ptr };
-
-            // Use a buffer for receiving data (64KB max UDP packet size)
-            let mut buf = vec![0u8; 65536];
 
             // Try to receive data (non-blocking)
             match socket.recv_from(&mut buf) {
