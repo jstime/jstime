@@ -117,9 +117,13 @@
       // Register the socket for message callbacks from the event loop
       // This callback will be called when data is received
       this.#socketId = dgramRegisterForMessages(this.#socket, (data, rinfo) => {
+        // Wrap the Uint8Array data in a Buffer for Node.js compatibility
+        // Node.js dgram message event passes a Buffer, not a Uint8Array
+        const bufferData = globalThis.Buffer ? globalThis.Buffer.from(data) : data;
+        
         // Dispatch the message event
         const event = new Event('message');
-        event.data = data;
+        event.data = bufferData;
         event.rinfo = rinfo;
         this.dispatchEvent(event);
       });
