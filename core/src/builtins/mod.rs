@@ -118,6 +118,7 @@ impl Builtins {
 
         // Node.js
         builtin!("./node/dgram.js");
+        builtin!("./node/events.js");
         builtin!("./node/fs.js");
         builtin!("./node/process.js");
 
