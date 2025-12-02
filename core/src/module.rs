@@ -940,6 +940,17 @@ fn resolve_builtin_module<'a>(
             "#,
             module_name, module_name
         ),
+        "events" => format!(
+            r#"
+            const mod = globalThis.__node_modules['node:{}'];
+            if (!mod) {{
+                throw new Error('Built-in module not found: {}');
+            }}
+            export const {{ EventEmitter, once, listenerCount, getEventListeners }} = mod;
+            export default mod.EventEmitter;
+            "#,
+            module_name, module_name
+        ),
         _ => format!(
             r#"
             const mod = globalThis.__node_modules['node:{}'];
