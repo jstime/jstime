@@ -167,15 +167,21 @@ This directory contains conformance tests for jstime's implementation of standar
 ### Crypto API
 - **File**: `test_conformance_crypto.rs`
 - **Specification**: [W3C Web Cryptography API](https://w3c.github.io/webcrypto/)
-- **Tests**: 17 tests
+- **Tests**: 34 tests
 - **Coverage**:
   - `crypto` global object
   - `crypto.getRandomValues()` with various TypedArray types
   - `crypto.randomUUID()` UUID v4 generation
   - `crypto.subtle.digest()` with SHA-256, SHA-384, SHA-512
+  - `crypto.subtle.sign()` and `crypto.subtle.verify()` with HMAC
+  - `crypto.subtle.encrypt()` and `crypto.subtle.decrypt()` with AES-GCM
+  - `crypto.subtle.generateKey()` for AES-GCM and HMAC keys
+  - `crypto.subtle.importKey()` and `crypto.subtle.exportKey()` with raw format
+  - AES-GCM with additional authenticated data (AAD)
   - Hash output sizes and formats
   - Error handling for invalid algorithm names
   - Error handling for non-TypedArray inputs
+  - Error handling for non-extractable keys
 
 ### JSON Modules
 - **File**: `test_conformance_json_modules.rs`
@@ -273,7 +279,7 @@ When adding new conformance tests:
 ## Total Coverage
 
 - **Total Test Files**: 13
-- **Total Tests**: 312
+- **Total Tests**: 329
 - **APIs Covered**: Base64 Encoding, Console, Crypto, Event and EventTarget, Fetch, JSON Modules, Performance, Streams, Structured Clone, Text Encoding, Timers, URL, WebAssembly
 
 All tests pass ✓

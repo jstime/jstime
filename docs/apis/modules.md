@@ -474,7 +474,7 @@ jstime supports importing JSON files as ES modules, following the [JSON modules 
 ```json
 {
   "name": "jstime",
-  "version": "0.60.0",
+  "version": "0.65.0",
   "features": ["ES Modules", "WebAssembly", "Fetch API"]
 }
 ```
@@ -485,7 +485,7 @@ jstime supports importing JSON files as ES modules, following the [JSON modules 
 import data from './data.json';
 
 console.log(data.name);        // "jstime"
-console.log(data.version);     // "0.60.0"
+console.log(data.version);     // "0.65.0"
 console.log(data.features[0]); // "ES Modules"
 ```
 
