@@ -5,6 +5,7 @@ This document describes the system-level APIs implemented in jstime for interact
 ## Table of Contents
 
 - [Process API](#process-api)
+- [Buffer API](#buffer-api)
 - [File System API](#file-system-api)
 
 ## Process API
@@ -215,6 +216,367 @@ jstime's Process API implements a minimal subset of Node.js's process object:
 The `process.stdout`, `process.stderr`, and `process.stdin` are implemented as basic stream-like objects with `write()` and `read()` methods respectively. They support writing strings and Uint8Arrays, but don't include the full Node.js Stream API features.
 
 For most common use cases (configuration, CLI arguments, working directory, basic I/O), jstime's Process API provides sufficient functionality.
+
+## Buffer API
+
+jstime provides a Node.js-compatible Buffer API through the `node:buffer` module. Buffer is used to work with binary data directly and is essential for tasks like file I/O, network communication, and cryptography.
+
+### Usage
+
+```javascript
+import { Buffer } from 'node:buffer';
+// or
+import bufferModule from 'node:buffer';
+const { Buffer } = bufferModule;
+```
+
+**Note:** `Buffer` is also available globally, so you can use it without importing.
+
+### Creating Buffers
+
+#### Buffer.alloc(size[, fill[, encoding]])
+
+Allocates a new Buffer of the specified size. If `fill` is provided, the buffer will be filled with that value.
+
+```javascript
+// Create a 10-byte buffer filled with zeros
+const buf1 = Buffer.alloc(10);
+console.log(buf1); // <Buffer 00 00 00 00 00 00 00 00 00 00>
+
+// Create a 10-byte buffer filled with 0x41 ('A')
+const buf2 = Buffer.alloc(10, 0x41);
+console.log(buf2.toString()); // 'AAAAAAAAAA'
+
+// Create a buffer filled with a string pattern
+const buf3 = Buffer.alloc(10, 'abc');
+console.log(buf3.toString()); // 'abcabcabca'
+```
+
+#### Buffer.allocUnsafe(size)
+
+Allocates a new Buffer of the specified size without initializing the memory.
+
+```javascript
+const buf = Buffer.allocUnsafe(10);
+// Note: contents are uninitialized and may contain old data
+```
+
+#### Buffer.from(source[, encoding])
+
+Creates a new Buffer from various sources:
+
+```javascript
+// From string (default UTF-8)
+const buf1 = Buffer.from('Hello, World!');
+
+// From string with encoding
+const buf2 = Buffer.from('48656c6c6f', 'hex');  // 'Hello'
+const buf3 = Buffer.from('SGVsbG8=', 'base64'); // 'Hello'
+
+// From array of bytes
+const buf4 = Buffer.from([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // 'Hello'
+
+// From another Buffer
+const buf5 = Buffer.from(buf1);
+
+// From ArrayBuffer
+const arrayBuffer = new ArrayBuffer(4);
+const buf6 = Buffer.from(arrayBuffer);
+```
+
+### Supported Encodings
+
+- `utf8` / `utf-8` - Multi-byte encoded Unicode characters (default)
+- `hex` - Encode each byte as two hexadecimal characters
+- `base64` - Base64 encoding
+- `base64url` - URL-safe Base64 encoding
+- `latin1` / `binary` - Latin-1 encoding (ISO-8859-1)
+- `ascii` - 7-bit ASCII
+
+### Converting Buffers
+
+#### toString([encoding[, start[, end]]])
+
+Decodes a Buffer to a string using the specified encoding.
+
+```javascript
+const buf = Buffer.from('Hello, World!');
+
+console.log(buf.toString());        // 'Hello, World!' (UTF-8 default)
+console.log(buf.toString('hex'));   // '48656c6c6f2c20576f726c6421'
+console.log(buf.toString('base64'));// 'SGVsbG8sIFdvcmxkIQ=='
+
+// Partial conversion
+console.log(buf.toString('utf8', 0, 5)); // 'Hello'
+```
+
+#### toJSON()
+
+Returns a JSON representation of the Buffer.
+
+```javascript
+const buf = Buffer.from([1, 2, 3]);
+console.log(buf.toJSON());
+// { type: 'Buffer', data: [1, 2, 3] }
+```
+
+### Buffer Operations
+
+#### concat(list[, totalLength])
+
+Concatenates multiple Buffers into one.
+
+```javascript
+const buf1 = Buffer.from('Hello');
+const buf2 = Buffer.from(' ');
+const buf3 = Buffer.from('World');
+
+const combined = Buffer.concat([buf1, buf2, buf3]);
+console.log(combined.toString()); // 'Hello World'
+```
+
+#### compare(buf1, buf2)
+
+Compares two Buffers, useful for sorting.
+
+```javascript
+const buf1 = Buffer.from('ABC');
+const buf2 = Buffer.from('ABD');
+
+console.log(Buffer.compare(buf1, buf1)); // 0  (equal)
+console.log(Buffer.compare(buf1, buf2)); // -1 (buf1 < buf2)
+console.log(Buffer.compare(buf2, buf1)); // 1  (buf2 > buf1)
+```
+
+#### copy(target[, targetStart[, sourceStart[, sourceEnd]]])
+
+Copies data from one Buffer to another.
+
+```javascript
+const buf1 = Buffer.from([1, 2, 3, 4]);
+const buf2 = Buffer.alloc(4);
+
+buf1.copy(buf2);
+console.log(buf2); // <Buffer 01 02 03 04>
+```
+
+#### fill(value[, offset[, end[, encoding]]])
+
+Fills a Buffer with the specified value.
+
+```javascript
+const buf = Buffer.alloc(10);
+buf.fill(0x42);
+console.log(buf.toString()); // 'BBBBBBBBBB'
+
+buf.fill('abc');
+console.log(buf.toString()); // 'abcabcabca'
+```
+
+#### slice(start[, end]) / subarray(start[, end])
+
+Returns a new Buffer that references the same memory.
+
+```javascript
+const buf = Buffer.from('Hello World');
+const slice = buf.slice(0, 5);
+console.log(slice.toString()); // 'Hello'
+```
+
+### Searching
+
+#### indexOf(value[, byteOffset[, encoding]])
+
+Returns the index of the first occurrence of value.
+
+```javascript
+const buf = Buffer.from('Hello World');
+console.log(buf.indexOf('World')); // 6
+console.log(buf.indexOf('xyz'));   // -1
+```
+
+#### lastIndexOf(value[, byteOffset[, encoding]])
+
+Returns the index of the last occurrence of value.
+
+```javascript
+const buf = Buffer.from('Hello World World');
+console.log(buf.lastIndexOf('World')); // 12
+```
+
+#### includes(value[, byteOffset[, encoding]])
+
+Returns true if the Buffer contains the specified value.
+
+```javascript
+const buf = Buffer.from('Hello World');
+console.log(buf.includes('World')); // true
+console.log(buf.includes('xyz'));   // false
+```
+
+### Comparing
+
+#### equals(otherBuffer)
+
+Returns true if the two Buffers have exactly the same bytes.
+
+```javascript
+const buf1 = Buffer.from('ABC');
+const buf2 = Buffer.from('ABC');
+const buf3 = Buffer.from('ABD');
+
+console.log(buf1.equals(buf2)); // true
+console.log(buf1.equals(buf3)); // false
+```
+
+### Reading and Writing Numbers
+
+Buffer provides methods for reading and writing integers and floating-point numbers in both little-endian and big-endian byte order.
+
+```javascript
+const buf = Buffer.alloc(8);
+
+// Write unsigned integers
+buf.writeUInt8(0x12, 0);
+buf.writeUInt16LE(0x3456, 1);
+buf.writeUInt32BE(0x789ABCDE, 3);
+
+// Read unsigned integers
+console.log(buf.readUInt8(0));       // 0x12
+console.log(buf.readUInt16LE(1));    // 0x3456
+console.log(buf.readUInt32BE(3));    // 0x789ABCDE
+
+// Signed integers
+buf.writeInt8(-128, 0);
+buf.writeInt16LE(-1000, 1);
+buf.writeInt32BE(-100000, 3);
+
+console.log(buf.readInt8(0));        // -128
+console.log(buf.readInt16LE(1));     // -1000
+console.log(buf.readInt32BE(3));     // -100000
+
+// Floating-point numbers
+buf.writeFloatLE(3.14, 0);
+buf.writeDoubleLE(3.14159265359, 0);
+
+console.log(buf.readFloatLE(0));
+console.log(buf.readDoubleLE(0));
+```
+
+### Byte Swapping
+
+```javascript
+const buf = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]);
+
+buf.swap16(); // Swap pairs of bytes
+buf.swap32(); // Swap groups of 4 bytes
+buf.swap64(); // Swap groups of 8 bytes
+```
+
+### Static Methods
+
+#### byteLength(string[, encoding])
+
+Returns the byte length of a string in the specified encoding.
+
+```javascript
+console.log(Buffer.byteLength('Hello'));       // 5 (UTF-8)
+console.log(Buffer.byteLength('Hello', 'hex')); // 2 (hex decodes to fewer bytes)
+console.log(Buffer.byteLength('中文'));         // 6 (UTF-8 multi-byte)
+```
+
+#### isEncoding(encoding)
+
+Returns true if the encoding is supported.
+
+```javascript
+console.log(Buffer.isEncoding('utf8'));    // true
+console.log(Buffer.isEncoding('hex'));     // true
+console.log(Buffer.isEncoding('invalid')); // false
+```
+
+#### isBuffer(obj)
+
+Returns true if the object is a Buffer.
+
+```javascript
+const buf = Buffer.from('test');
+const arr = new Uint8Array(4);
+
+console.log(Buffer.isBuffer(buf)); // true
+console.log(Buffer.isBuffer(arr)); // false
+console.log(Buffer.isBuffer('test')); // false
+```
+
+### Constants
+
+```javascript
+import { Buffer, kMaxLength, constants } from 'node:buffer';
+
+console.log(kMaxLength);           // Maximum buffer size (0xFFFFFFFF)
+console.log(constants.MAX_LENGTH); // Same as kMaxLength
+```
+
+### Complete Example
+
+```javascript
+import { Buffer } from 'node:buffer';
+
+// Create a buffer and write data
+const buf = Buffer.alloc(256);
+
+// Write a header
+buf.writeUInt32BE(0x4A535449, 0);  // 'JSTI' magic number
+buf.writeUInt16BE(1, 4);           // Version
+buf.writeUInt32BE(Date.now() / 1000, 6); // Timestamp
+
+// Write payload
+const payload = 'Hello, World!';
+const payloadLength = Buffer.byteLength(payload);
+buf.writeUInt16BE(payloadLength, 10);
+buf.write(payload, 12);
+
+// Read back the data
+console.log('Magic:', buf.readUInt32BE(0).toString(16));
+console.log('Version:', buf.readUInt16BE(4));
+console.log('Timestamp:', buf.readUInt32BE(6));
+console.log('Payload length:', buf.readUInt16BE(10));
+console.log('Payload:', buf.toString('utf8', 12, 12 + payloadLength));
+
+// Convert to hex for debugging
+console.log('Raw:', buf.slice(0, 12 + payloadLength).toString('hex'));
+```
+
+### Comparison with Node.js
+
+jstime's Buffer API implements a subset of Node.js's Buffer:
+
+| Feature | jstime | Node.js |
+|---------|--------|---------|
+| `Buffer.alloc()` | ✅ | ✅ |
+| `Buffer.allocUnsafe()` | ✅ | ✅ |
+| `Buffer.from()` | ✅ | ✅ |
+| `Buffer.concat()` | ✅ | ✅ |
+| `Buffer.compare()` | ✅ | ✅ |
+| `Buffer.isBuffer()` | ✅ | ✅ |
+| `Buffer.isEncoding()` | ✅ | ✅ |
+| `Buffer.byteLength()` | ✅ | ✅ |
+| `toString()` | ✅ | ✅ |
+| `toJSON()` | ✅ | ✅ |
+| `copy()` | ✅ | ✅ |
+| `fill()` | ✅ | ✅ |
+| `slice()` / `subarray()` | ✅ | ✅ |
+| `indexOf()` / `lastIndexOf()` | ✅ | ✅ |
+| `includes()` | ✅ | ✅ |
+| `equals()` | ✅ | ✅ |
+| `compare()` (instance) | ✅ | ✅ |
+| `write()` | ✅ | ✅ |
+| Read/Write methods | ✅ | ✅ |
+| `swap16/32/64()` | ✅ | ✅ |
+| `readBigInt64LE/BE()` | ❌ | ✅ |
+| `writeBigInt64LE/BE()` | ❌ | ✅ |
+| `Buffer.poolSize` | ✅ (getter only) | ✅ |
+| `transcode()` | ❌ | ✅ |
 
 ## File System API
 
