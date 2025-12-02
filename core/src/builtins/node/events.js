@@ -17,7 +17,6 @@
     constructor() {
       super();
       this._maxListeners = undefined;
-      this._wrapperMap = new Map(); // Maps original listeners to wrapped listeners
     }
 
     /**
@@ -343,8 +342,6 @@
     getEventListeners,
     default: EventEmitter,
   };
-
-  events.EventEmitter = EventEmitter;
 
   // Make it available via import
   globalThis.__node_modules = globalThis.__node_modules || {};
