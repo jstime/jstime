@@ -929,6 +929,17 @@ fn resolve_builtin_module<'a>(
             "#,
             module_name, module_name
         ),
+        "buffer" => format!(
+            r#"
+            const mod = globalThis.__node_modules['node:{}'];
+            if (!mod) {{
+                throw new Error('Built-in module not found: {}');
+            }}
+            export const {{ Buffer, kMaxLength, constants, INSPECT_MAX_BYTES, SlowBuffer }} = mod;
+            export default mod;
+            "#,
+            module_name, module_name
+        ),
         _ => format!(
             r#"
             const mod = globalThis.__node_modules['node:{}'];
