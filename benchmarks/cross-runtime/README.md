@@ -71,6 +71,8 @@ Tests verify that standard JavaScript APIs work correctly:
 - **test-streams.js** - Streams API (ReadableStream, WritableStream, TransformStream)
 - **test-structured-clone.js** - Structured Clone API (structuredClone for deep cloning)
 - **test-microtask.js** - Microtask API (queueMicrotask)
+- **test-fetch.js** - Fetch API (fetch, Headers, Request, Response)
+- **test-webassembly.js** - WebAssembly API (WebAssembly.Module, Instance, Memory, Table)
 
 Each test outputs: `API_NAME: X passed, Y failed`
 
@@ -86,6 +88,8 @@ Benchmarks measure execution speed for common operations. Each benchmark include
   - Sub-tests: creation, map, filter, reduce, push/pop
 - **bench-objects.js** - Object operations (100K iterations)
   - Sub-tests: creation, property access, property assignment, spread
+- **bench-functions.js** - Function call operations (100K iterations)
+  - Sub-tests (8): simple call, arrow function call, method call, closure call, recursive fibonacci, call method, apply method, spread call
 - **bench-json.js** - JSON operations (10K iterations)
   - Sub-tests (10): stringify for small/medium objects, arrays of numbers/strings; parse for small/medium objects, arrays; roundtrip for small/medium objects
 - **bench-base64.js** - Base64 operations (100K iterations)
@@ -112,6 +116,8 @@ Benchmarks measure execution speed for common operations. Each benchmark include
   - Sub-tests: headers_creation, headers_from_object, request_creation, response_creation
 - **bench-webassembly.js** - WebAssembly API operations (1K iterations)
   - Sub-tests: validate, module_sync, instantiate_sync, memory_creation, table_creation
+- **bench-microtask.js** - Microtask scheduling operations (10K iterations)
+  - Sub-tests: schedule_empty, schedule_with_closure, schedule_multiple
 
 Each benchmark outputs JSON with timing results including aggregate totals and individual sub-test metrics.
 
