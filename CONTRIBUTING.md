@@ -75,6 +75,9 @@ See [core/src/builtins/README.md](./core/src/builtins/README.md) for detailed in
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
    - Update `docs/README.md` if adding a new API category
+6. **Update REPL autocomplete** in `cli/main.rs`:
+   - Add global names to the `keywords` list in `JsCompleter::complete()`
+   - Add property completions for objects with methods/properties to the `properties` match statement
 
 ### Testing
 

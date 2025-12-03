@@ -131,6 +131,9 @@ Built-in APIs are located in `core/src/builtins/` and organized by standards bod
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
    - Update `docs/README.md` if adding a new API category
+7. **Update REPL autocomplete** in `cli/main.rs`:
+   - Add global names (classes, functions, objects) to the `keywords` list in `JsCompleter::complete()`
+   - Add property completions for objects with methods/properties to the `properties` match statement
 
 ## Testing
 
@@ -259,6 +262,9 @@ jstime supports ES modules with:
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
    - Update `docs/README.md` if adding a new API category
+8. **Update REPL autocomplete** in `cli/main.rs`:
+   - Add global names (classes, functions, objects) to the `keywords` list in `JsCompleter::complete()`
+   - Add property completions for objects with methods/properties to the `properties` match statement
 
 ### Debugging
 

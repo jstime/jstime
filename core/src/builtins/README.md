@@ -64,3 +64,6 @@ See [CONTRIBUTING.md](../../../CONTRIBUTING.md#adding-built-in-apis) for instruc
    - Module System: `docs/apis/modules.md`
    - Runtime features: `docs/runtime.md`
    - Update `docs/README.md` if adding a new API category
+5. **Update REPL autocomplete** in `cli/main.rs`:
+   - Add global names to the `keywords` list in `JsCompleter::complete()`
+   - Add property completions for objects to the `properties` match statement
