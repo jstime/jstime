@@ -2,6 +2,7 @@
 // Tests the ability to import .wasm files as ES modules
 
 use jstime_core as jstime;
+use std::path::Path;
 
 mod common;
 
@@ -12,7 +13,13 @@ mod wasm_module_tests {
     /// Get the path to a wasm fixture file
     fn fixture_path(name: &str) -> String {
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
-        format!("{}/tests/fixtures/wasm/{}", manifest_dir, name)
+        Path::new(manifest_dir)
+            .join("tests")
+            .join("fixtures")
+            .join("wasm")
+            .join(name)
+            .to_string_lossy()
+            .to_string()
     }
 
     #[test]
@@ -299,6 +306,39 @@ globalThis.dynamicResult = wasmModule.default.add(7, 8);"#,
 
         let result = jstime.run_script("globalThis.dynamicResult", "test");
         assert_eq!(result.unwrap(), "15");
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn import_wasm_module_invalid_compile_error() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_wasm_invalid.js");
+        let wasm_path = fixture_path("invalid.wasm");
+
+        std::fs::write(
+            &test_file,
+            format!(
+                "import wasmModule from '{}';\nglobalThis.result = wasmModule;",
+                wasm_path
+            ),
+        )
+        .unwrap();
+
+        let result = jstime.import(test_file.to_str().unwrap());
+        assert!(result.is_err(), "Expected error for invalid wasm file");
+
+        // The error should mention compilation failure
+        let error_msg = format!("{:?}", result.err());
+        assert!(
+            error_msg.contains("CompileError") || error_msg.contains("Failed to compile"),
+            "Error should mention compilation failure: {}",
+            error_msg
+        );
 
         std::fs::remove_file(&test_file).ok();
     }

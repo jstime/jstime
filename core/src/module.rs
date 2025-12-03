@@ -829,13 +829,31 @@ fn resolve<'a>(
                 // Users can import like:
                 //   import wasmExports from './module.wasm';
                 //   const result = wasmExports.add(1, 2);
+                //
+                // Error handling is included to provide clear error messages
+                // if compilation or instantiation fails.
                 format!(
                     r#"const __wasm_base64 = "{}";
 const __wasm_binary = Uint8Array.from(atob(__wasm_base64), c => c.charCodeAt(0));
-const __wasm_module = new WebAssembly.Module(__wasm_binary);
-const __wasm_instance = new WebAssembly.Instance(__wasm_module);
+let __wasm_module, __wasm_instance;
+try {{
+    __wasm_module = new WebAssembly.Module(__wasm_binary);
+}} catch (e) {{
+    throw new WebAssembly.CompileError(`Failed to compile WebAssembly module '{}': ${{e.message}}`);
+}}
+try {{
+    __wasm_instance = new WebAssembly.Instance(__wasm_module);
+}} catch (e) {{
+    throw new WebAssembly.LinkError(`Failed to instantiate WebAssembly module '{}': ${{e.message}}`);
+}}
 export default __wasm_instance.exports;"#,
-                    base64_encoded
+                    base64_encoded,
+                    requested_abs_path
+                        .replace('\\', "\\\\")
+                        .replace('"', "\\\""),
+                    requested_abs_path
+                        .replace('\\', "\\\\")
+                        .replace('"', "\\\"")
                 )
             }
             Err(e) => {
