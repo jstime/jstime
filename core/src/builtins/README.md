@@ -29,18 +29,25 @@ builtins/
 | **Timers** | `timers_impl.rs`, `timers.js` | [WHATWG HTML](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers) |
 | **Microtask** | `queue_microtask_impl.rs`, `queue_microtask.js` | [WHATWG HTML](https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#microtask-queuing) |
 | **Structured Clone** | `structured_clone_impl.rs`, `structured_clone.js` | [WHATWG HTML](https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning) |
+| **Streams** | `streams_impl.rs`, `streams.js` | [WHATWG Streams](https://streams.spec.whatwg.org/) |
+| **Text Encoding** | `text_encoding_impl.rs`, `text_encoding.js` | [WHATWG Encoding](https://encoding.spec.whatwg.org/) |
 
 ### W3C Standards (`w3c/`)
 
 | API | Files | Specification |
 |-----|-------|---------------|
 | **Performance** | `performance_impl.rs`, `performance.js` | [W3C HR Time](https://w3c.github.io/hr-time/) |
+| **Crypto** | `crypto_impl.rs`, `crypto.js` | [W3C Web Cryptography](https://w3c.github.io/webcrypto/) |
 
 ### Node.js Compatible (`node/`)
 
 | API | Files | Specification |
 |-----|-------|---------------|
 | **File System** | `fs_impl.rs`, `fs.js` | [Node.js fs/promises](https://nodejs.org/api/fs.html#promises-api) |
+| **Process** | `process_impl.rs`, `process.js` | [Node.js process](https://nodejs.org/api/process.html) |
+| **Buffer** | `buffer_impl.rs`, `buffer.js` | [Node.js Buffer](https://nodejs.org/api/buffer.html) |
+| **UDP Sockets (dgram)** | `dgram_impl.rs`, `dgram.js` | [Node.js dgram](https://nodejs.org/api/dgram.html) |
+| **Events** | `events.js` | [Node.js events](https://nodejs.org/api/events.html) |
 
 ## Adding a New API
 

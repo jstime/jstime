@@ -80,9 +80,10 @@ jstime uses V8 as its JavaScript engine, providing full support for modern JavaS
 | **Performance** | High-resolution timing with `performance.now()` |
 | **Events** | `Event` and `EventTarget` for event handling |
 | **Text Encoding** | `TextEncoder` and `TextDecoder` for UTF-8 |
-| **Cryptography** | `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()` |
+| **Cryptography** | `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.*` |
 | **Process** | `process.env`, `process.argv`, `process.cwd()`, `process.exit()` |
 | **File System** | Complete Node.js-compatible `fs/promises` API |
+| **Buffer** | Node.js-compatible `Buffer` API for binary data |
 | **UDP Sockets** | Node.js-compatible `dgram` module for UDP networking |
 | **WebAssembly** | Full WebAssembly support |
 | **ES Modules** | Full support for `import`/`export` with top-level await |
@@ -100,11 +101,17 @@ Each API has example code in the [examples/](../examples/) directory:
 - [events-demo.js](../examples/events-demo.js) - Event handling examples
 - [structured-clone-demo.mjs](../examples/structured-clone-demo.mjs) - Structured clone examples
 - [text-encoding-demo.js](../examples/text-encoding-demo.js) - Text encoding examples
+- [crypto-demo.js](../examples/crypto-demo.js) - Basic crypto examples
+- [crypto-advanced-demo.js](../examples/crypto-advanced-demo.js) - Advanced crypto features (HMAC, AES-GCM)
+- [process-demo.js](../examples/process-demo.js) - Process API examples
 - [error-handling-demo.js](../examples/error-handling-demo.js) - Error handling and debugging examples
 - [fs-demo.js](../examples/fs-demo.js) - File system basic examples
 - [fs-complete-demo.js](../examples/fs-complete-demo.js) - File system complete API examples
+- [dgram-demo.js](../examples/dgram-demo.js) - UDP socket examples
 - [webassembly-demo.js](../examples/webassembly-demo.js) - WebAssembly examples
 - [json-import-example.js](../examples/json-import-example.js) - JSON module import examples
+- [dynamic-import-example.mjs](../examples/dynamic-import-example.mjs) - Dynamic import examples
+- [warmup-demo.js](../examples/warmup-demo.js) - JIT warmup examples
 
 ## Testing
 

@@ -71,9 +71,11 @@ For detailed documentation on all supported features, see [Documentation](./docs
 - **Structured Clone API**: `structuredClone()` for deep cloning of complex objects
 - **Base64 API**: `atob()` and `btoa()` for base64 encoding/decoding
 - **Text Encoding API**: `TextEncoder` and `TextDecoder` for UTF-8 encoding/decoding
-- **Crypto API**: `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.digest()` for cryptographic operations
-- **Process API**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()` for process information
+- **Crypto API**: `crypto.getRandomValues()`, `crypto.randomUUID()`, `crypto.subtle.*` (digest, sign, verify, encrypt, decrypt)
+- **Process API**: `process.env`, `process.argv`, `process.cwd()`, `process.exit()`, `process.stdout`, `process.stderr`, `process.stdin`
 - **File System API**: Complete Node.js-compatible `fs/promises` with `readFile()`, `writeFile()`, `mkdir()`, `stat()`, and more
+- **Buffer API**: Node.js-compatible `Buffer` for binary data operations
+- **UDP Sockets API**: Node.js-compatible `dgram` module for UDP networking
 - **WebAssembly**: Full WebAssembly support for running high-performance compiled modules
 - **ES Modules**: Full support for `import`/`export` with top-level await, dynamic `import()`, and **Node.js-compatible `node_modules` resolution**
 - **Modern JavaScript**: All ES2015+ features via V8 engine

@@ -107,6 +107,9 @@ Built-in APIs are located in `core/src/builtins/` and organized by standards bod
 **Node.js Compatible** (`node/`):
 - **fs_impl.rs / fs.js**: File system API (node:fs/promises module)
 - **process_impl.rs / process.js**: process.env, process.argv, process.cwd(), process.exit(), process.stdout, process.stderr, process.stdin
+- **buffer_impl.rs / buffer.js**: Node.js Buffer API (node:buffer module)
+- **dgram_impl.rs / dgram.js**: UDP/Datagram sockets API (node:dgram module)
+- **events.js**: Node.js EventEmitter wrapper around WHATWG EventTarget
 
 **Polyfills** (`polyfills/`):
 - **date_locale.js**: Date.prototype.toLocaleString() and related methods
@@ -138,7 +141,7 @@ Built-in APIs are located in `core/src/builtins/` and organized by standards bod
 - **`core/tests/test_conformance_*.rs`**: WHATWG/W3C spec conformance tests
   - `test_conformance_base64.rs`: Base64 encoding (29 tests)
   - `test_conformance_console.rs`: Console API (13 tests)
-  - `test_conformance_crypto.rs`: Crypto API (17 tests)
+  - `test_conformance_crypto.rs`: Crypto API (34 tests)
   - `test_conformance_event.rs`: Event and EventTarget (33 tests)
   - `test_conformance_fetch.rs`: Fetch API (32 tests)
   - `test_conformance_json_modules.rs`: JSON module imports (12 tests)
