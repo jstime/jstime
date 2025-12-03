@@ -374,17 +374,33 @@ impl JSTime {
     }
 
     /// Get property names of an object for REPL autocomplete.
-    /// The `obj_expr` parameter should be a valid JavaScript expression that evaluates to an object.
-    /// Returns a vector of property names on the object.
+    ///
+    /// The `obj_expr` parameter should be a valid JavaScript expression that evaluates to an object
+    /// (e.g., "Math", "console", "crypto.subtle").
+    ///
+    /// Returns a vector of property names on the object, including inherited properties.
+    ///
+    /// # Note
+    /// This method uses JavaScript `eval()` internally to evaluate the object expression.
+    /// This is intentional for REPL use where users already have full code execution capability.
+    /// Do not use this method with untrusted input in non-REPL contexts.
     pub fn get_property_names(&mut self, obj_expr: &str) -> Vec<String> {
-        // Escape backticks and backslashes in the expression to safely embed it
-        let escaped_expr = obj_expr.replace('\\', "\\\\").replace('`', "\\`");
+        // Validate the expression contains only safe characters for property access
+        // This prevents injection of arbitrary code through the expression
+        // Allowed: alphanumeric, underscore, dot (for property chains like crypto.subtle)
+        let is_safe_expr = obj_expr
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '.');
+
+        if !is_safe_expr || obj_expr.is_empty() {
+            return Vec::new();
+        }
 
         let script = format!(
             r#"
             (function() {{
                 try {{
-                    const obj = eval(`{escaped_expr}`);
+                    const obj = {obj_expr};
                     if (obj === null || obj === undefined) {{
                         return '';
                     }}

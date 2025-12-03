@@ -306,6 +306,9 @@ fn repl(mut jstime: jstime::JSTime) {
 
     impl Helper for JsCompleter {}
 
+    // Global values that don't have meaningful properties for completion
+    const JS_PRIMITIVES: &[&str] = &["undefined", "NaN", "Infinity"];
+
     // Helper function to refresh the completion cache
     fn refresh_cache(jstime: &mut jstime::JSTime, cache: &Arc<RwLock<CompletionCache>>) {
         let globals = jstime.get_global_names();
@@ -314,9 +317,7 @@ fn repl(mut jstime: jstime::JSTime) {
         let mut properties = FxHashMap::default();
         for name in &globals {
             // Skip keywords and primitives
-            if JS_KEYWORDS.contains(&name.as_str())
-                || ["undefined", "NaN", "Infinity"].contains(&name.as_str())
-            {
+            if JS_KEYWORDS.contains(&name.as_str()) || JS_PRIMITIVES.contains(&name.as_str()) {
                 continue;
             }
 

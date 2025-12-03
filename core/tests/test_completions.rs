@@ -188,4 +188,38 @@ mod completions {
 
         assert!(props.contains(&"digest".to_string()));
     }
+
+    #[test]
+    fn get_property_names_rejects_unsafe_expressions() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Expressions with special characters should be rejected
+        assert!(jstime.get_property_names("console;alert(1)").is_empty());
+        assert!(jstime.get_property_names("console()").is_empty());
+        assert!(jstime.get_property_names("console[0]").is_empty());
+        assert!(jstime.get_property_names("console + ''").is_empty());
+        assert!(jstime.get_property_names("'test'").is_empty());
+        assert!(jstime.get_property_names("1 + 1").is_empty());
+        assert!(jstime.get_property_names("").is_empty());
+    }
+
+    #[test]
+    fn get_property_names_allows_safe_expressions() {
+        let _setup_guard = common::setup();
+        let options = jstime::Options::default();
+        let mut jstime = jstime::JSTime::new(options);
+
+        // Safe expressions with alphanumeric, underscore, and dots should work
+        assert!(!jstime.get_property_names("Math").is_empty());
+        assert!(!jstime.get_property_names("console").is_empty());
+        assert!(!jstime.get_property_names("crypto.subtle").is_empty());
+
+        // Define an object with underscores
+        jstime
+            .run_script("globalThis.my_object = { test: 1 };", "test")
+            .unwrap();
+        assert!(!jstime.get_property_names("my_object").is_empty());
+    }
 }
