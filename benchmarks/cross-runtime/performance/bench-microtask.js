@@ -37,7 +37,8 @@ results.push({
   ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
 });
 
-// Test 3: Multiple microtasks per iteration
+// Test 3: Multiple microtasks per iteration (3 per iteration)
+const MULTI_OPS = ITERATIONS * 3;
 start = performance.now();
 for (let i = 0; i < ITERATIONS; i++) {
   queueMicrotask(() => {});
@@ -50,13 +51,16 @@ totalElapsed += elapsed;
 results.push({
   name: 'schedule_multiple',
   elapsed_ms: elapsed.toFixed(3),
-  ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
+  ops_per_ms: (MULTI_OPS / elapsed).toFixed(2)
 });
+
+// Total operations: test1 (ITERATIONS) + test2 (ITERATIONS) + test3 (ITERATIONS * 3)
+const totalOps = ITERATIONS + ITERATIONS + MULTI_OPS;
 
 console.log(JSON.stringify({
   test: 'microtask',
   iterations: ITERATIONS,
   elapsed_ms: totalElapsed.toFixed(3),
-  ops_per_ms: (ITERATIONS * results.length / totalElapsed).toFixed(2),
+  ops_per_ms: (totalOps / totalElapsed).toFixed(2),
   sub_tests: results
 }));

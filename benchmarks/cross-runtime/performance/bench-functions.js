@@ -145,10 +145,13 @@ results.push({
   ops_per_ms: (ITERATIONS / elapsed).toFixed(2)
 });
 
+// Calculate total operations: 7 tests with ITERATIONS, 1 test with RECURSIVE_ITERATIONS
+const totalOps = (ITERATIONS * 7) + RECURSIVE_ITERATIONS;
+
 console.log(JSON.stringify({
   test: 'functions',
   iterations: ITERATIONS,
   elapsed_ms: totalElapsed.toFixed(3),
-  ops_per_ms: (ITERATIONS * (results.length - 1) / totalElapsed).toFixed(2),
+  ops_per_ms: (totalOps / totalElapsed).toFixed(2),
   sub_tests: results
 }));
