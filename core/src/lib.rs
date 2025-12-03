@@ -349,6 +349,70 @@ impl JSTime {
         let event_loop = event_loop::get_event_loop(&mut scope);
         event_loop.borrow_mut().run(&mut scope);
     }
+
+    /// Get all global property names for REPL autocomplete.
+    /// Returns a vector of property names on the global object (globalThis).
+    pub fn get_global_names(&mut self) -> Vec<String> {
+        let script = r#"
+            (function() {
+                const names = [];
+                // Get own properties of globalThis
+                names.push(...Object.getOwnPropertyNames(globalThis));
+                // Sort and deduplicate
+                return [...new Set(names)].sort().join('\n');
+            })()
+        "#;
+
+        match self.run_script_no_event_loop(script, "__repl_get_globals__") {
+            Ok(result) => result
+                .lines()
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect(),
+            Err(_) => Vec::new(),
+        }
+    }
+
+    /// Get property names of an object for REPL autocomplete.
+    /// The `obj_expr` parameter should be a valid JavaScript expression that evaluates to an object.
+    /// Returns a vector of property names on the object.
+    pub fn get_property_names(&mut self, obj_expr: &str) -> Vec<String> {
+        // Escape backticks and backslashes in the expression to safely embed it
+        let escaped_expr = obj_expr.replace('\\', "\\\\").replace('`', "\\`");
+
+        let script = format!(
+            r#"
+            (function() {{
+                try {{
+                    const obj = eval(`{escaped_expr}`);
+                    if (obj === null || obj === undefined) {{
+                        return '';
+                    }}
+                    const names = new Set();
+                    // Walk the prototype chain to get all properties
+                    let current = obj;
+                    while (current !== null) {{
+                        Object.getOwnPropertyNames(current).forEach(n => names.add(n));
+                        current = Object.getPrototypeOf(current);
+                    }}
+                    // Also get symbol properties converted to strings (like [Symbol.iterator])
+                    return [...names].sort().join('\n');
+                }} catch (e) {{
+                    return '';
+                }}
+            }})()
+        "#
+        );
+
+        match self.run_script_no_event_loop(&script, "__repl_get_props__") {
+            Ok(result) => result
+                .lines()
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect(),
+            Err(_) => Vec::new(),
+        }
+    }
 }
 
 impl Drop for JSTime {
