@@ -6,8 +6,10 @@ This document describes the module system support in jstime, including ES Module
 
 - [ES Modules](#es-modules)
 - [JSON Modules](#json-modules)
-- [WebAssembly](#webassembly)
+- [WebAssembly Modules](#webassembly-modules)
+- [WebAssembly API](#webassembly-api)
 
+## WebAssembly API
 
 jstime provides full support for [WebAssembly](https://webassembly.org/) through the V8 engine, allowing you to run high-performance compiled modules alongside JavaScript code.
 
@@ -201,6 +203,84 @@ asc module.ts -o module.wasm
 ```
 
 Then you can load and run the compiled `.wasm` files in jstime.
+
+## WebAssembly Modules
+
+jstime supports importing WebAssembly `.wasm` files directly as ES modules. This provides a clean, modern way to load and use WebAssembly code without manually dealing with compilation and instantiation.
+
+### Importing WebAssembly Files
+
+You can import `.wasm` files using standard ES module syntax:
+
+```javascript
+// Import a WebAssembly module
+import wasmModule from './module.wasm';
+
+// Use the exported functions
+const result = wasmModule.add(5, 7);
+console.log(result); // 12
+```
+
+### How It Works
+
+When you import a `.wasm` file:
+
+1. The WebAssembly binary is read from the file system
+2. The module is synchronously compiled using `WebAssembly.Module`
+3. An instance is created using `WebAssembly.Instance`
+4. The instance's `exports` object is exported as the default export
+
+### Examples
+
+**Basic Function Call:**
+```javascript
+// math.wasm exports an 'add' function
+import math from './math.wasm';
+
+console.log(math.add(10, 20)); // 30
+```
+
+**Multiple Exports:**
+```javascript
+// calc.wasm exports multiple functions
+import calc from './calc.wasm';
+
+console.log(calc.add(5, 3));      // 8
+console.log(calc.multiply(4, 7)); // 28
+console.log(calc.subtract(10, 3)); // 7
+```
+
+**Re-exporting WebAssembly:**
+```javascript
+// wrapper.js - re-export WebAssembly module
+export { default as math } from './math.wasm';
+
+// main.js
+import { math } from './wrapper.js';
+console.log(math.add(1, 2)); // 3
+```
+
+**Dynamic Import:**
+```javascript
+// Load WebAssembly module dynamically
+const wasmModule = await import('./module.wasm');
+console.log(wasmModule.default.add(5, 5)); // 10
+```
+
+### Features
+
+- ✅ **ES Module Syntax**: Import `.wasm` files like any other module
+- ✅ **Default Export**: WebAssembly exports are available as the default export
+- ✅ **Module Caching**: Imported modules are cached for efficiency
+- ✅ **Relative Paths**: Use relative paths from the importing file
+- ✅ **Dynamic Imports**: Support for `import()` expressions
+- ✅ **Re-exports**: Can be re-exported from JavaScript modules
+
+### Notes
+
+- WebAssembly modules are compiled synchronously at import time
+- The default export is the `exports` object from the WebAssembly instance
+- If the WebAssembly module requires imports, you'll need to use the WebAssembly API directly
 
 ## ES Modules
 
