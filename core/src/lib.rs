@@ -380,10 +380,10 @@ impl JSTime {
     ///
     /// Returns a vector of property names on the object, including inherited properties.
     ///
-    /// # Note
-    /// This method uses JavaScript `eval()` internally to evaluate the object expression.
-    /// This is intentional for REPL use where users already have full code execution capability.
-    /// Do not use this method with untrusted input in non-REPL contexts.
+    /// # Safety
+    /// This method validates input to only allow safe property access expressions
+    /// (alphanumeric characters, underscores, and dots). Expressions with special
+    /// characters are rejected and return an empty vector.
     pub fn get_property_names(&mut self, obj_expr: &str) -> Vec<String> {
         // Validate the expression contains only safe characters for property access
         // This prevents injection of arbitrary code through the expression
