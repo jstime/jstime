@@ -349,6 +349,86 @@ impl JSTime {
         let event_loop = event_loop::get_event_loop(&mut scope);
         event_loop.borrow_mut().run(&mut scope);
     }
+
+    /// Get all global property names for REPL autocomplete.
+    /// Returns a vector of property names on the global object (globalThis).
+    pub fn get_global_names(&mut self) -> Vec<String> {
+        let script = r#"
+            (function() {
+                const names = [];
+                // Get own properties of globalThis
+                names.push(...Object.getOwnPropertyNames(globalThis));
+                // Sort and deduplicate
+                return [...new Set(names)].sort().join('\n');
+            })()
+        "#;
+
+        match self.run_script_no_event_loop(script, "__repl_get_globals__") {
+            Ok(result) => result
+                .lines()
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect(),
+            Err(_) => Vec::new(),
+        }
+    }
+
+    /// Get property names of an object for REPL autocomplete.
+    ///
+    /// The `obj_expr` parameter should be a valid JavaScript expression that evaluates to an object
+    /// (e.g., "Math", "console", "crypto.subtle").
+    ///
+    /// Returns a vector of property names on the object, including inherited properties.
+    ///
+    /// # Safety
+    /// This method validates input to only allow safe property access expressions
+    /// (alphanumeric characters, underscores, and dots). Expressions with special
+    /// characters are rejected and return an empty vector.
+    pub fn get_property_names(&mut self, obj_expr: &str) -> Vec<String> {
+        // Validate the expression contains only safe characters for property access
+        // This prevents injection of arbitrary code through the expression
+        // Allowed: alphanumeric, underscore, dot (for property chains like crypto.subtle)
+        let is_safe_expr = obj_expr
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '.');
+
+        if !is_safe_expr || obj_expr.is_empty() {
+            return Vec::new();
+        }
+
+        let script = format!(
+            r#"
+            (function() {{
+                try {{
+                    const obj = {obj_expr};
+                    if (obj === null || obj === undefined) {{
+                        return '';
+                    }}
+                    const names = new Set();
+                    // Walk the prototype chain to get all properties
+                    let current = obj;
+                    while (current !== null) {{
+                        Object.getOwnPropertyNames(current).forEach(n => names.add(n));
+                        current = Object.getPrototypeOf(current);
+                    }}
+                    // Also get symbol properties converted to strings (like [Symbol.iterator])
+                    return [...names].sort().join('\n');
+                }} catch (e) {{
+                    return '';
+                }}
+            }})()
+        "#
+        );
+
+        match self.run_script_no_event_loop(&script, "__repl_get_props__") {
+            Ok(result) => result
+                .lines()
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect(),
+            Err(_) => Vec::new(),
+        }
+    }
 }
 
 impl Drop for JSTime {

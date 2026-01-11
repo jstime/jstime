@@ -131,6 +131,7 @@ fn main() {
 
 fn repl(mut jstime: jstime::JSTime) {
     use dirs::home_dir;
+    use rustc_hash::FxHashMap;
     use rustyline::Helper;
     use rustyline::highlight::Highlighter;
     use rustyline::hint::Hinter;
@@ -142,12 +143,80 @@ fn repl(mut jstime: jstime::JSTime) {
         history::DefaultHistory,
     };
     use std::sync::mpsc::{RecvTimeoutError, channel};
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, Mutex, RwLock};
     use std::thread;
     use std::time::Duration;
 
-    // JavaScript completer for REPL
-    struct JsCompleter;
+    /// Cached completion data for the REPL.
+    /// This is populated at startup and refreshed after each command.
+    struct CompletionCache {
+        /// Global names (properties of globalThis)
+        globals: Vec<String>,
+        /// Cached property names for known objects (lazily populated)
+        properties: FxHashMap<String, Vec<String>>,
+    }
+
+    impl CompletionCache {
+        fn new() -> Self {
+            CompletionCache {
+                globals: Vec::new(),
+                properties: FxHashMap::default(),
+            }
+        }
+    }
+
+    // JavaScript keywords that should always be available for completion
+    const JS_KEYWORDS: &[&str] = &[
+        "const",
+        "let",
+        "var",
+        "function",
+        "return",
+        "if",
+        "else",
+        "for",
+        "while",
+        "break",
+        "continue",
+        "switch",
+        "case",
+        "default",
+        "try",
+        "catch",
+        "finally",
+        "throw",
+        "new",
+        "this",
+        "typeof",
+        "instanceof",
+        "in",
+        "of",
+        "delete",
+        "void",
+        "async",
+        "await",
+        "class",
+        "extends",
+        "static",
+        "import",
+        "export",
+        "from",
+        "true",
+        "false",
+        "null",
+        "undefined",
+    ];
+
+    /// JavaScript completer for REPL that uses dynamically discovered completions.
+    struct JsCompleter {
+        cache: Arc<RwLock<CompletionCache>>,
+    }
+
+    impl JsCompleter {
+        fn new(cache: Arc<RwLock<CompletionCache>>) -> Self {
+            JsCompleter { cache }
+        }
+    }
 
     impl Completer for JsCompleter {
         type Candidate = Pair;
@@ -160,217 +229,41 @@ fn repl(mut jstime: jstime::JSTime) {
         ) -> rustyline::Result<(usize, Vec<Pair>)> {
             // Check if we're completing a property (after a dot)
             if let Some(dot_pos) = line[..pos].rfind('.') {
-                // Get the object name before the dot
+                // Get the object expression before the dot
                 let before_dot = &line[..dot_pos];
                 let obj_start = before_dot
-                    .rfind(|c: char| !c.is_alphanumeric() && c != '_')
+                    .rfind(|c: char| !c.is_alphanumeric() && c != '_' && c != '.')
                     .map(|i| i + 1)
                     .unwrap_or(0);
-                let obj_name = &before_dot[obj_start..];
+                let obj_expr = &before_dot[obj_start..];
 
                 // Get the property prefix after the dot
                 let property_start = dot_pos + 1;
                 let property_prefix = &line[property_start..pos];
 
-                // Property completions for known objects
-                // NOTE: When adding new built-in APIs to jstime, update this list.
-                // See also: copilot-instructions.md "Adding New Built-ins" section.
-                let properties = match obj_name {
-                    "console" => vec![
-                        "log",
-                        "error",
-                        "warn",
-                        "info",
-                        "debug",
-                        "trace",
-                        "assert",
-                        "clear",
-                        "count",
-                        "countReset",
-                        "dir",
-                        "dirxml",
-                        "group",
-                        "groupCollapsed",
-                        "groupEnd",
-                        "table",
-                        "time",
-                        "timeEnd",
-                        "timeLog",
-                        "timeStamp",
-                    ],
-                    "Math" => vec![
-                        "abs", "acos", "acosh", "asin", "asinh", "atan", "atan2", "atanh", "cbrt",
-                        "ceil", "clz32", "cos", "cosh", "exp", "expm1", "floor", "fround", "hypot",
-                        "imul", "log", "log10", "log1p", "log2", "max", "min", "pow", "random",
-                        "round", "sign", "sin", "sinh", "sqrt", "tan", "tanh", "trunc", "E",
-                        "LN10", "LN2", "LOG10E", "LOG2E", "PI", "SQRT1_2", "SQRT2",
-                    ],
-                    "Array" => vec!["from", "isArray", "of", "prototype"],
-                    "Object" => vec![
-                        "assign",
-                        "create",
-                        "defineProperty",
-                        "defineProperties",
-                        "entries",
-                        "freeze",
-                        "fromEntries",
-                        "getOwnPropertyDescriptor",
-                        "getOwnPropertyDescriptors",
-                        "getOwnPropertyNames",
-                        "getOwnPropertySymbols",
-                        "getPrototypeOf",
-                        "is",
-                        "isExtensible",
-                        "isFrozen",
-                        "isSealed",
-                        "keys",
-                        "preventExtensions",
-                        "prototype",
-                        "seal",
-                        "setPrototypeOf",
-                        "values",
-                    ],
-                    "String" => vec!["fromCharCode", "fromCodePoint", "raw", "prototype"],
-                    "Number" => vec![
-                        "isFinite",
-                        "isInteger",
-                        "isNaN",
-                        "isSafeInteger",
-                        "parseFloat",
-                        "parseInt",
-                        "EPSILON",
-                        "MAX_SAFE_INTEGER",
-                        "MAX_VALUE",
-                        "MIN_SAFE_INTEGER",
-                        "MIN_VALUE",
-                        "NEGATIVE_INFINITY",
-                        "POSITIVE_INFINITY",
-                        "NaN",
-                        "prototype",
-                    ],
-                    "Promise" => vec![
-                        "all",
-                        "allSettled",
-                        "any",
-                        "race",
-                        "reject",
-                        "resolve",
-                        "prototype",
-                    ],
-                    "JSON" => vec!["parse", "stringify"],
-                    "Date" => vec!["now", "parse", "UTC", "prototype"],
-                    "RegExp" => vec!["prototype"],
-                    "Error" => vec!["prototype"],
-                    "URL" => vec!["createObjectURL", "revokeObjectURL", "prototype"],
-                    "URLSearchParams" => vec!["prototype"],
-                    "Headers" => vec![
-                        "append", "delete", "entries", "forEach", "get", "has", "keys", "set",
-                        "values",
-                    ],
-                    "Request" => vec![
-                        "body",
-                        "cache",
-                        "clone",
-                        "credentials",
-                        "headers",
-                        "integrity",
-                        "method",
-                        "mode",
-                        "redirect",
-                        "referrer",
-                        "url",
-                    ],
-                    "Response" => vec![
-                        "body",
-                        "bodyUsed",
-                        "clone",
-                        "headers",
-                        "json",
-                        "ok",
-                        "redirected",
-                        "status",
-                        "statusText",
-                        "text",
-                        "type",
-                        "url",
-                    ],
-                    // jstime WHATWG APIs
-                    "Event" => vec![
-                        "type",
-                        "target",
-                        "currentTarget",
-                        "eventPhase",
-                        "bubbles",
-                        "cancelable",
-                        "defaultPrevented",
-                        "composed",
-                        "isTrusted",
-                        "timeStamp",
-                        "stopPropagation",
-                        "stopImmediatePropagation",
-                        "preventDefault",
-                        "NONE",
-                        "CAPTURING_PHASE",
-                        "AT_TARGET",
-                        "BUBBLING_PHASE",
-                    ],
-                    "EventTarget" => {
-                        vec!["addEventListener", "removeEventListener", "dispatchEvent"]
-                    }
-                    "TextEncoder" => vec!["encoding", "encode", "encodeInto"],
-                    "TextDecoder" => vec!["encoding", "fatal", "ignoreBOM", "decode"],
-                    "ReadableStream" => vec!["locked", "cancel", "getReader"],
-                    "WritableStream" => vec!["locked", "abort", "getWriter"],
-                    "TransformStream" => vec!["readable", "writable"],
-                    // jstime W3C APIs
-                    "crypto" => vec!["getRandomValues", "randomUUID", "subtle"],
-                    "subtle" => vec![
-                        "digest",
-                        "sign",
-                        "verify",
-                        "encrypt",
-                        "decrypt",
-                        "generateKey",
-                        "importKey",
-                        "exportKey",
-                    ],
-                    "performance" => vec!["now", "timeOrigin", "toJSON"],
-                    // jstime Node.js compatible APIs
-                    "process" => vec!["env", "argv", "cwd", "exit", "stdout", "stderr", "stdin"],
-                    // WebAssembly
-                    "WebAssembly" => vec![
-                        "compile",
-                        "compileStreaming",
-                        "instantiate",
-                        "instantiateStreaming",
-                        "validate",
-                        "Module",
-                        "Instance",
-                        "Memory",
-                        "Table",
-                        "Global",
-                        "CompileError",
-                        "LinkError",
-                        "RuntimeError",
-                    ],
-                    _ => vec![],
-                };
+                // Look up cached properties for this object
+                let cache = self.cache.read().unwrap();
+                let properties = cache.properties.get(obj_expr);
 
-                let mut completions: Vec<Pair> = properties
-                    .iter()
-                    .filter(|p| p.starts_with(property_prefix))
-                    .map(|p| Pair {
-                        display: p.to_string(),
-                        replacement: p.to_string(),
-                    })
-                    .collect();
+                let mut completions: Vec<Pair> = if let Some(props) = properties {
+                    props
+                        .iter()
+                        .filter(|p| p.starts_with(property_prefix))
+                        .map(|p| Pair {
+                            display: p.to_string(),
+                            replacement: p.to_string(),
+                        })
+                        .collect()
+                } else {
+                    Vec::new()
+                };
 
                 completions.sort_by(|a, b| a.display.cmp(&b.display));
 
                 return Ok((property_start, completions));
             }
 
-            // Regular keyword completion (no dot)
+            // Regular keyword/global completion (no dot)
             let start = line[..pos]
                 .rfind(|c: char| !c.is_alphanumeric() && c != '_' && c != '.')
                 .map(|i| i + 1)
@@ -378,120 +271,22 @@ fn repl(mut jstime: jstime::JSTime) {
 
             let word = &line[start..pos];
 
-            // Common JavaScript globals and jstime-specific APIs
-            // NOTE: When adding new built-in APIs to jstime, update this list.
-            // See also: copilot-instructions.md "Adding New Built-ins" section.
-            let keywords = vec![
-                // JavaScript built-in objects
-                "Array",
-                "Boolean",
-                "Date",
-                "Error",
-                "Function",
-                "Math",
-                "Number",
-                "Object",
-                "Promise",
-                "RegExp",
-                "String",
-                "Symbol",
-                "JSON",
-                "WebAssembly",
-                // Common globals
-                "console",
-                "undefined",
-                "null",
-                "true",
-                "false",
-                "Infinity",
-                "NaN",
-                "isNaN",
-                "isFinite",
-                "parseInt",
-                "parseFloat",
-                "encodeURI",
-                "decodeURI",
-                "encodeURIComponent",
-                "decodeURIComponent",
-                // jstime WHATWG APIs
-                "setTimeout",
-                "setInterval",
-                "clearTimeout",
-                "clearInterval",
-                "queueMicrotask",
-                "URL",
-                "URLSearchParams",
-                "atob",
-                "btoa",
-                "structuredClone",
-                "TextEncoder",
-                "TextDecoder",
-                "Event",
-                "EventTarget",
-                "ReadableStream",
-                "ReadableStreamDefaultReader",
-                "WritableStream",
-                "WritableStreamDefaultWriter",
-                "TransformStream",
-                // jstime W3C APIs
-                "crypto",
-                "Crypto",
-                "SubtleCrypto",
-                "performance",
-                // jstime Node.js compatible APIs
-                "process",
-                // Fetch API
-                "fetch",
-                "Headers",
-                "Request",
-                "Response",
-                // Common keywords
-                "const",
-                "let",
-                "var",
-                "function",
-                "return",
-                "if",
-                "else",
-                "for",
-                "while",
-                "break",
-                "continue",
-                "switch",
-                "case",
-                "default",
-                "try",
-                "catch",
-                "finally",
-                "throw",
-                "new",
-                "this",
-                "typeof",
-                "instanceof",
-                "in",
-                "of",
-                "delete",
-                "void",
-                "async",
-                "await",
-                "class",
-                "extends",
-                "static",
-                "import",
-                "export",
-                "from",
-            ];
-
-            let mut completions: Vec<Pair> = keywords
+            // Combine JavaScript keywords with dynamically discovered globals
+            let cache = self.cache.read().unwrap();
+            let mut completions: Vec<Pair> = JS_KEYWORDS
                 .iter()
+                .map(|s| s.to_string())
+                .chain(cache.globals.iter().cloned())
                 .filter(|k| k.starts_with(word))
                 .map(|k| Pair {
-                    display: k.to_string(),
-                    replacement: k.to_string(),
+                    display: k.clone(),
+                    replacement: k,
                 })
                 .collect();
 
+            // Remove duplicates and sort
             completions.sort_by(|a, b| a.display.cmp(&b.display));
+            completions.dedup_by(|a, b| a.display == b.display);
 
             Ok((start, completions))
         }
@@ -511,13 +306,51 @@ fn repl(mut jstime: jstime::JSTime) {
 
     impl Helper for JsCompleter {}
 
+    // Global values that don't have meaningful properties for completion
+    const JS_PRIMITIVES: &[&str] = &["undefined", "NaN", "Infinity"];
+
+    // Helper function to refresh the completion cache
+    fn refresh_cache(jstime: &mut jstime::JSTime, cache: &Arc<RwLock<CompletionCache>>) {
+        let globals = jstime.get_global_names();
+
+        // Get properties for each global that looks like an object
+        let mut properties = FxHashMap::default();
+        for name in &globals {
+            // Skip keywords and primitives
+            if JS_KEYWORDS.contains(&name.as_str()) || JS_PRIMITIVES.contains(&name.as_str()) {
+                continue;
+            }
+
+            let props = jstime.get_property_names(name);
+            if !props.is_empty() {
+                properties.insert(name.clone(), props);
+            }
+        }
+
+        // Also get nested properties for crypto.subtle
+        let subtle_props = jstime.get_property_names("crypto.subtle");
+        if !subtle_props.is_empty() {
+            properties.insert("crypto.subtle".to_string(), subtle_props);
+        }
+
+        // Update the cache
+        let mut cache_guard = cache.write().unwrap();
+        cache_guard.globals = globals;
+        cache_guard.properties = properties;
+    }
+
+    // Initialize the completion cache
+    let cache = Arc::new(RwLock::new(CompletionCache::new()));
+    refresh_cache(&mut jstime, &cache);
+
+    let completer = JsCompleter::new(Arc::clone(&cache));
     let mut rl = Editor::<JsCompleter, DefaultHistory>::with_config(
         rustyline::Config::builder()
             .completion_type(rustyline::CompletionType::List)
             .build(),
     )
     .unwrap();
-    rl.set_helper(Some(JsCompleter));
+    rl.set_helper(Some(completer));
     println!("Welcome to jstime v{}!", env!("CARGO_PKG_VERSION"));
 
     let history_path = home_dir().map(|mut p| {
@@ -573,6 +406,9 @@ fn repl(mut jstime: jstime::JSTime) {
                     Err(e) => eprintln!("Uncaught: {e}"),
                 }
                 jstime.tick_event_loop();
+
+                // Refresh completion cache to pick up any new global variables
+                refresh_cache(&mut jstime, &cache);
             }
             Err(ReadlineError::Interrupted) => {
                 let now = std::time::Instant::now();
