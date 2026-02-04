@@ -35,8 +35,8 @@ See [cross-runtime/README.md](./cross-runtime/README.md) for detailed documentat
 Available runtimes: jstime node
 
 Compliance Test Results:
-  jstime    : 7/7 passed ✓
-  node      : 7/7 passed ✓
+  jstime    : 14/14 passed ✓
+  node      : 14/14 passed ✓
 
 Performance Comparison:
   arithmetic:          jstime:0.979ms★ node:2.562ms
