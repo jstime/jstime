@@ -18,7 +18,7 @@ ring = "0.17"
 align-data = "0.1.0"
 smallvec = "1.13"
 base64-simd = "0.8"
-getrandom = "0.3"
+getrandom = "0.4"
 
 [dev-dependencies]
 serde_json = "1.0"
