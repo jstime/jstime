@@ -49,7 +49,7 @@ fn atob(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
     };
 
     // Fast path for empty strings
-    let str_len = input_str.length() as usize;
+    let str_len = input_str.length();
     if str_len == 0 {
         let result = v8::String::new(scope, "").unwrap();
         rv.set(result.into());
@@ -115,7 +115,7 @@ fn btoa(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v
         }
     };
 
-    let v8_str_len = input_str.length() as usize;
+    let v8_str_len = input_str.length();
 
     // Fast path: if string contains only one-byte (Latin-1) characters, read directly
     if input_str.contains_only_onebyte() {
