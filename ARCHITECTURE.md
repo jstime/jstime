@@ -28,7 +28,7 @@ jstime is a minimal JavaScript runtime built on top of the V8 JavaScript engine.
 ### Technology Stack
 
 - **Language**: Rust (2024 edition)
-- **JavaScript Engine**: V8 (v142.2.0)
+- **JavaScript Engine**: V8 via the `v8` crate (see `core/Cargo.toml` for the current version)
 - **Build System**: Cargo
 - **Testing**: Rust's built-in test framework
 
@@ -287,7 +287,7 @@ Import Specifier → Resolve Algorithm → Absolute Path → Load & Compile
 1. Relative imports: Resolve relative to importing file
 2. Absolute paths: Use as-is
 3. Bare specifiers: Resolved from `node_modules` directories (Node.js-compatible)
-4. Package imports: `#imports` field in package.json supported
+4. Package imports: `imports` field in `package.json` supported
 
 ### JSON Modules
 

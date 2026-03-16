@@ -4,11 +4,11 @@ Thank you for considering contributing to jstime! This guide will help you get s
 
 ## Quick Links
 
-* [Architecture Guide](./ARCHITECTURE.md) - Understand how jstime is structured
-* [Code of Conduct](#code-of-conduct)
-* [Getting Started](#getting-started)
-* [Development Workflow](#development-workflow)
-* [Pull Requests](#pull-requests)
+- [Architecture Guide](./ARCHITECTURE.md) - Understand how jstime is structured
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [Development Workflow](#development-workflow)
+- [Pull Requests](#pull-requests)
 
 ## Getting Started
 
@@ -63,7 +63,7 @@ cargo test                             # Run tests
 
 See [core/src/builtins/README.md](./core/src/builtins/README.md) for detailed instructions on adding new JavaScript APIs.
 
-**Quick overview:**
+**Quick Overview:**
 1. Create `your_api_impl.rs` (Rust implementation)
 2. Create `your_api.js` (JavaScript polyfill)
 3. Register in `builtins/mod.rs`
@@ -96,18 +96,18 @@ expected to abide by the Code of Conduct. Violating the Code of Conduct
 will result in action ranging from a conversation about behavior to
 being permanently banned from the jstime organization.
 
-### The Spirit of the law
+### The Spirit of the Law
 
 Not all interactions that require remediation are clear violations
 of the Code of Conduct. Project maintainers will take appropriate
-action, when neccessary, to ensure the jstime community is a space
+action, when necessary, to ensure the jstime community is a space
 where individuals can comfortably collaborate and bring their
 entire selves. Unfortunately, if bringing your entire self is
 infringing on others from doing the same, you may be asked to leave.
 
 ## Pull Requests
 
-If you would like to make a change open a Pull Request.
+If you would like to make a change, open a Pull Request.
 
 Project maintainers will do their best to review and land code
 in a reasonable time frame.
