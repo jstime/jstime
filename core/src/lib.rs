@@ -19,7 +19,7 @@ pub fn init(v8_flags: Option<Vec<String>>) {
         let icu_data =
             align_data::include_aligned!(align_data::Align16, "../third_party/icu/icudtl.dat");
         // Ignore errors - ICU data initialization is best-effort
-        let _ = v8::icu::set_common_data_74(icu_data);
+        let _ = v8::icu::set_common_data_77(icu_data);
         // Set default locale to en_US
         v8::icu::set_default_locale("en_US");
     });
