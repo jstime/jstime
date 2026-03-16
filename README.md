@@ -1,6 +1,6 @@
 # jstime
 
-> Another JavaScript Runtime
+> Another JavaScript runtime
 
 ![jstime logo. Kinda looks like shrek](./logo.png)
 
@@ -8,13 +8,13 @@
 
 You can find the latest jstime binary on the [release page](https://github.com/jstime/jstime/releases)
 
-Alternatively you can install with cargo
+Alternatively, you can install it with Cargo:
 
 ```bash
 $ cargo install jstime
 ```
 
-### As a repl
+### As a REPL
 
 ```bash
 $ jstime
@@ -45,10 +45,9 @@ $ jstime --warmup 10 benchmark.js
 
 This runs the script 10 times before the actual execution, allowing TurboFan to profile and optimize hot code paths.
 
-## Embed it!
+## Embed it
 
-Check out the [README.md for jstime-core](./core/README.md) for
-instructions on how to embed jstime in your rust application!
+Check out the [`jstime_core` README](./core/README.md) for instructions on how to embed jstime in your Rust application.
 
 ## Features
 
