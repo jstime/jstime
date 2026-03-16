@@ -141,18 +141,22 @@ Criterion will show performance differences between the two runs.
 
 To measure the impact of snapshots:
 
-1. Create a baseline with snapshots (current implementation):
+1. Run the startup benchmark group:
    ```bash
-   cargo bench startup -- --save-baseline with-snapshots
+   cargo bench startup
    ```
 
-2. To test without snapshots, temporarily modify `cli/main.rs` to use `Options::new(None)`:
-   ```bash
-   # Modify code to disable snapshots
-   cargo bench startup -- --baseline with-snapshots
-   ```
+2. Compare the startup entries in the Criterion report by opening `target/criterion/report/index.html` in a browser.
 
-This will show the performance improvement from V8 snapshots.
+The `startup` benchmark group already includes both `new_instance_with_snapshot` and `new_instance_without_snapshot`, so no code changes are required to compare them.
+
+If you want to compare startup performance across branches or commits, you can still use Criterion baselines:
+
+```bash
+cargo bench startup -- --save-baseline startup-baseline
+# switch branches or make changes
+cargo bench startup -- --baseline startup-baseline
+```
 
 ## Tips for Accurate Benchmarking
 

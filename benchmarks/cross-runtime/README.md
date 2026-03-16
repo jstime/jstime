@@ -165,7 +165,7 @@ Available runtimes: jstime node deno
 
 jstime
   Path:    /path/to/jstime/target/release/jstime
-  Version: jstime 0.63.0
+  Version: jstime <version>
 node
   Path:    /usr/local/bin/node
   Version: v20.19.5
