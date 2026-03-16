@@ -851,6 +851,7 @@ dependencies = [
  "dirs",
  "jstime_core",
  "predicates",
+ "rustc-hash",
  "rustyline",
  "structopt",
 ]
