@@ -809,10 +809,68 @@ fn resolve<'a>(
     let requested_string = v8::String::new(scope, &requested_abs_path).unwrap();
     let origin = crate::js_loading::create_script_origin(scope, requested_string, true);
 
-    // Check if this is a JSON file
+    // Check file type by extension
     let is_json = requested_abs_path.ends_with(".json");
+    let is_wasm = requested_abs_path.ends_with(".wasm");
 
-    let js_src = if is_json {
+    let js_src = if is_wasm {
+        // For WebAssembly files, read the binary content and create a synthetic module
+        match std::fs::read(&requested_abs_path) {
+            Ok(wasm_bytes) => {
+                // Encode binary as base64 to embed in JavaScript
+                use base64_simd::STANDARD;
+                let base64_encoded = STANDARD.encode_to_string(&wasm_bytes);
+
+                // Create a synthetic module that:
+                // 1. Decodes the base64 to get the WebAssembly bytes
+                // 2. Synchronously compiles and instantiates the module
+                // 3. Exports the instance's exports as the default export
+                //
+                // Users can import like:
+                //   import wasmExports from './module.wasm';
+                //   const result = wasmExports.add(1, 2);
+                //
+                // Error handling is included to provide clear error messages
+                // if compilation or instantiation fails.
+                format!(
+                    r#"const __wasm_base64 = "{}";
+const __wasm_binary = Uint8Array.from(atob(__wasm_base64), c => c.charCodeAt(0));
+let __wasm_module, __wasm_instance;
+try {{
+    __wasm_module = new WebAssembly.Module(__wasm_binary);
+}} catch (e) {{
+    throw new WebAssembly.CompileError(`Failed to compile WebAssembly module '{}': ${{e.message}}`);
+}}
+try {{
+    __wasm_instance = new WebAssembly.Instance(__wasm_module);
+}} catch (e) {{
+    throw new WebAssembly.LinkError(`Failed to instantiate WebAssembly module '{}': ${{e.message}}`);
+}}
+export default __wasm_instance.exports;"#,
+                    base64_encoded,
+                    requested_abs_path
+                        .replace('\\', "\\\\")
+                        .replace('"', "\\\""),
+                    requested_abs_path
+                        .replace('\\', "\\\\")
+                        .replace('"', "\\\"")
+                )
+            }
+            Err(e) => {
+                let msg = v8::String::new(
+                    scope,
+                    &format!(
+                        "Cannot read WebAssembly file '{}': {}",
+                        requested_abs_path, e
+                    ),
+                )
+                .unwrap();
+                let exception = v8::Exception::error(scope, msg);
+                scope.throw_exception(exception);
+                return None;
+            }
+        }
+    } else if is_json {
         // For JSON files, read the content and wrap it in a module that exports it as default
         match read_source_cached(&requested_abs_path) {
             Ok(json_content) => {
