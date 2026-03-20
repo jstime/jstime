@@ -9,7 +9,7 @@ edition = "2024"
 repository = "https://github.com/jstime/jstime"
 
 [dependencies]
-v8 = "146.8.0"
+v8 = "146.9.0"
 ada-url = "3.4"
 ureq = "3.2"
 rustc-hash = "2.1"
