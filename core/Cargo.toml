@@ -10,7 +10,7 @@ repository = "https://github.com/jstime/jstime"
 
 [dependencies]
 v8 = "150.0.0"
-ada-url = "3.4"
+ada-url = "4.0"
 ureq = "3.3"
 rustc-hash = "2.1"
 filetime = "0.2"
