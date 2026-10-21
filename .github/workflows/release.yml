@@ -42,7 +42,7 @@ jobs:
           echo "release_version=$RELEASE_VERSION" >> $GITHUB_ENV
           echo "asset_name=${{ matrix.asset_name }}-${RELEASE_VERSION}${{ matrix.asset_extension }}" >> $GITHUB_ENV
       shell: bash
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
+    - uses: actions-rust-lang/setup-rust-toolchain@v2
       with:
         toolchain: stable
         rustflags: ""
@@ -94,7 +94,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           toolchain: stable
           rustflags: ""
